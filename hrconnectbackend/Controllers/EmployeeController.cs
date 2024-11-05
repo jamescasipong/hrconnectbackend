@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using hrconnectbackend.Repositories;
 using hrconnectbackend.IRepositories;
+using AutoMapper;
+using hrconnectbackend.Models.DTOs;
 
 namespace hrconnectbackend.Controllers
 {
@@ -14,7 +16,12 @@ namespace hrconnectbackend.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeRepositories _employeeRepository;
-        public EmployeeController (IEmployeeRepositories employeeRepository) { _employeeRepository = employeeRepository; }
+        private readonly IMapper _mapper;
+        public EmployeeController (IEmployeeRepositories employeeRepository, IMapper mapper) 
+        { 
+            _employeeRepository = employeeRepository; 
+            _mapper = mapper; 
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -22,12 +29,14 @@ namespace hrconnectbackend.Controllers
             
             var employees = await _employeeRepository.GetAllEmployeesAsync();
 
+            var employeesDTO =  _mapper.Map<ICollection<EmployeeDTO>>(employees);
+
             if (employees.Count == 0)
             {
                 return NotFound();
             }
 
-            return Ok(employees);
+            return Ok(employeesDTO);
         }
 
         [HttpGet("{id}")]

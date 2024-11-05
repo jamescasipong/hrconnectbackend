@@ -1,4 +1,5 @@
-﻿using hrconnectbackend.Controllers;
+﻿using AutoMapper;
+using hrconnectbackend.Controllers;
 using hrconnectbackend.Data;
 using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;

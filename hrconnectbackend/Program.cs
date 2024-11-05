@@ -1,26 +1,16 @@
-using Microsoft.EntityFrameworkCore;
-using hrconnectbackend.Models;
+
+using AutoMapper;
 using hrconnectbackend.Data;
-using MongoDB.Driver.Core.Configuration;
-using hrconnectbackend.Repositories;
-using hrconnectbackend.IRepositories;
+using hrconnectbackend.Helper;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddScoped<IEmployeeRepositories, EmployeeRepositories>();
-builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAll",
-            builder =>
-            {
-                builder.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader();
-            });
-    });
 // Add services to the container.
+Services.CorsHandler(builder.Services);
+Services.IRepositories(builder.Services);
+Services.ProfileMapper(builder.Services);
 builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer("Data Source=Arisu;Initial Catalog=hrbackend;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False"));
-
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
