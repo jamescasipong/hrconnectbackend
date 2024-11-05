@@ -136,5 +136,3 @@ This project uses the following dependencies:
 ## Conclusion
 
 The HRConnect API is designed to simplify the management of employee data in an organization. By using this API, you can easily perform CRUD operations on employee records, manage attendance and leave applications, and track payroll, overtime, and other HR-related tasks.
-
----
