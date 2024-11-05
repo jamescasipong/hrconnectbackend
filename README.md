@@ -3,9 +3,8 @@
 
 ## Overview
 
-The HRConnect API provides a robust system to manage employee data, attendance, payroll, leave applications, and more. This API is built using C# and MongoDB for the backend database management. The core object model revolves around employees, departments, supervisors, and various HR-related activities.
+HRConnect API is a backend system built with ASP.NET Controller and SQL Server to manage employee data, attendance, payroll, leave applications, overtime, and more. This API provides essential functionalities for HR departments to streamline employee management processes and ensure smooth operations in organizations of any size.
 
-This README provides an overview of the `Employee` model in the HRConnect API, explaining its structure, relationships, and usage.
 
 ---
 
