@@ -1,0 +1,10 @@
+@hrconnectbackend_HostAddress = https://localhost:7147
+
+GET {{hrconnectbackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+GET {{hrconnectbackend_HostAddress}}/weatherforecast
+
+###
