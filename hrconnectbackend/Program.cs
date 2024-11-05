@@ -19,12 +19,16 @@ builder.Services.AddCors(options =>
             });
     });
 // Add services to the container.
-builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer("Data Source=DESKTOP-TD8HK54;Initial Catalog=hrconnect;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False"));
+builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer("Data Source=Arisu;Initial Catalog=hrbackend;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False"));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(type => type.FullName);
+
+});
 
 var app = builder.Build();
 

@@ -13,19 +13,50 @@ namespace hrconnectbackend.Controllers
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
     {
-        private readonly IEmployeeRepositories _employeeRepositories;
-        public EmployeeController (IEmployeeRepositories employeeRepositories) { _employeeRepositories = employeeRepositories; }
+        private readonly IEmployeeRepositories _employeeRepository;
+        public EmployeeController (IEmployeeRepositories employeeRepository) { _employeeRepository = employeeRepository; }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            return Ok(_employeeRepositories.GetAll());
+            
+            var employees = await _employeeRepository.GetAllEmployeesAsync();
+
+            if (employees.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(employees);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetEmployee(int id)
+        public async Task<IActionResult> GetEmployee(int id)
         {
-            return Ok(_employeeRepositories.GetEmployee(id));
+            var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
+            return Ok(employee);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateEmployee([FromBody] Employee employee)
+        {
+            try
+            {
+                if (employee == null)
+                    return BadRequest();
+
+                await _employeeRepository.AddEmployeeAsync(employee);
+
+                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                "Error creating new employee record");
+            }
+
+        }
+
+
     }
 }

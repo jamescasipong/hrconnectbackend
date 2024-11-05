@@ -2,6 +2,7 @@
 using hrconnectbackend.Data;
 using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Repositories
 {
@@ -12,22 +13,39 @@ namespace hrconnectbackend.Repositories
             _context = dataContext;
         }
 
-        public ICollection<Employee> GetAll()
+        public async Task<Employee> GetEmployeeByIdAsync(int id)
         {
-            return _context.Employees.ToList();
+            return await _context.Employees
+                .Include(e => e.Supervisor)
+                .Include(e => e.Department)
+                .FirstOrDefaultAsync(e => e.Id == id);
         }
 
-        public Employee GetEmployee(int id)
+        public async Task<ICollection<Employee>> GetAllEmployeesAsync()
         {
-            var employee = _context.Employees.FirstOrDefault(e => e.Id == id);
+            return await _context.Employees.ToListAsync();
+        }
 
-            if (employee == null)
+        public async Task AddEmployeeAsync(Employee employee)
+        {
+            await _context.Employees.AddAsync(employee);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateEmployeeAsync(Employee employee)
+        {
+            _context.Employees.Update(employee);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteEmployeeAsync(int id)
+        {
+            var employee = await _context.Employees.FindAsync(id);
+            if (employee != null)
             {
-                return null;
-
+                _context.Employees.Remove(employee);
+                await _context.SaveChangesAsync();
             }
-
-            return employee;
         }
     }
 }

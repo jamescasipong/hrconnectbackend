@@ -2,6 +2,7 @@
 {
     public class Auth
     {
+        
         public int AuthEmpId { get; set; }
         public int VerificationCode { get; set; }
         public bool IsAuthenticated { get; set; } = false;
