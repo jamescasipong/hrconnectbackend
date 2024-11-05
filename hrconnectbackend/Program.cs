@@ -10,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 Services.CorsHandler(builder.Services);
 Services.IRepositories(builder.Services);
 Services.ProfileMapper(builder.Services);
-builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer("Data Source=Arisu;Initial Catalog=hrbackend;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False"));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
