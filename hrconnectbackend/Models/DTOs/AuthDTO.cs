@@ -1,15 +1,11 @@
-﻿namespace hrconnectbackend.Models
+﻿namespace hrconnectbackend.Models.DTOs
 {
-    public class Auth
+    public class AuthDTO
     {
-        
         public int AuthEmpId { get; set; }
         public int VerificationCode { get; set; }
         public bool IsAuthenticated { get; set; } = false;
         public bool EmailConfirmed { get; set; } = false;
         public bool PhoneConfirmed { get; set; } = false;
-
-
-        public Employee Employee { get; set; } // Foreign Key referencing to User's Id
     }
 }

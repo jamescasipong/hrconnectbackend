@@ -8,3 +8,7 @@ Accept: application/json
 GET {{hrconnectbackend_HostAddress}}/weatherforecast
 
 ###
+
+GET {{hrconnectbackend_HostAddress}}/employee
+
+###

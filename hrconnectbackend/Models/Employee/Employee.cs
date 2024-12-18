@@ -18,8 +18,9 @@ namespace hrconnectbackend.Models
         public string Password { get; set; }
         public bool IsAdmin { get; set; }
         public Status status { get; set; } = Status.offline;
-        public DateOnly CreatedAt { get; set; } = new DateOnly();
-        public DateOnly UpdatedAt { get; set; } = new DateOnly();
+        public DateOnly CreatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+
+        public DateOnly UpdatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         public int? SupervisorId  {  get; set; } // Foreign Key
         public int? DepartmentId { get; set; }
         public Employee? Supervisor { get; set; }
@@ -27,14 +28,14 @@ namespace hrconnectbackend.Models
 
 
         // Tables that will use EmployeeID as its foreign keys
-        public List<Attendance> Attendance { get; set; }
-        public List<OTApplication> OTApplication { get; set; }
-        public List<OTApproval> OTApproval { get; set; }
-        public List<LeaveApplication> LeaveApplication { get; set; }
-        public List<LeaveApproval> LeaveApproval { get; set; }
-        public EmployeeInfo EmployeeInfo { get; set; }
-        public Shift Shift { get; set; }
-        public Auth Auth { get; set; }
-        public List<Payroll> Payroll { get; set; }
+        public List<Attendance>? Attendance { get; set; }
+        public List<OTApplication>? OTApplication { get; set; }
+        public List<OTApproval>? OTApproval { get; set; }
+        public List<LeaveApplication>? LeaveApplication     { get; set; }
+        public List<LeaveApproval>? LeaveApproval { get; set; }
+        public EmployeeInfo? EmployeeInfo { get; set; }
+        public Shift? Shift { get; set; }
+        public Auth? Auth { get; set; }
+        public List<Payroll>? Payroll { get; set; }
     }
 }

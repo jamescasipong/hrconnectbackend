@@ -3,6 +3,7 @@ using hrconnectbackend.Controllers;
 using hrconnectbackend.Data;
 using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Repositories
@@ -10,8 +11,22 @@ namespace hrconnectbackend.Repositories
     public class EmployeeRepositories: IEmployeeRepositories
     {
         private readonly DataContext _context;
-        public EmployeeRepositories(DataContext dataContext) {
+        private readonly IMapper _mapper;
+        public EmployeeRepositories(DataContext dataContext, IMapper mapper)
+        {
             _context = dataContext;
+            _mapper = mapper;
+        }
+
+
+        public async Task<Employee> GetSupervisor(int id)
+        {
+            return await _context.Employees.Where(e => e.Id == id).Select(e => e.Supervisor).FirstOrDefaultAsync();
+        }
+
+        public async Task<List<Employee>> GetSupervisee(int id)
+        {
+            return await _context.Employees.Where(e => e.Supervisor.Id == id).ToListAsync();
         }
 
         public async Task<Employee> GetEmployeeByIdAsync(int id)
@@ -33,11 +48,14 @@ namespace hrconnectbackend.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateEmployeeAsync(Employee employee)
+        public async Task UpdateEmployeeAsync(UpdateEmployeeDTO employeeDTO)
         {
+            var employee = _mapper.Map<Employee>(employeeDTO); // Map DTO to entity
+
             _context.Employees.Update(employee);
             await _context.SaveChangesAsync();
         }
+
 
         public async Task DeleteEmployeeAsync(int id)
         {

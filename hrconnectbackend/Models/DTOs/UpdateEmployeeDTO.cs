@@ -1,13 +1,12 @@
 ﻿namespace hrconnectbackend.Models.DTOs
 {
-    public class EmployeeDTO
+    public class UpdateEmployeeDTO
     {
         public enum Status
         {
             offline = 0,
             online = 1,
         }
-        public int Id { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }

@@ -22,6 +22,8 @@ namespace hrconnectbackend.Helper
         public static void IRepositories(IServiceCollection services)
         {
             services.AddTransient<IEmployeeRepositories, EmployeeRepositories>();
+            services.AddTransient<IAttendanceRepositories, AttendanceRepositories>();
+            services.AddScoped<AuthRepositories>();
         }
 
 

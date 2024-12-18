@@ -9,6 +9,14 @@ namespace hrconnectbackend.Helper
         public MappingProfile() {
             CreateMap<EmployeeDTO, Employee>();
             CreateMap<Employee, EmployeeDTO>();
+
+            CreateMap<Employee, UpdateEmployeeDTO>();
+            CreateMap<UpdateEmployeeDTO, Employee>();
+
+            CreateMap<AuthDTO, Auth>();
+            CreateMap<Auth, AuthDTO>();
+            CreateMap<AuthDTO, Auth>();
+
         }
     }
 }
