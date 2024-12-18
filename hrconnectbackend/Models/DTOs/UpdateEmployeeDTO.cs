@@ -14,7 +14,7 @@
         public Status status { get; set; } = Status.offline;
         public DateOnly CreatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
 
-        public DateOnly UpdatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+        public DateOnly UpdatedAt { get; set; } = new DateOnly();
         public int? SupervisorId { get; set; } // Foreign Key
         public int? DepartmentId { get; set; }
 

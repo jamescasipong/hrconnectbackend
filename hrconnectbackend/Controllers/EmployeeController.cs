@@ -77,7 +77,7 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateEmployee([FromBody] Employee employee)
+        public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDTO employee)
         {
             try
             {
@@ -85,6 +85,7 @@ namespace hrconnectbackend.Controllers
                     return BadRequest(new { message = "Invalid employee data" });
 
                 var matchingEmployee = _employeeRepository.GetAllEmployeesAsync().Result.FirstOrDefault(e => e.Email == employee.Email);
+
 
                 bool emailExist = matchingEmployee != null && matchingEmployee.Email == employee.Email;
 
@@ -94,15 +95,55 @@ namespace hrconnectbackend.Controllers
                     return BadRequest(new { message = $"Email Exist" });
                 }
 
-                await _employeeRepository.AddEmployeeAsync(employee);
+                var employeeEntity = _mapper.Map<Employee>(employee);
 
-                var employeeDTO = _mapper.Map<UpdateEmployeeDTO>(employee);
+                employeeEntity.Password = BCrypt.Net.BCrypt.HashPassword(employee.Password);
 
-                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employeeDTO);
+                Console.WriteLine(employeeEntity.ToString());
+
+                await _employeeRepository.AddEmployeeAsync(employeeEntity);
+
+
+                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex);
+            }
+        }
+
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDTO loginDTO)
+        {
+            try
+            {
+                if (loginDTO == null)
+                    return BadRequest(new { message = "Invalid login data" });
+
+                var employee = _employeeRepository.GetAllEmployeesAsync().Result.FirstOrDefault(e => e.Email == loginDTO.Email);
+
+                if (employee == null)
+                {
+                    return NotFound(new { message = "Employee not found" });
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(loginDTO.Password, employee.Password))
+                {
+                    return BadRequest(new { message = "Invalid password" });
+                }
+
+                var employeeDTO = _mapper.Map<EmployeeDTO>(employee);
+
+                return Ok(
+                    new {
+                    message = "Login successful",
+                    employee = employeeDTO
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error logging in");
             }
         }
 
@@ -139,7 +180,7 @@ namespace hrconnectbackend.Controllers
 
                 await _employeeRepository.DeleteEmployeeAsync(id);
                 
-                return NoContent();  // Successfully deleted, no content to return
+                return Ok(new { message = "Employee deleted successfully" });
             }
             catch (Exception ex)
             {
@@ -212,6 +253,6 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-
+        
     }
 }

@@ -12,8 +12,8 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241105132826_Initial")]
-    partial class Initial
+    [Migration("20241218152816_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -481,13 +481,11 @@ namespace hrconnectbackend.Migrations
                 {
                     b.Navigation("Attendance");
 
-                    b.Navigation("Auth")
-                        .IsRequired();
+                    b.Navigation("Auth");
 
                     b.Navigation("Department");
 
-                    b.Navigation("EmployeeInfo")
-                        .IsRequired();
+                    b.Navigation("EmployeeInfo");
 
                     b.Navigation("LeaveApplication");
 
@@ -499,8 +497,7 @@ namespace hrconnectbackend.Migrations
 
                     b.Navigation("Payroll");
 
-                    b.Navigation("Shift")
-                        .IsRequired();
+                    b.Navigation("Shift");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>

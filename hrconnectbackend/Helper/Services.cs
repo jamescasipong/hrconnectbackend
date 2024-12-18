@@ -3,6 +3,8 @@ using hrconnectbackend.Data;
 using hrconnectbackend.IRepositories;
 using hrconnectbackend.Repositories;
 using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
+
 
 namespace hrconnectbackend.Helper
 {
@@ -40,5 +42,6 @@ namespace hrconnectbackend.Helper
                     });
             });
         }
+        
     }
 }

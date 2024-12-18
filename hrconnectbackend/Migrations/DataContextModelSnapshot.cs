@@ -478,13 +478,11 @@ namespace hrconnectbackend.Migrations
                 {
                     b.Navigation("Attendance");
 
-                    b.Navigation("Auth")
-                        .IsRequired();
+                    b.Navigation("Auth");
 
                     b.Navigation("Department");
 
-                    b.Navigation("EmployeeInfo")
-                        .IsRequired();
+                    b.Navigation("EmployeeInfo");
 
                     b.Navigation("LeaveApplication");
 
@@ -496,8 +494,7 @@ namespace hrconnectbackend.Migrations
 
                     b.Navigation("Payroll");
 
-                    b.Navigation("Shift")
-                        .IsRequired();
+                    b.Navigation("Shift");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>

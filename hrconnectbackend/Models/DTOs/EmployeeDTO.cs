@@ -16,8 +16,8 @@
         public DateOnly CreatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
 
         public DateOnly UpdatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
-        public int? SupervisorId { get; set; } // Foreign Key
-        public int? DepartmentId { get; set; }
+        public int? SupervisorId { get; set; } = null; // Foreign Key
+        public int? DepartmentId { get; set; } = null;
 
     }
 }

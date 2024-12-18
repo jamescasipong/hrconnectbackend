@@ -5,6 +5,8 @@ using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
+using hrconnectbackend.Helper;
 
 namespace hrconnectbackend.Repositories
 {
@@ -12,6 +14,8 @@ namespace hrconnectbackend.Repositories
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
+        
+        
         public EmployeeRepositories(DataContext dataContext, IMapper mapper)
         {
             _context = dataContext;
@@ -66,5 +70,7 @@ namespace hrconnectbackend.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+        
+
     }
 }
