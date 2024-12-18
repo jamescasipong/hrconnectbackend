@@ -118,28 +118,29 @@ namespace hrconnectbackend.Controllers
         {
             try
             {
-                if (loginDTO == null)
-                    return BadRequest(new { message = "Invalid login data" });
+                if (loginDTO == null) return BadRequest(new { message = "Invalid login data" });
 
                 var employee = _employeeRepository.GetAllEmployeesAsync().Result.FirstOrDefault(e => e.Email == loginDTO.Email);
 
                 if (employee == null)
                 {
                     return NotFound(new { message = "Employee not found" });
-                }
+                };
 
                 if (!BCrypt.Net.BCrypt.Verify(loginDTO.Password, employee.Password))
                 {
                     return BadRequest(new { message = "Invalid password" });
-                }
+                };
 
                 var employeeDTO = _mapper.Map<EmployeeDTO>(employee);
 
-                return Ok(
+                return Ok
+                (
                     new {
                     message = "Login successful",
                     employee = employeeDTO
-                });
+                    }
+                );
             }
             catch (Exception ex)
             {
