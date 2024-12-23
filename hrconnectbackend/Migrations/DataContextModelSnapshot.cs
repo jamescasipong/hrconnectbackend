@@ -123,16 +123,19 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("SupervisorId")
                         .HasColumnType("int");
 
                     b.Property<DateOnly>("UpdatedAt")
                         .HasColumnType("date");
 
-                    b.Property<int>("status")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.HasIndex("SupervisorId");
 
@@ -195,11 +198,13 @@ namespace hrconnectbackend.Migrations
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
-                    b.Property<int>("leavelType")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("status")
-                        .HasColumnType("int");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("LeaveApplicationId");
 
@@ -211,20 +216,30 @@ namespace hrconnectbackend.Migrations
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApproval", b =>
                 {
                     b.Property<int>("LeaveApprovalId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LeaveApprovalId"));
 
                     b.Property<DateOnly>("ApprovedDate")
                         .HasColumnType("date");
 
-                    b.Property<int>("ApproverId")
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LeaveApplicationId")
                         .HasColumnType("int");
 
-                    b.Property<int>("decision")
+                    b.Property<int>("SupervisorId")
                         .HasColumnType("int");
 
                     b.HasKey("LeaveApprovalId");
 
-                    b.HasIndex("ApproverId");
+                    b.HasIndex("LeaveApplicationId")
+                        .IsUnique();
+
+                    b.HasIndex("SupervisorId");
 
                     b.ToTable("LeaveApprovals");
                 });
@@ -256,8 +271,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time");
 
-                    b.Property<int>("status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("OTApplicationId");
 
@@ -269,20 +285,30 @@ namespace hrconnectbackend.Migrations
             modelBuilder.Entity("hrconnectbackend.Models.OTApproval", b =>
                 {
                     b.Property<int>("OTApprovalId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OTApprovalId"));
 
                     b.Property<DateOnly>("ApprovedDate")
                         .HasColumnType("date");
 
-                    b.Property<int>("ApproverId")
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OTApplicationId")
                         .HasColumnType("int");
 
-                    b.Property<int>("decision")
+                    b.Property<int>("SupervisorId")
                         .HasColumnType("int");
 
                     b.HasKey("OTApprovalId");
 
-                    b.HasIndex("ApproverId");
+                    b.HasIndex("OTApplicationId")
+                        .IsUnique();
+
+                    b.HasIndex("SupervisorId");
 
                     b.ToTable("OTApprovals");
                 });
@@ -338,6 +364,25 @@ namespace hrconnectbackend.Migrations
                     b.ToTable("Shifts");
                 });
 
+            modelBuilder.Entity("hrconnectbackend.Models.Supervisor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId")
+                        .IsUnique();
+
+                    b.ToTable("Supervisors");
+                });
+
             modelBuilder.Entity("hrconnectbackend.Models.Attendance", b =>
                 {
                     b.HasOne("hrconnectbackend.Models.Employee", "Employee")
@@ -362,21 +407,28 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.Department", b =>
                 {
-                    b.HasOne("hrconnectbackend.Models.Employee", "Employee")
+                    b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
                         .WithOne("Department")
                         .HasForeignKey("hrconnectbackend.Models.Department", "ManagerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Employee");
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Employee", b =>
                 {
-                    b.HasOne("hrconnectbackend.Models.Employee", "Supervisor")
-                        .WithMany()
+                    b.HasOne("hrconnectbackend.Models.Department", "Department")
+                        .WithMany("Employees")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
+                        .WithMany("Subordinates")
                         .HasForeignKey("SupervisorId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Department");
 
                     b.Navigation("Supervisor");
                 });
@@ -405,21 +457,21 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApproval", b =>
                 {
-                    b.HasOne("hrconnectbackend.Models.Employee", "Approver")
-                        .WithMany("LeaveApproval")
-                        .HasForeignKey("ApproverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("hrconnectbackend.Models.LeaveApplication", "LeaveApplication")
                         .WithOne("LeaveApproval")
-                        .HasForeignKey("hrconnectbackend.Models.LeaveApproval", "LeaveApprovalId")
+                        .HasForeignKey("hrconnectbackend.Models.LeaveApproval", "LeaveApplicationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Approver");
+                    b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
+                        .WithMany("LeaveApprovals")
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("LeaveApplication");
+
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.OTApplication", b =>
@@ -435,21 +487,21 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.OTApproval", b =>
                 {
-                    b.HasOne("hrconnectbackend.Models.Employee", "Approver")
-                        .WithMany("OTApproval")
-                        .HasForeignKey("ApproverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("hrconnectbackend.Models.OTApplication", "OTApplication")
                         .WithOne("OTApproval")
-                        .HasForeignKey("hrconnectbackend.Models.OTApproval", "OTApprovalId")
+                        .HasForeignKey("hrconnectbackend.Models.OTApproval", "OTApplicationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Approver");
+                    b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
+                        .WithMany("OTApprovals")
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("OTApplication");
+
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Payroll", b =>
@@ -474,27 +526,40 @@ namespace hrconnectbackend.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("hrconnectbackend.Models.Supervisor", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.Employee", "Employee")
+                        .WithOne()
+                        .HasForeignKey("hrconnectbackend.Models.Supervisor", "EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Department", b =>
+                {
+                    b.Navigation("Employees");
+                });
+
             modelBuilder.Entity("hrconnectbackend.Models.Employee", b =>
                 {
                     b.Navigation("Attendance");
 
-                    b.Navigation("Auth");
+                    b.Navigation("Auth")
+                        .IsRequired();
 
-                    b.Navigation("Department");
-
-                    b.Navigation("EmployeeInfo");
+                    b.Navigation("EmployeeInfo")
+                        .IsRequired();
 
                     b.Navigation("LeaveApplication");
 
-                    b.Navigation("LeaveApproval");
-
                     b.Navigation("OTApplication");
-
-                    b.Navigation("OTApproval");
 
                     b.Navigation("Payroll");
 
-                    b.Navigation("Shift");
+                    b.Navigation("Shift")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
@@ -507,6 +572,18 @@ namespace hrconnectbackend.Migrations
                 {
                     b.Navigation("OTApproval")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Supervisor", b =>
+                {
+                    b.Navigation("Department")
+                        .IsRequired();
+
+                    b.Navigation("LeaveApprovals");
+
+                    b.Navigation("OTApprovals");
+
+                    b.Navigation("Subordinates");
                 });
 #pragma warning restore 612, 618
         }

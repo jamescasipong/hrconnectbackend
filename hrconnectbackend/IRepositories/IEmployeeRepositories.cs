@@ -10,7 +10,9 @@ namespace hrconnectbackend.IRepositories
         Task AddEmployeeAsync(Employee employee);
         Task UpdateEmployeeAsync(UpdateEmployeeDTO employee);
         Task DeleteEmployeeAsync(int id);
-        Task<Employee> GetSupervisor(int id);
+        Task<Supervisor> GetSupervisor(int id);
         Task<List<Employee>> GetSupervisee(int id);
+
+
     }
 }

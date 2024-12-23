@@ -25,7 +25,12 @@ namespace hrconnectbackend.Helper
         {
             services.AddTransient<IEmployeeRepositories, EmployeeRepositories>();
             services.AddTransient<IAttendanceRepositories, AttendanceRepositories>();
+            services.AddTransient<IDepartmentRepositories, DepartmentRepositories>();
+            services.AddTransient<IEmployeeInfoRepositories, EmployeeInfoRepositories>();
+
+            services.AddScoped<DepartmentRepositories>();
             services.AddScoped<AuthRepositories>();
+            services.AddScoped<SupervisorRepositories>();
         }
 
 
@@ -42,6 +47,6 @@ namespace hrconnectbackend.Helper
                     });
             });
         }
-        
+
     }
 }

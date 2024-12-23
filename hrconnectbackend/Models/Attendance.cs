@@ -11,6 +11,6 @@ namespace hrconnectbackend.Models
         public DateOnly DateToday { get; set; }
         public TimeOnly ClockIn { get; set; }
         public TimeOnly ClockOut { get; set; }
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
     }
 }

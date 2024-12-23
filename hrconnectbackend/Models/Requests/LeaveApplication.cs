@@ -1,34 +1,32 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Models.Enums;
 
 namespace hrconnectbackend.Models
 {
     public class LeaveApplication
     {
-        public enum LeaveType
-        {
-            Vacation = 0,
-            Sick = 1,
-            Leave = 2
-        }
-        public enum Status
-        {
-            Pending = 0,
-            Approved = 1,
-            Rejected = 2,
-        }
+
         [Key]
         public int LeaveApplicationId { get; set; }
-
         public int EmployeeId { get; set; }
-        public LeaveType leavelType {  get; set; } = LeaveType.Vacation;
+        public string Type { get; set; } = LeaveType.Sick.ToString();
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
         public DateOnly AppliedDate { get; set; } = new DateOnly();
         public string Reason { get; set; }
-        public Status status { get; set; } = Status.Pending;
+        public string Status { get; set; } = RequestStatus.Pending.ToString();
         public Employee Employee { get; set; }
         public LeaveApproval LeaveApproval { get; set; }
-       
 
+
+    }
+
+    public class LeaveApplicationDTO
+    {
+        public int EmployeeId { get; set; }
+        public string LeaveType { get; set; } = "Vacation";
+        public DateOnly StartDate { get; set; }
+        public DateOnly EndDate { get; set; }
+        public string Reason { get; set; }
     }
 }

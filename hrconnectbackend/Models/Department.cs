@@ -5,6 +5,8 @@
         public int DepartmentId { get; set; }
         public int ManagerId { get; set; }
         public string DeptName { get; set; }
-        public Employee Employee { get; set; } // Foreign Key referencing to User's Id
+
+        public List<Employee> Employees { get; set; }
+        public Supervisor Supervisor { get; set; } // Foreign Key referencing to User's Id
     }
 }

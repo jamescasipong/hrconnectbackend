@@ -6,38 +6,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class migrationNew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Employees",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "bit", nullable: false),
-                    status = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateOnly>(type: "date", nullable: false),
-                    UpdatedAt = table.Column<DateOnly>(type: "date", nullable: false),
-                    SupervisorId = table.Column<int>(type: "int", nullable: true),
-                    DepartmentId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Employees", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Employees_Employees_SupervisorId",
-                        column: x => x.SupervisorId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Attendances",
                 columns: table => new
@@ -52,12 +25,6 @@ namespace hrconnectbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Attendances", x => x.AttendanceId);
-                    table.ForeignKey(
-                        name: "FK_Attendances_Employees_EmployeeId",
-                        column: x => x.EmployeeId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -73,12 +40,6 @@ namespace hrconnectbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Auths", x => x.AuthEmpId);
-                    table.ForeignKey(
-                        name: "FK_Auths_Employees_AuthEmpId",
-                        column: x => x.AuthEmpId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -93,12 +54,33 @@ namespace hrconnectbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Departments", x => x.DepartmentId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Employees",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsAdmin = table.Column<bool>(type: "bit", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateOnly>(type: "date", nullable: false),
+                    UpdatedAt = table.Column<DateOnly>(type: "date", nullable: false),
+                    SupervisorId = table.Column<int>(type: "int", nullable: true),
+                    DepartmentId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Employees", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Departments_Employees_ManagerId",
-                        column: x => x.ManagerId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_Employees_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -131,12 +113,12 @@ namespace hrconnectbackend.Migrations
                     LeaveApplicationId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     EmployeeId = table.Column<int>(type: "int", nullable: false),
-                    leavelType = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StartDate = table.Column<DateOnly>(type: "date", nullable: false),
                     EndDate = table.Column<DateOnly>(type: "date", nullable: false),
                     AppliedDate = table.Column<DateOnly>(type: "date", nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -161,7 +143,7 @@ namespace hrconnectbackend.Migrations
                     StartTime = table.Column<TimeOnly>(type: "time", nullable: false),
                     EndTime = table.Column<TimeOnly>(type: "time", nullable: false),
                     Reasons = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -218,55 +200,78 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Supervisors",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    EmployeeId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Supervisors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Supervisors_Employees_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "Employees",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "LeaveApprovals",
                 columns: table => new
                 {
-                    LeaveApprovalId = table.Column<int>(type: "int", nullable: false),
-                    ApproverId = table.Column<int>(type: "int", nullable: false),
+                    LeaveApprovalId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    LeaveApplicationId = table.Column<int>(type: "int", nullable: false),
+                    SupervisorId = table.Column<int>(type: "int", nullable: false),
                     ApprovedDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    decision = table.Column<int>(type: "int", nullable: false)
+                    Decision = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LeaveApprovals", x => x.LeaveApprovalId);
                     table.ForeignKey(
-                        name: "FK_LeaveApprovals_Employees_ApproverId",
-                        column: x => x.ApproverId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_LeaveApprovals_LeaveApplications_LeaveApprovalId",
-                        column: x => x.LeaveApprovalId,
+                        name: "FK_LeaveApprovals_LeaveApplications_LeaveApplicationId",
+                        column: x => x.LeaveApplicationId,
                         principalTable: "LeaveApplications",
                         principalColumn: "LeaveApplicationId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_LeaveApprovals_Supervisors_SupervisorId",
+                        column: x => x.SupervisorId,
+                        principalTable: "Supervisors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "OTApprovals",
                 columns: table => new
                 {
-                    OTApprovalId = table.Column<int>(type: "int", nullable: false),
-                    ApproverId = table.Column<int>(type: "int", nullable: false),
+                    OTApprovalId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupervisorId = table.Column<int>(type: "int", nullable: false),
+                    OTApplicationId = table.Column<int>(type: "int", nullable: false),
                     ApprovedDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    decision = table.Column<int>(type: "int", nullable: false)
+                    Decision = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OTApprovals", x => x.OTApprovalId);
                     table.ForeignKey(
-                        name: "FK_OTApprovals_Employees_ApproverId",
-                        column: x => x.ApproverId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OTApprovals_OTApplications_OTApprovalId",
-                        column: x => x.OTApprovalId,
+                        name: "FK_OTApprovals_OTApplications_OTApplicationId",
+                        column: x => x.OTApplicationId,
                         principalTable: "OTApplications",
                         principalColumn: "OTApplicationId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OTApprovals_Supervisors_SupervisorId",
+                        column: x => x.SupervisorId,
+                        principalTable: "Supervisors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -281,6 +286,11 @@ namespace hrconnectbackend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Employees_DepartmentId",
+                table: "Employees",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Employees_SupervisorId",
                 table: "Employees",
                 column: "SupervisorId");
@@ -291,9 +301,15 @@ namespace hrconnectbackend.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_LeaveApprovals_ApproverId",
+                name: "IX_LeaveApprovals_LeaveApplicationId",
                 table: "LeaveApprovals",
-                column: "ApproverId");
+                column: "LeaveApplicationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LeaveApprovals_SupervisorId",
+                table: "LeaveApprovals",
+                column: "SupervisorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OTApplications_EmployeeId",
@@ -301,27 +317,72 @@ namespace hrconnectbackend.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OTApprovals_ApproverId",
+                name: "IX_OTApprovals_OTApplicationId",
                 table: "OTApprovals",
-                column: "ApproverId");
+                column: "OTApplicationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OTApprovals_SupervisorId",
+                table: "OTApprovals",
+                column: "SupervisorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Payrolls_EmployeeId",
                 table: "Payrolls",
                 column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Supervisors_EmployeeId",
+                table: "Supervisors",
+                column: "EmployeeId",
+                unique: true);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Attendances_Employees_EmployeeId",
+                table: "Attendances",
+                column: "EmployeeId",
+                principalTable: "Employees",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Auths_Employees_AuthEmpId",
+                table: "Auths",
+                column: "AuthEmpId",
+                principalTable: "Employees",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Departments_Supervisors_ManagerId",
+                table: "Departments",
+                column: "ManagerId",
+                principalTable: "Supervisors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Employees_Supervisors_SupervisorId",
+                table: "Employees",
+                column: "SupervisorId",
+                principalTable: "Supervisors",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Supervisors_Employees_EmployeeId",
+                table: "Supervisors");
+
             migrationBuilder.DropTable(
                 name: "Attendances");
 
             migrationBuilder.DropTable(
                 name: "Auths");
-
-            migrationBuilder.DropTable(
-                name: "Departments");
 
             migrationBuilder.DropTable(
                 name: "EmployeesInfo");
@@ -346,6 +407,12 @@ namespace hrconnectbackend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Employees");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
+
+            migrationBuilder.DropTable(
+                name: "Supervisors");
         }
     }
 }

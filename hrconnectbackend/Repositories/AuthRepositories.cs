@@ -1,59 +1,78 @@
 ﻿using hrconnectbackend.Data;
+using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Repositories
 {
-    public class AuthRepositories
+    public class AuthRepositories : GenericRepository<Auth>, IAuthRepositories
     {
-        private readonly DataContext _context;
 
-        public AuthRepositories(DataContext context)
+        public AuthRepositories(DataContext context) : base(context)
         {
-            _context = context;
+
         }
 
-        public async Task<Auth> GetAuth(int id)
+
+        public async Task<Auth> GetAuthByEmail(string email)
         {
-            return await _context.Auths.Include(a => a.Employee).FirstOrDefaultAsync(a => a.AuthEmpId == id);
+            return await _context.Auths.Select(a => a.Employee).Where(a => a.Email == email).Select(a => a.Auth).FirstOrDefaultAsync();
         }
 
-        public async Task<List<Auth>> GetListAuth()
+        public async Task<string> ConfirmPhone(int id, int code)
         {
-            return await _context.Auths.Include(a => a.Employee).ToListAsync();
+            var verify = await VerifyOTP(id, code);
+
+            return verify;
         }
 
-        // CREATE: Adds a new Auth entry to the database
-        public async Task<Auth> CreateAuth(Auth auth)
+        public async Task<string> ConfirmEmail(int id, int code)
         {
-            if (auth == null)
-                return null;
+            var verify = await VerifyOTP(id, code);
 
-            // Add the new Auth entity to the database
-            await _context.Auths.AddAsync(auth);
+            return verify;
 
-            // Save changes to the database
-            await _context.SaveChangesAsync();
-
-            // Return the created entity
-            return auth;
         }
 
-        // DELETE: Deletes an existing Auth entry from the database by AuthEmpId
-        public async Task<bool> DeleteAuth(int id)
+        public async Task GenerateOTP(int id)
         {
-            var auth = await _context.Auths.FindAsync(id);
+            var auth = await _context.Auths.FirstOrDefaultAsync(a => a.AuthEmpId == id);
 
             if (auth == null)
-                return false;
+                return;
 
-            // Remove the Auth entity from the database
-            _context.Auths.Remove(auth);
+            auth.VerificationCode = new Random().Next(1000, 9999);
 
-            // Save changes to the database
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> IsVerified(int id)
+        {
+            var auth = await _context.Auths.FirstOrDefaultAsync(a => a.AuthEmpId == id);
+
+            if (auth.EmailConfirmed || auth.PhoneConfirmed)
+                return true;
+
+            return false;
+        }
+
+        public async Task<string> VerifyOTP(int id, int code)
+        {
+            var auth = await _context.Auths.FirstOrDefaultAsync(a => a.AuthEmpId == id);
+
+            if (auth == null) return "Auth not found!";
+
+            if (auth.VerificationCode == 0) return "No code generated!";
+
+            if (auth.VerificationCode != code) return "Invalid code!";
+
+            auth.PhoneConfirmed = true;
+            auth.VerificationCode = 0;
+
             await _context.SaveChangesAsync();
 
-            return true;
+            return "Code confirmed!";
         }
+
     }
 }

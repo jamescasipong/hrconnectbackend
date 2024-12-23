@@ -22,6 +22,7 @@ namespace hrconnectbackend.Data
         public DbSet<Auth> Auths { get; set; }
         public DbSet<Payroll> Payrolls { get; set; }
         public DbSet<Shift> Shifts { get; set; }
+        public DbSet<Supervisor> Supervisors { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,8 +30,16 @@ namespace hrconnectbackend.Data
 
             // Employee
             modelBuilder.Entity<Employee>().HasKey(e => e.Id);
-            modelBuilder.Entity<Employee>().HasOne(e => e.Supervisor).WithMany().HasForeignKey(e => e.SupervisorId).OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Employee>().HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Employee>().HasOne(e => e.Supervisor).WithMany(e => e.Subordinates).HasForeignKey(e => e.SupervisorId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Employee>().HasOne(e => e.Department).WithMany(e => e.Employees).HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Supervisor>().HasKey(e => e.Id);
+            modelBuilder.Entity<Supervisor>()
+                .HasOne(s => s.Employee)
+                .WithOne()
+                .HasForeignKey<Supervisor>(s => s.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
 
             // EmployeeInfo
             modelBuilder.Entity<EmployeeInfo>().HasKey(e => e.EmployeeInfoId);
@@ -46,7 +55,7 @@ namespace hrconnectbackend.Data
 
             // Dept
             modelBuilder.Entity<Department>().HasKey(e => e.DepartmentId);
-            modelBuilder.Entity<Department>().HasOne(e => e.Employee).WithOne(e => e.Department).HasForeignKey<Department>(e => e.ManagerId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Department>().HasOne(e => e.Supervisor).WithOne(e => e.Department).HasForeignKey<Department>(e => e.ManagerId).OnDelete(DeleteBehavior.Restrict);
 
             // Shift
             modelBuilder.Entity<Shift>().HasKey(e => e.EmployeeShiftId);
@@ -59,32 +68,46 @@ namespace hrconnectbackend.Data
 
             // Leave Approval
             modelBuilder.Entity<LeaveApproval>().HasKey(e => e.LeaveApprovalId);
-            modelBuilder.Entity<LeaveApproval>().HasOne(e => e.LeaveApplication).WithOne(e => e.LeaveApproval).HasForeignKey<LeaveApproval>(e => e.LeaveApprovalId).OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<LeaveApproval>().HasOne(e => e.Approver).WithMany(e => e.LeaveApproval).HasForeignKey(e => e.ApproverId).OnDelete(DeleteBehavior.Cascade);
-
-            // Leaves
-
-
+            modelBuilder.Entity<LeaveApproval>()
+                .HasOne(e => e.LeaveApplication)
+                .WithOne(e => e.LeaveApproval)
+                .HasForeignKey<LeaveApproval>(e => e.LeaveApplicationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<LeaveApproval>()
+                .HasOne(e => e.Supervisor)
+                .WithMany(e => e.LeaveApprovals)
+                .HasForeignKey(e => e.SupervisorId)
+                .OnDelete(DeleteBehavior.Cascade);
 
 
             // OT Application
             modelBuilder.Entity<OTApplication>().HasKey(e => e.OTApplicationId);
             modelBuilder.Entity<OTApplication>()
-                .HasOne(o => o.OTApproval)
-                .WithOne(o => o.OTApplication)
-                .HasForeignKey<OTApplication>(o => o.OTApplicationId)  // Foreign key in OTApproval
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(o => o.Employee)
+                .WithMany(o => o.OTApplication)
+                .HasForeignKey(o => o.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<OTApproval>().HasKey(e => e.OTApprovalId);
             modelBuilder.Entity<OTApproval>()
                 .HasOne(o => o.OTApplication)
                 .WithOne(o => o.OTApproval)
-                .HasForeignKey<OTApproval>(o => o.OTApprovalId)  // Foreign key in OTApplication
+                .HasForeignKey<OTApproval>(o => o.OTApplicationId)  // Foreign key in OTApplication
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<OTApproval>()
+                .HasOne(o => o.Supervisor)
+                .WithMany(o => o.OTApprovals)
+                .HasForeignKey(o => o.SupervisorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             //Attendance
-            modelBuilder.Entity<Attendance>().HasOne(e => e.Employee).WithMany(e => e.Attendance).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Cascade);
-            
+            modelBuilder.Entity<Attendance>().
+                HasOne(e => e.Employee)
+                .WithMany(e => e.Attendance)
+                .HasForeignKey(e => e.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
 
 
 

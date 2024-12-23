@@ -19,11 +19,12 @@ namespace hrconnectbackend.Controllers
             _mapper = mapper;
         }
 
+
         // GET: /auth/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAuth(int id)
         {
-            var auth = await _authRepositories.GetAuth(id);
+            var auth = await _authRepositories.GetByIdAsync(id);
 
             if (auth == null)
                 return NotFound(new { message = "Not Found" });
@@ -38,7 +39,7 @@ namespace hrconnectbackend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetListAuth()
         {
-            var auths = await _authRepositories.GetListAuth();
+            var auths = await _authRepositories.GetAllAsync();
 
             if (auths.Count == 0) return NotFound();
 
@@ -59,7 +60,7 @@ namespace hrconnectbackend.Controllers
             var auth = _mapper.Map<Auth>(authDTO);
 
             // Save the entity in the repository
-            var createdAuth = await _authRepositories.CreateAuth(auth);
+            var createdAuth = await _authRepositories.AddAsync(auth);
 
             if (createdAuth == null)
                 return StatusCode(500, new { message = "Failed to create the record" });
@@ -75,17 +76,19 @@ namespace hrconnectbackend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuth(int id)
         {
-            var auth = await _authRepositories.GetAuth(id);
+            var auth = await _authRepositories.GetByIdAsync(id);
 
             if (auth == null)
                 return NotFound(new { message = "Auth not found" });
 
-            var result = await _authRepositories.DeleteAuth(id);
+            await _authRepositories.DeleteAsync(auth);
 
-            if (!result)
-                return StatusCode(500, new { message = "Failed to delete the record" });
-
-            return NoContent(); // Successfully deleted, no content in response body
+            return Ok(new
+            {
+                message = "Auth deleted"
+            });
         }
+
+
     }
 }
