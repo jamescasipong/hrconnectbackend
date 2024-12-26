@@ -73,6 +73,10 @@ namespace hrconnectbackend.Repositories
             }
         }
 
+        public async Task<Employee> GetEmployeeByEmailAsync(string email)
+        {
+            return await _context.Employees.FirstOrDefaultAsync(e => e.Email == email);
 
+        }
     }
 }

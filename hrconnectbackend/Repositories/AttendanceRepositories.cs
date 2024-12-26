@@ -87,9 +87,7 @@ namespace hrconnectbackend.Repositories
 
         public async Task<Attendance> GetDailyAttendanceByEmployeeId(int id)
         {
-            var attendances = await _context.Attendances.ToListAsync();
-
-            var dailyAttendance = attendances.Where(a => a.EmployeeId == id && a.DateToday == DateOnly.FromDateTime(DateTime.Now)).FirstOrDefault();
+            var dailyAttendance = await _context.Attendances.Where(a => a.EmployeeId == id && a.DateToday == DateOnly.FromDateTime(DateTime.Now)).FirstOrDefaultAsync();
 
             return dailyAttendance;
         }

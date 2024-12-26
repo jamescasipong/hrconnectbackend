@@ -137,27 +137,6 @@ namespace hrconnectbackend.Controllers
         }
 
 
-        [HttpPost("create/clockin/{id}")]
-        public async Task<IActionResult> clockIn(int id)
-        {
-            var hasShift = await _shiftRepositories.HasShiftToday(id);
-
-            if (!hasShift) return BadRequest("Employee has no shift today!");
-
-            var result = await _attendanceRepositories.ClockIn(id);
-
-            return Ok(result);
-        }
-
-        [HttpPost("create/clockout/{id}")]
-        public async Task<IActionResult> clockOut(int id)
-        {
-            var result = await _attendanceRepositories.ClockOut(id);
-
-            return Ok(result);
-        }
-
-
         [HttpPost("create/fileattendance/{id}")]
         public async Task<IActionResult> fileAttendance(int id, [FromBody] DateOnly date)
         {

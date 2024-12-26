@@ -3,12 +3,14 @@ using hrconnectbackend.Models.DTOs;
 
 namespace hrconnectbackend.IRepositories
 {
-    public interface IEmployeeInfoRepositories
+    public interface IEmployeeInfoRepositories : IGenericRepository<EmployeeInfo>
     {
-        Task<EmployeeInfo> GetEmployeeInfoByIdAsync(int id);
-        Task<ICollection<EmployeeInfo>> GetAllEmployeeInfosAsync();
-        Task AddEmployeeInfoAsync(EmployeeInfo employeeInfo);
 
-        
+        Task AddEmployeeInfoAsync(EmployeeInfo employeeInfo);
+        Task<EducationBackground> AddEducationBackgroundAsync(EducationBackground educationBackground);
+        Task<List<EducationBackground>> GetEmployeeEducationBackgroundAsync(int id);
+        Task<EmployeeInfo> GetEmployeeInfoByIdAsync(int id);
+
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Repositories;
@@ -11,12 +12,103 @@ namespace hrconnectbackend.Controllers
     public class AuthController : Controller
     {
         private readonly AuthRepositories _authRepositories;
+        private readonly IEmployeeRepositories _employeeRepository;
         private readonly IMapper _mapper;
 
-        public AuthController(AuthRepositories authRepositories, IMapper mapper)
+        public AuthController(AuthRepositories authRepositories, IMapper mapper, IEmployeeRepositories employeeRepository)
         {
             _authRepositories = authRepositories;
             _mapper = mapper;
+            _employeeRepository = employeeRepository;
+        }
+
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDTO loginDTO)
+        {
+            try
+            {
+                if (loginDTO == null) return BadRequest(new { message = "Invalid login data" });
+
+                var allEmployees = await _employeeRepository.GetAllEmployeesAsync();
+
+                var employee = allEmployees.FirstOrDefault(e => e.Email == loginDTO.Email);
+
+                if (employee == null)
+                {
+                    return NotFound(new { message = "Employee not found" });
+                };
+
+                if (!BCrypt.Net.BCrypt.Verify(loginDTO.Password, employee.Password))
+                {
+                    return BadRequest(new { message = "Invalid password; we only accept gmail, yahoo. Nigger." });
+                };
+
+                var employeeDTO = _mapper.Map<ReadEmployeeDTO>(employee);
+
+                return Ok
+                (
+                    new
+                    {
+                        message = "Login successful",
+                        employee = employeeDTO
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error logging in");
+            }
+        }
+
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] CreateEmployeeDTO employeeDTO)
+        {
+            try
+            {
+                var employee = await _employeeRepository.GetEmployeeByEmailAsync(employeeDTO.Email);
+
+                if (employee != null)
+                {
+                    return BadRequest(new
+                    {
+                        message = "An Email Exist",
+                        StatusCode = StatusCodes.Status409Conflict,
+                    });
+                }
+
+
+                var newEmployee = new Employee
+                {
+                    Email = employeeDTO.Email,
+                    Password = BCrypt.Net.BCrypt.HashPassword(employeeDTO.Password),
+                    IsAdmin = employeeDTO.IsAdmin,
+                    EmployeeInfo = new EmployeeInfo
+                    {
+                        FirstName = "N/A",
+                        LastName = "N/A",
+                        Address = "N/A",
+                        BirthDate = null,
+                        Age = null,
+                    }
+                };
+
+
+                await _employeeRepository.AddEmployeeAsync(newEmployee);
+
+
+                return Ok(new { message = "Leave application created successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new
+                {
+                    message = "Invalid BodyRequest",
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Exception = ex.Message
+                });
+            }
         }
 
 

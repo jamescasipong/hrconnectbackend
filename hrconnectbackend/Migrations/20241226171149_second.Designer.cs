@@ -12,8 +12,8 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241226055107_updateshifts")]
-    partial class updateshifts
+    [Migration("20241226171149_second")]
+    partial class second
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -97,6 +97,45 @@ namespace hrconnectbackend.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("hrconnectbackend.Models.EducationBackground", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Degree")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FieldOfStudy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("GPA")
+                        .HasColumnType("float");
+
+                    b.Property<string>("InstitutionName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EducationBackgrounds");
+                });
+
             modelBuilder.Entity("hrconnectbackend.Models.Employee", b =>
                 {
                     b.Property<int>("Id")
@@ -160,15 +199,15 @@ namespace hrconnectbackend.Migrations
                     b.Property<DateOnly>("BirthDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("EducationalBackground")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("profilePicture")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -379,13 +418,14 @@ namespace hrconnectbackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("EmployeeId")
+                    b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[EmployeeId] IS NOT NULL");
 
                     b.ToTable("Supervisors");
                 });
@@ -423,17 +463,28 @@ namespace hrconnectbackend.Migrations
                     b.Navigation("Supervisor");
                 });
 
+            modelBuilder.Entity("hrconnectbackend.Models.EducationBackground", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.EmployeeInfo", "EmployeeInfo")
+                        .WithMany("EducationBackground")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeInfo");
+                });
+
             modelBuilder.Entity("hrconnectbackend.Models.Employee", b =>
                 {
                     b.HasOne("hrconnectbackend.Models.Department", "Department")
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
                         .WithMany("Subordinates")
                         .HasForeignKey("SupervisorId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Department");
 
@@ -473,7 +524,7 @@ namespace hrconnectbackend.Migrations
                     b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
                         .WithMany("LeaveApprovals")
                         .HasForeignKey("SupervisorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("LeaveApplication");
@@ -503,7 +554,7 @@ namespace hrconnectbackend.Migrations
                     b.HasOne("hrconnectbackend.Models.Supervisor", "Supervisor")
                         .WithMany("OTApprovals")
                         .HasForeignKey("SupervisorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("OTApplication");
@@ -527,7 +578,7 @@ namespace hrconnectbackend.Migrations
                     b.HasOne("hrconnectbackend.Models.Employee", "Employee")
                         .WithMany("Shifts")
                         .HasForeignKey("EmployeeShiftId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -538,8 +589,7 @@ namespace hrconnectbackend.Migrations
                     b.HasOne("hrconnectbackend.Models.Employee", "Employee")
                         .WithOne()
                         .HasForeignKey("hrconnectbackend.Models.Supervisor", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Employee");
                 });
@@ -566,6 +616,11 @@ namespace hrconnectbackend.Migrations
                     b.Navigation("Payroll");
 
                     b.Navigation("Shifts");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.EmployeeInfo", b =>
+                {
+                    b.Navigation("EducationBackground");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
