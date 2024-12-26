@@ -12,15 +12,11 @@ namespace hrconnectbackend.Repositories
     public class EmployeeRepositories : IEmployeeRepositories
     {
         private readonly DataContext _context;
-        private DepartmentRepositories _departmentRepositories;
-        private readonly IMapper _mapper;
 
 
-        public EmployeeRepositories(DataContext dataContext, IMapper mapper, DepartmentRepositories departmentRepositories)
+        public EmployeeRepositories(DataContext dataContext)
         {
-            _departmentRepositories = departmentRepositories;
             _context = dataContext;
-            _mapper = mapper;
         }
 
 
@@ -29,7 +25,7 @@ namespace hrconnectbackend.Repositories
             return await _context.Employees.Where(e => e.Id == id).Select(e => e.Supervisor).FirstOrDefaultAsync();
         }
 
-        public async Task<List<Employee>> GetSupervisee(int id)
+        public async Task<List<Employee>> GetSubordinates(int id)
         {
             return await _context.Supervisors.Where(s => s.Id == id).SelectMany(s => s.Subordinates).ToListAsync();
         }
@@ -59,9 +55,8 @@ namespace hrconnectbackend.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateEmployeeAsync(UpdateEmployeeDTO employeeDTO)
+        public async Task UpdateEmployeeAsync(Employee employee)
         {
-            var employee = _mapper.Map<Employee>(employeeDTO); // Map DTO to entity
 
             _context.Employees.Update(employee);
             await _context.SaveChangesAsync();
@@ -77,6 +72,7 @@ namespace hrconnectbackend.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
 
     }
 }

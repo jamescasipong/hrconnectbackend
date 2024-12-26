@@ -29,7 +29,7 @@ namespace hrconnectbackend.Models
         public List<OTApplication> OTApplication { get; set; }
         public List<LeaveApplication> LeaveApplication { get; set; }
         public EmployeeInfo EmployeeInfo { get; set; }
-        public Shift Shift { get; set; }
+        public List<Shift> Shifts { get; set; }
         public Auth Auth { get; set; }
         public List<Payroll> Payroll { get; set; }
     }

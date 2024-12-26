@@ -2,6 +2,7 @@
 using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs.AttendanceDTOs;
+using hrconnectbackend.Models.DTOs.Shifts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers
@@ -12,12 +13,14 @@ namespace hrconnectbackend.Controllers
     {
         private readonly IMapper _mapper;
         private readonly IAttendanceRepositories _attendanceRepositories;
+        private readonly IShiftRepositories _shiftRepositories;
         private readonly IEmployeeRepositories _employeeRepositories;
-        public AttendanceController(IAttendanceRepositories attendanceRepositories, IMapper mapper, IEmployeeRepositories employeeRepositories)
+        public AttendanceController(IAttendanceRepositories attendanceRepositories, IMapper mapper, IEmployeeRepositories employeeRepositories, IShiftRepositories shiftRepositories)
         {
-            _employeeRepositories = employeeRepositories;
-            _mapper = mapper;
             _attendanceRepositories = attendanceRepositories;
+            _mapper = mapper;
+            _employeeRepositories = employeeRepositories;
+            _shiftRepositories = shiftRepositories;
         }
 
 
@@ -32,6 +35,11 @@ namespace hrconnectbackend.Controllers
             if (attendances.Count == 0) return NotFound("Not Found!");
 
             var dto = _mapper.Map<ICollection<ReadAttendanceDTO>>(attendances);
+
+            foreach (var item in dto)
+            {
+                item.Day = item.DateToday.DayOfWeek.ToString();
+            }
 
             return Ok(dto);
         }
@@ -132,6 +140,10 @@ namespace hrconnectbackend.Controllers
         [HttpPost("create/clockin/{id}")]
         public async Task<IActionResult> clockIn(int id)
         {
+            var hasShift = await _shiftRepositories.HasShiftToday(id);
+
+            if (!hasShift) return BadRequest("Employee has no shift today!");
+
             var result = await _attendanceRepositories.ClockIn(id);
 
             return Ok(result);
@@ -234,6 +246,63 @@ namespace hrconnectbackend.Controllers
                 dtoList,
                 skippedDays
             });
+        }
+
+        [HttpPost("post/addShiftToEmployee/{id}")]
+        public async Task<IActionResult> AddShiftToEmployee(int id, [FromBody] CreateShiftDTO shiftDTO)
+        {
+            var addedShift = await _shiftRepositories.AddShiftToEmployee(id, shiftDTO);
+
+
+            return Ok(addedShift);
+        }
+
+        [HttpGet("get/employeeShifts/{id}")]
+        public async Task<IActionResult> EmpHasShifts(int id)
+        {
+            var shifts = await _shiftRepositories.GetEmployeeShiftsById(id);
+
+            if (shifts.Count == 0) return NotFound("No shifts found!");
+
+            var getDayToday = DateTime.Now.DayOfWeek.ToString();
+
+            foreach (var shift in shifts)
+            {
+                if (shift.DaysOfWorked == getDayToday)
+                {
+                    return Ok(new { message = "Employee has shift today" });
+                }
+            }
+
+            return Ok(new { message = "Employee has no shift today" });
+        }
+
+        [HttpPost("get/employeeisLate/{id}/{date}")]
+        public async Task<IActionResult> EmpIsLate(int id)
+        {
+            var shifts = await _shiftRepositories.GetEmployeeShiftsById(id);
+
+            var empAttendance = await _attendanceRepositories.GetDailyAttendanceByEmployeeId(id);
+
+            if (empAttendance == null) return NotFound("No attendance found!");
+
+            if (shifts.Count == 0) return NotFound("No shifts found!");
+
+            var getDayToday = DateTime.Now.DayOfWeek.ToString();
+
+            foreach (var shift in shifts)
+            {
+                if (shift.DaysOfWorked == getDayToday)
+                {
+                    if (empAttendance.ClockIn > shift.TimeIn)
+                    {
+                        return Ok(new { message = "Employee is late" });
+                    }
+                }
+            }
+
+            return Ok(new { message = "Employee is not late" });
+
         }
 
     }

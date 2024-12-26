@@ -59,7 +59,7 @@ public class DepartmentController : Controller
         }
 
 
-        var dto = _mapper.Map<UpdateEmployeeDTO>(employee);
+        var dto = _mapper.Map<Employee>(employee);
 
         await _employeeRepositories.UpdateEmployeeAsync(dto);
 

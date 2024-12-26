@@ -1,37 +1,46 @@
 using hrconnectbackend.Data;
+using hrconnectbackend.IRepositories;
 using hrconnectbackend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Repositories;
 
-public class SupervisorRepositories
+public class SupervisorRepositories : GenericRepository<Supervisor>, ISupervisorRepositories
 {
-    private readonly DataContext _context;
 
-    public SupervisorRepositories(DataContext context)
+    public SupervisorRepositories(DataContext context) : base(context)
     {
-        _context = context;
+
     }
 
-    public async Task<Supervisor> CreateSupervisor(Supervisor supervisor)
+    public async Task<LeaveApplication> LeaveApprovalResponse(int id, string response)
     {
-        await _context.Supervisors.AddAsync(supervisor);
+        var leave = await _context.LeaveApplications.FirstOrDefaultAsync(l => l.LeaveApplicationId == id);
+        var leaveApproval = await _context.LeaveApprovals.FirstOrDefaultAsync(l => l.LeaveApplicationId == id);
+
+        if (leave.Status != "Pending")
+            return null;
+
+        if (leave == null)
+            return null;
+
+        leave.Status = response;
+        leaveApproval.Decision = response;
+
         await _context.SaveChangesAsync();
-        return supervisor;
+
+        return leave;
     }
 
-    public async Task<Supervisor> GetSupervisorById(int id)
-    {
-        return await _context.Supervisors.FirstOrDefaultAsync(x => x.Id == id);
-    }
-
-    public async Task<List<Supervisor>> GetAllSupervisors()
-    {
-        return await _context.Supervisors.ToListAsync();
-    }
 
     public async Task<List<Employee>> GetSuperVisorSubordinates(int id)
     {
         return await _context.Supervisors.Where(s => s.Id == id).SelectMany(s => s.Subordinates).ToListAsync();
     }
+
+    public Task<LeaveApplication> GetLeaveApplicationById(int id)
+    {
+        return _context.LeaveApplications.FirstOrDefaultAsync(l => l.LeaveApplicationId == id);
+    }
+
 }

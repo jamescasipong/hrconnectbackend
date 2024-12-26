@@ -58,8 +58,8 @@ namespace hrconnectbackend.Data
             modelBuilder.Entity<Department>().HasOne(e => e.Supervisor).WithOne(e => e.Department).HasForeignKey<Department>(e => e.ManagerId).OnDelete(DeleteBehavior.Restrict);
 
             // Shift
-            modelBuilder.Entity<Shift>().HasKey(e => e.EmployeeShiftId);
-            modelBuilder.Entity<Shift>().HasOne(e => e.Employee).WithOne(e => e.Shift).HasForeignKey<Shift>(e => e.EmployeeShiftId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Shift>().HasKey(e => e.Id);
+            modelBuilder.Entity<Shift>().HasOne(e => e.Employee).WithMany(e => e.Shifts).HasForeignKey(e => e.EmployeeShiftId).OnDelete(DeleteBehavior.Restrict);
 
             // Leave Application
             modelBuilder.Entity<LeaveApplication>().HasKey(e => e.LeaveApplicationId);

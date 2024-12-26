@@ -12,8 +12,8 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241223141018_migrationNew")]
-    partial class migrationNew
+    [Migration("20241226054207_dbnew")]
+    partial class dbnew
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -224,7 +224,7 @@ namespace hrconnectbackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LeaveApprovalId"));
 
-                    b.Property<DateOnly>("ApprovedDate")
+                    b.Property<DateOnly?>("ApprovedDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Decision")
@@ -345,16 +345,18 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.Shift", b =>
                 {
-                    b.Property<int>("EmployeeShiftId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("FirstDay")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DaysOfWorked")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("LastDay")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("EmployeeShiftId")
+                        .HasColumnType("int");
 
                     b.Property<TimeOnly>("TimeIn")
                         .HasColumnType("time");
@@ -362,7 +364,10 @@ namespace hrconnectbackend.Migrations
                     b.Property<TimeOnly>("TimeOut")
                         .HasColumnType("time");
 
-                    b.HasKey("EmployeeShiftId");
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeShiftId")
+                        .IsUnique();
 
                     b.ToTable("Shifts");
                 });
@@ -567,8 +572,7 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
                 {
-                    b.Navigation("LeaveApproval")
-                        .IsRequired();
+                    b.Navigation("LeaveApproval");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.OTApplication", b =>

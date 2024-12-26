@@ -15,18 +15,9 @@ namespace hrconnectbackend.Models
         public DateOnly AppliedDate { get; set; } = new DateOnly();
         public string Reason { get; set; }
         public string Status { get; set; } = RequestStatus.Pending.ToString();
-        public Employee Employee { get; set; }
-        public LeaveApproval LeaveApproval { get; set; }
-
+        public Employee? Employee { get; set; }
+        public LeaveApproval? LeaveApproval { get; set; }
 
     }
 
-    public class LeaveApplicationDTO
-    {
-        public int EmployeeId { get; set; }
-        public string LeaveType { get; set; } = "Vacation";
-        public DateOnly StartDate { get; set; }
-        public DateOnly EndDate { get; set; }
-        public string Reason { get; set; }
-    }
 }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class migrationNew : Migration
+    public partial class dbnew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -182,15 +182,16 @@ namespace hrconnectbackend.Migrations
                 name: "Shifts",
                 columns: table => new
                 {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     EmployeeShiftId = table.Column<int>(type: "int", nullable: false),
-                    FirstDay = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastDay = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DaysOfWorked = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TimeIn = table.Column<TimeOnly>(type: "time", nullable: false),
                     TimeOut = table.Column<TimeOnly>(type: "time", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Shifts", x => x.EmployeeShiftId);
+                    table.PrimaryKey("PK_Shifts", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Shifts_Employees_EmployeeShiftId",
                         column: x => x.EmployeeShiftId,
@@ -226,7 +227,7 @@ namespace hrconnectbackend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     LeaveApplicationId = table.Column<int>(type: "int", nullable: false),
                     SupervisorId = table.Column<int>(type: "int", nullable: false),
-                    ApprovedDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    ApprovedDate = table.Column<DateOnly>(type: "date", nullable: true),
                     Decision = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -331,6 +332,12 @@ namespace hrconnectbackend.Migrations
                 name: "IX_Payrolls_EmployeeId",
                 table: "Payrolls",
                 column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Shifts_EmployeeShiftId",
+                table: "Shifts",
+                column: "EmployeeShiftId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Supervisors_EmployeeId",

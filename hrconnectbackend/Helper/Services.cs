@@ -27,6 +27,9 @@ namespace hrconnectbackend.Helper
             services.AddTransient<IAttendanceRepositories, AttendanceRepositories>();
             services.AddTransient<IDepartmentRepositories, DepartmentRepositories>();
             services.AddTransient<IEmployeeInfoRepositories, EmployeeInfoRepositories>();
+            services.AddTransient<ILeaveApplicationRepositories, LeaveApplicationRepositories>();
+            services.AddTransient<ILeaveApprovalRepositories, LeaveApprovalRepositories>();
+            services.AddTransient<IShiftRepositories, ShiftRepositories>();
 
             services.AddScoped<DepartmentRepositories>();
             services.AddScoped<AuthRepositories>();
