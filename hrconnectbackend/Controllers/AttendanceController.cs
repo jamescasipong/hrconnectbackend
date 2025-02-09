@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
-using hrconnectbackend.IRepositories;
+using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AttendanceDTOs;
-using hrconnectbackend.Models.DTOs.Shifts;
+using hrconnectbackend.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers
@@ -12,277 +13,386 @@ namespace hrconnectbackend.Controllers
     public class AttendanceController : Controller
     {
         private readonly IMapper _mapper;
-        private readonly IAttendanceRepositories _attendanceRepositories;
-        private readonly IShiftRepositories _shiftRepositories;
-        private readonly IEmployeeRepositories _employeeRepositories;
-        public AttendanceController(IAttendanceRepositories attendanceRepositories, IMapper mapper, IEmployeeRepositories employeeRepositories, IShiftRepositories shiftRepositories)
+        private readonly IAttendanceServices _attendanceServices;
+        private readonly IAttendanceCertificationServices _attendanceCertificationServices;
+        private readonly ISupervisorServices _supervisorServices;
+        private readonly IShiftServices _shiftServices;
+        private readonly IEmployeeServices _employeeServices;
+        private readonly ILogger<Attendance> _logger;
+
+        public AttendanceController(IAttendanceServices attendanceServices, IMapper mapper, IEmployeeServices employeeServices, IShiftServices shiftServices, IAttendanceCertificationServices attendanceCertificationServices, ISupervisorServices supervisorServices, ILogger<Attendance> logger)
         {
-            _attendanceRepositories = attendanceRepositories;
+            _attendanceServices = attendanceServices;
             _mapper = mapper;
-            _employeeRepositories = employeeRepositories;
-            _shiftRepositories = shiftRepositories;
+            _employeeServices = employeeServices;
+            _shiftServices = shiftServices;
+            _logger = logger;
+            _attendanceCertificationServices = attendanceCertificationServices;
+            _supervisorServices = supervisorServices;
         }
 
+        //[HttpPost]
+        //public async Task<IActionResult> CreateAttendance(CreateAttendanceDTO attendanceDTO)
+        //{
 
-        [HttpGet("get/all")]
-        public async Task<IActionResult> getAttendances()
+        //}
+
+        [HttpGet]
+        public async Task<IActionResult> GetAttendances()
         {
-            ICollection<Attendance> attendances = await _attendanceRepositories.GetAllAsync();
-
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-
-            if (attendances.Count == 0) return NotFound("Not Found!");
-
-            var dto = _mapper.Map<ICollection<ReadAttendanceDTO>>(attendances);
-
-            foreach (var item in dto)
+            try
             {
-                item.Day = item.DateToday.DayOfWeek.ToString();
+                var attendances = await _attendanceServices.GetAllAsync();
+
+                return Ok(attendances);
             }
-
-            return Ok(dto);
-        }
-
-        [HttpGet("get/{id}")]
-        public async Task<IActionResult> getAttendance(int id)
-        {
-            Attendance attendance = await _attendanceRepositories.GetByIdAsync(id);
-
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            if (attendance == null) return Ok(null);
-
-            var dto = _mapper.Map<ReadAttendanceDTO>(attendance);
-
-            return Ok(dto);
-        }
-
-
-        [HttpPut("update/{id}")]
-        public async Task<IActionResult> updateAttendance(int id, [FromBody] UpdateAttendanceDTO attendance)
-        {
-            var employee = await _attendanceRepositories.GetAllAsync();
-
-            var employeeToUpdate = employee.Where(a => a.AttendanceId == id).FirstOrDefault();
-
-            if (employee == null) return NotFound("Not Found!");
-
-            if (attendance.DateToday != null) employeeToUpdate.DateToday = DateOnly.Parse(attendance.DateToday);  // Store as string
-            if (!string.IsNullOrEmpty(attendance.ClockIn)) employeeToUpdate.ClockIn = TimeOnly.Parse(attendance.ClockIn);    // Convert string to TimeOnly
-            if (!string.IsNullOrEmpty(attendance.ClockOut)) employeeToUpdate.ClockOut = TimeOnly.Parse(attendance.ClockOut);  // Convert string to TimeOnly
-
-            await _attendanceRepositories.UpdateAsync(employeeToUpdate);
-
-            return Ok(attendance);
-        }
-
-
-        [HttpDelete("delete/{id}")]
-        public async Task<IActionResult> deleteAttendance(int id)
-        {
-
-
-            var attendance = await _attendanceRepositories.GetAllAsync();
-
-            var attendanceToDelete = attendance.Where(a => a.AttendanceId == id).FirstOrDefault();
-
-            if (attendance == null) return NotFound("Not Found!");
-
-            await _attendanceRepositories.DeleteAsync(attendanceToDelete);
-
-            return Ok("Deleted!");
-        }
-
-
-        [HttpPost("create/{id}")]
-        public async Task<IActionResult> createAttendance(int id, [FromBody] CreateAttendanceDTO attendanceDTO)
-        {
-
-            var attendance = new Attendance
+            catch (KeyNotFoundException ex)
             {
-                EmployeeId = id,
-                DateToday = DateOnly.Parse(attendanceDTO.DateToday),
-                ClockIn = TimeOnly.Parse(attendanceDTO.ClockIn),
-                ClockOut = TimeOnly.Parse(attendanceDTO.ClockOut)
-            };
-
-            await _attendanceRepositories.AddAsync(attendance);
-
-            return Ok(attendance);
-        }
-
-
-        [HttpPost("createMutiple/{id}")]
-        public async Task<IActionResult> CreateAttendance(int id, [FromBody] List<CreateAttendanceDTO> attendanceDTO)
-        {
-            for (int i = 0; i < attendanceDTO.Count; i++)
-            {
-
-                var attendance = new Attendance
-                {
-                    EmployeeId = id,
-                    DateToday = DateOnly.Parse(attendanceDTO[i].DateToday),
-                    ClockIn = TimeOnly.Parse(attendanceDTO[i].ClockIn),
-                    ClockOut = TimeOnly.Parse(attendanceDTO[i].ClockOut)
-                };
-
-
-
-                await _attendanceRepositories.AddAsync(attendance);
+                return NotFound(ex.Message);
             }
-
-
-            return Ok(attendanceDTO);
-        }
-
-
-        [HttpPost("create/fileattendance/{id}")]
-        public async Task<IActionResult> fileAttendance(int id, [FromBody] DateOnly date)
-        {
-            await _attendanceRepositories.FileAttendance(id, date);
-
-            return Ok("Attendance filed!");
-        }
-
-        [HttpPost("create/approve/{id}")]
-
-        public async Task<IActionResult> approveAttendance(int id)
-        {
-            await _attendanceRepositories.ApproveAttendance(id);
-
-            return Ok("Attendance approved!");
-        }
-
-
-        [HttpPost("create/reject/{id}")]
-
-        public async Task<IActionResult> rejectAttendance(int id)
-        {
-            await _attendanceRepositories.RejectAttendance(id);
-
-            return Ok("Attendance rejected!");
-        }
-
-        [HttpGet("get/daily/{id}")]
-
-        public async Task<IActionResult> getDailyAttendanceByEmployeeId(int id)
-        {
-            var attendance = await _attendanceRepositories.GetDailyAttendanceByEmployeeId(id);
-
-            if (attendance == null) return NotFound("Not Found!");
-
-            return Ok(attendance);
-        }
-
-        [HttpGet("get/monthly/{id}")]
-
-        public async Task<IActionResult> getMonthlyAttendanceByEmployeeId(int id)
-        {
-            var attendance = await _attendanceRepositories.GetMonthlyAttendanceByEmployeeId(id);
-
-            if (attendance.Count == 0) return NotFound("Not Found!");
-
-            return Ok(attendance);
-        }
-
-        [HttpPost("post/getRangeDate/{id}")]
-        public async Task<IActionResult> GetRangeAttendanceByEmployeeId(int id, [FromBody] DateRangeDTO dateRange)
-        {
-            var attendance = await _attendanceRepositories.GetRangeAttendanceByEmployeeId(id, DateOnly.Parse(dateRange.Start), DateOnly.Parse(dateRange.End));
-
-            var attendanceList = attendance.ToList();
-
-            if (attendance.Count == 0) return NotFound("Not Found!");
-
-            var skippedDays = 0;
-
-            var dto = _mapper.Map<ICollection<ReadAttendanceDTO>>(attendance);
-
-            var dtoList = dto.ToList();
-
-            for (var i = 0; i < dtoList.Count - 1; i++)
+            catch (Exception ex)
             {
-                var clockInTime = attendanceList[i].ClockIn;
-                var clockOutTime = attendanceList[i].ClockOut;
-                TimeSpan hoursWorked = clockInTime - clockOutTime;
+                return BadRequest(ex.Message);
+            }
+        }
 
-                int gapDays = dtoList[i + 1].DateToday.Day - dtoList[i].DateToday.Day;
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetAttendance(int id)
+        {
+            try
+            {
+                var attendance = await _attendanceServices.GetByIdAsync(id);
 
-                dtoList[i].hoursWorked = hoursWorked.Hours;
+                if (attendance == null) throw new KeyNotFoundException("No attendance found");
 
+                return Ok(attendance);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
 
-                if (gapDays > 1)
+        [HttpPut]
+        public async Task<IActionResult> UpdateAttendance(UpdateAttendanceDTO updateAttendanceDTO)
+        {
+            try
+            {
+                var attendance = await _attendanceServices.GetByIdAsync(updateAttendanceDTO.attendanceId);
+
+                if (attendance == null)
                 {
-                    skippedDays += gapDays - 1;
-                    Console.WriteLine("Skipped Days: " + skippedDays);
+                    throw new KeyNotFoundException("No attendance found");
                 }
 
+                attendance.ClockIn = TimeSpan.Parse(updateAttendanceDTO.ClockIn);
+                attendance.ClockOut = TimeSpan.Parse(updateAttendanceDTO.ClockOut);
+                attendance.DateToday = DateOnly.Parse(updateAttendanceDTO.DateToday);
+
+                await _attendanceServices.UpdateAsync(attendance);
+
+                return Ok(new
+                {
+                    message = "Success!",
+                    status = 200
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAttendance(int id)
+        {
+            try
+            {
+                var attendance = await _attendanceServices.GetByIdAsync(id);
+
+                if (attendance == null)
+                {
+                    throw new KeyNotFoundException("No attendance found");
+                }
+
+                await _attendanceServices.DeleteAsync(attendance);
+
+                return Ok(new
+                {
+                    message = "Success!",
+                    status = 200
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpGet("employee/{id}")]
+        public async Task<IActionResult> GetAttendanceByEmployee(int id)
+        {
+            var attendances = await _attendanceServices.GetAttendanceByEmployeeId(id);
+
+            return Ok(attendances);
+        }
+
+        [HttpPost("clock-in/{id}")]
+        public async Task<IActionResult> ClockIn(int id)
+        {
+            try
+            {
+                await _attendanceServices.ClockIn(id);
+
+                return Ok(new
+                {
+                    message = "Success!",
+                    status = 200,
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPost("clock-out/{id}")]
+        public async Task<IActionResult> ClockOut(int id)
+        {
+            try
+            {
+                await _attendanceServices.ClockOut(id);
+
+                return Ok(new
+                {
+                    message = "Success!",
+                    status = 200,
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+
+        [HttpGet("daily/{id}")]
+        public async Task<IActionResult> GetDailyAttendance(int id)
+        {
+            try
+            {
+                var attendanceToday = await _attendanceServices.GetDailyAttendanceByEmployeeId(id);
+                return Ok(attendanceToday);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    error = ex.Message,
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    error = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
+                return StatusCode(500, new { error = "An internal error occurred" });
+            }
+        }
+
+
+        [HttpGet("range-date/{id}")]
+        public async Task<IActionResult> GetAttendanceInRange(int id, [FromQuery] DateTime start, [FromQuery] DateTime end)
+        {
+            try
+            {
+                var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(id, start, end);
+                return Ok(attendanceRecords);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid request parameters for employee ID: {id}", id);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "No attendance found for employee ID: {id} in the given range", id);
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
+                return StatusCode(500, new { error = "An internal error occurred" });
+            }
+        }
+
+        [HttpGet("monthly/{id}")]
+        public async Task<IActionResult> GetMonthlyAttendance(int id)
+        {
+            try
+            {
+                var attendanceRecords = await _attendanceServices.GetMonthlyAttendanceByEmployeeId(id);
+                return Ok(attendanceRecords);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid employee ID: {id}", id);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "No attendance found for employee ID: {id}", id);
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
+                return StatusCode(500, new { error = "An internal error occurred" });
+            }
+        }
+
+        [HttpPost("certification")]
+        public async Task<IActionResult> CreateCOA(CreateAttendanceCertificationDTO attendanceDTO)
+        {
+
+            var supervisor = await _supervisorServices.GetByIdAsync(attendanceDTO.SupervisorId);
+
+            if (supervisor == null)
+            {
+                return BadRequest("Supervisor not found");
+            }
+
+            var newAttendance = new AttendanceCertification
+            {
+                EmployeeId = attendanceDTO.EmployeeId,
+                SupervisorId = attendanceDTO.SupervisorId,
+                Date = DateOnly.Parse(attendanceDTO.Date),
+                Status = "Pending",
+                ClockIn = TimeSpan.Parse(attendanceDTO.ClockIn),
+                ClockOut = TimeSpan.Parse(attendanceDTO.ClockOut),
+                Reason = attendanceDTO.Reason ?? "No Log",
+                DateCreated = DateTime.Now,
+            };
+
+            await _attendanceCertificationServices.AddAsync(newAttendance);
+
+            return Ok(new
+            {
+                message = "Success!",
+                status = 200
+            });
+        }
+
+        [HttpPost("certification/approve/{id}")]
+        public async Task<IActionResult> ApproveCOA(int id)
+        {
+
+            var coa = await _attendanceCertificationServices.GetByIdAsync(id);
+
+            if (coa == null) return NotFound();
+
+            coa.Status = "Approved";
+
+            await _attendanceCertificationServices.UpdateAsync(coa);
+
+            var attendances = await _attendanceServices.GetAllAsync();
+
+            var attendance = attendances.Where(a => a.EmployeeId == coa.EmployeeId && a.DateToday == coa.Date).FirstOrDefault();
+
+            if (attendance == null)
+            {
+                var newAttendance = new Attendance
+                {
+                    EmployeeId = coa.EmployeeId,
+                    ClockIn = coa.ClockIn,
+                    ClockOut = coa.ClockOut,
+                    DateToday = coa.Date,
+                };
+
+                await _attendanceServices.AddAsync(newAttendance);
+            }
+            else
+            {
+                attendance.ClockIn = coa.ClockIn;
+                attendance.ClockOut = coa.ClockOut;
+
+                await _attendanceServices.UpdateAsync(attendance);
             }
 
             return Ok(new
             {
-                dtoList,
-                skippedDays
+                message = "Success!",
+                status = 200
             });
         }
 
-        [HttpPost("post/addShiftToEmployee/{id}")]
-        public async Task<IActionResult> AddShiftToEmployee(int id, [FromBody] CreateShiftDTO shiftDTO)
+
+        [HttpPost("certification/reject/{id}")]
+        public async Task<IActionResult> RejectCOA(int id)
         {
-            var addedShift = await _shiftRepositories.AddShiftToEmployee(id, shiftDTO);
 
+            var coa = await _attendanceCertificationServices.GetByIdAsync(id);
 
-            return Ok(addedShift);
-        }
+            if (coa == null) return NotFound();
 
-        [HttpGet("get/employeeShifts/{id}")]
-        public async Task<IActionResult> EmpHasShifts(int id)
-        {
-            var shifts = await _shiftRepositories.GetEmployeeShiftsById(id);
+            coa.Status = "Reject";
 
-            if (shifts.Count == 0) return NotFound("No shifts found!");
+            await _attendanceCertificationServices.UpdateAsync(coa);
 
-            var getDayToday = DateTime.Now.DayOfWeek.ToString();
+            var attendances = await _attendanceServices.GetAllAsync();
 
-            foreach (var shift in shifts)
+            var attendance = attendances.Where(a => a.EmployeeId == coa.EmployeeId && a.DateToday == coa.Date).FirstOrDefault();
+
+            if (attendance == null)
             {
-                if (shift.DaysOfWorked == getDayToday)
+                var newAttendance = new Attendance
                 {
-                    return Ok(new { message = "Employee has shift today" });
-                }
+                    EmployeeId = coa.EmployeeId,
+                    ClockIn = coa.ClockIn,
+                    ClockOut = coa.ClockOut,
+                    DateToday = coa.Date,
+                };
+
+                await _attendanceServices.AddAsync(newAttendance);
+            }
+            else
+            {
+                attendance.ClockIn = coa.ClockIn;
+                attendance.ClockOut = coa.ClockOut;
+
+                await _attendanceServices.UpdateAsync(attendance);
             }
 
-            return Ok(new { message = "Employee has no shift today" });
-        }
-
-        [HttpPost("get/employeeisLate/{id}/{date}")]
-        public async Task<IActionResult> EmpIsLate(int id)
-        {
-            var shifts = await _shiftRepositories.GetEmployeeShiftsById(id);
-
-            var empAttendance = await _attendanceRepositories.GetDailyAttendanceByEmployeeId(id);
-
-            if (empAttendance == null) return NotFound("No attendance found!");
-
-            if (shifts.Count == 0) return NotFound("No shifts found!");
-
-            var getDayToday = DateTime.Now.DayOfWeek.ToString();
-
-            foreach (var shift in shifts)
+            return Ok(new
             {
-                if (shift.DaysOfWorked == getDayToday)
-                {
-                    if (empAttendance.ClockIn > shift.TimeIn)
-                    {
-                        return Ok(new { message = "Employee is late" });
-                    }
-                }
-            }
-
-            return Ok(new { message = "Employee is not late" });
-
+                message = "Success!",
+                status = 200
+            });
         }
-
     }
 }

@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
-using hrconnectbackend.Models.DTOs.EmployeeDTOs;
+
 
 namespace hrconnectbackend.Helper
 {
@@ -13,24 +13,24 @@ namespace hrconnectbackend.Helper
             CreateAttendanceMappings();
             CreateEmployeeMappings();
             CreateAuthMappings();
-            CreateLeavesApprovalMappings();
-            SupervisorMappings();
+            CreateNotificationMappings();
+            CreateAttendanceCertification();
         }
 
-        private void SupervisorMappings()
+        private void CreateNotificationMappings()
         {
-            CreateMap<Supervisor, CreateSupervisorDTO>();
-            CreateMap<CreateSupervisorDTO, Supervisor>();
+            CreateMap<Notifications, CreateNotificationDTO>();
+            CreateMap<CreateNotificationDTO, Notifications>();
 
-
+            CreateMap<Notifications, ReadNotificationsDTO>();
+            CreateMap<ReadNotificationsDTO, Notifications>();
         }
 
-        private void CreateLeavesApprovalMappings()
+        private void CreateAttendanceCertification()
         {
-            CreateMap<LeaveApproval, CreateLeavesApprovalDTO>();
-            CreateMap<CreateLeavesApprovalDTO, LeaveApproval>();
+            CreateMap<AttendanceCertification, CreateAttendanceCertificationDTO>();
+            CreateMap<CreateAttendanceCertificationDTO, AttendanceCertification>();
         }
-
         private void CreateDepartmentMappings()
         {
             CreateMap<Department, ReadDepartmentDTO>();
@@ -57,21 +57,25 @@ namespace hrconnectbackend.Helper
             CreateMap<CreateEmployeeDTO, Employee>();
             CreateMap<Employee, CreateEmployeeDTO>();
 
-            CreateMap<EmployeeInfo, EmployeeInfoDTO>();
-            CreateMap<EmployeeInfoDTO, EmployeeInfo>();
+            CreateMap<AboutEmployee, CreateAboutEmployeeDTO>();
+            CreateMap<CreateAboutEmployeeDTO, AboutEmployee>();
 
             CreateMap<Employee, ReadEmployeeDTO>();
             CreateMap<ReadEmployeeDTO, Employee>();
 
             CreateMap<Employee, UpdateEmployeeDTO>();
             CreateMap<UpdateEmployeeDTO, Employee>();
+
+            CreateMap<EducationBackground, EducationBackgroundDTO>();
+            CreateMap<EducationBackgroundDTO, EducationBackground>();
+
         }
 
         private void CreateAuthMappings()
         {
-            CreateMap<AuthDTO, Auth>();
-            CreateMap<Auth, AuthDTO>();
-            CreateMap<AuthDTO, Auth>();
+            CreateMap<UserAccountDTO, UserAccount>();
+            CreateMap<UserAccount, UserAccountDTO>();
+            CreateMap<UserAccountDTO, UserAccount>();
         }
     }
 }

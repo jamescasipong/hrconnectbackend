@@ -6,11 +6,10 @@ namespace hrconnectbackend.Models
     {
         [Key]
         public int Id { get; set; }
-        public int? EmployeeId { get; set; }
+        public int EmployeeId { get; set; }
         public Employee Employee { get; set; }
-        public Department Department { get; set; }
-        public List<LeaveApproval> LeaveApprovals { get; set; }
-        public List<OTApproval> OTApprovals { get; set; }
-        public List<Employee> Subordinates { get; set; }
+        public Department? Department { get; set; }
+        public List<Employee>? Subordinates { get; set; }
+        public List<AttendanceCertification>? AttendanceCertifications { get; set; }
     }
 }

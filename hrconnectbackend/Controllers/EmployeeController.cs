@@ -1,6 +1,6 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using hrconnectbackend.Models;
-using hrconnectbackend.IRepositories;
 using AutoMapper;
 using hrconnectbackend.Models.DTOs;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using hrconnectbackend;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Repositories;
-using hrconnectbackend.Models.DTOs.EmployeeDTOs;
+using hrconnectbackend.Interface.Services;
 
 namespace hrconnectbackend.Controllers
 {
@@ -16,197 +16,119 @@ namespace hrconnectbackend.Controllers
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
     {
-        private readonly IEmployeeRepositories _employeeRepository;
-        private readonly IEmployeeInfoRepositories _employeeInfoRepository;
-        private readonly AuthRepositories _authRepository;
-        private readonly SupervisorRepositories _supervisorRepository;
-        private readonly IShiftRepositories _shiftRepository;
-        private readonly IDepartmentRepositories _departmentRepository;
-        private readonly ILeaveApplicationRepositories _leaveApplicationRepository;
-        private readonly ILeaveApprovalRepositories _leaveApprovalRepository;
-        private readonly IAttendanceRepositories _attendanceRepository;
+        private readonly IEmployeeServices _employeeService;
+        private readonly IAboutEmployeeServices _employeeInfoService;
+        private readonly UserAccountServices _userAccountServices;
+        private readonly SupervisorServices _supervisorService;
+        private readonly IShiftServices _shiftService;
+        private readonly IDepartmentServices _departmentService;
+        private readonly ILeaveApplicationServices _leaveApplicationService;
+        private readonly IAttendanceServices _attendanceService;
+        private readonly INotificationServices _notificationService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeeController> _logger;
 
-        public EmployeeController
-        (IEmployeeRepositories employeeRepository,
-        IMapper mapper,
-        IEmployeeInfoRepositories employeeInfoRepository,
-        IDepartmentRepositories departmentRepository,
-        ILogger<EmployeeController> logger,
-        AuthRepositories authRepository,
-        SupervisorRepositories supervisorRepository,
-        ILeaveApplicationRepositories leaveApplicationRepository,
-        ILeaveApprovalRepositories leaveApprovalRepository,
-        IAttendanceRepositories attendanceRepository,
-        IShiftRepositories shiftRepository)
+        public EmployeeController(
+            IEmployeeServices employeeService,
+            IMapper mapper,
+            IAboutEmployeeServices employeeInfoService,
+            IDepartmentServices departmentService,
+            ILogger<EmployeeController> logger,
+            UserAccountServices userAccountServices,
+            SupervisorServices supervisorService,
+            ILeaveApplicationServices leaveApplicationService,
+            IAttendanceServices attendanceService,
+            IShiftServices shiftService,
+            INotificationServices notificationService)
         {
-            _attendanceRepository = attendanceRepository;
-            _employeeInfoRepository = employeeInfoRepository;
-            _supervisorRepository = supervisorRepository;
-            _authRepository = authRepository;
-            _employeeRepository = employeeRepository;
+            _attendanceService = attendanceService;
+            _employeeInfoService = employeeInfoService;
+            _supervisorService = supervisorService;
+            _userAccountServices = userAccountServices;
+            _employeeService = employeeService;
             _mapper = mapper;
-            _departmentRepository = departmentRepository;
+            _departmentService = departmentService;
             _logger = logger;
-            _leaveApplicationRepository = leaveApplicationRepository;
-            _leaveApprovalRepository = leaveApprovalRepository;
-            _shiftRepository = shiftRepository;
+            _leaveApplicationService = leaveApplicationService;
+            _shiftService = shiftService;
+            _notificationService = notificationService;
         }
 
-        [HttpPost("create-leave/{id}")]
-        public async Task<IActionResult> CreateLeave(int id, [FromBody] CreateLeaveApplicationDTO leaveDTO)
+        [HttpPost]
+        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDTO employee)
         {
+            if (employee == null)
+            {
+                _logger.LogWarning("Received null data for employee creation.");
+                return BadRequest("Employee data cannot be null.");
+            }
+
             try
             {
-                if (leaveDTO == null)
+                // Call the CreateEmployeeAsync method
+                await _employeeService.CreateEmployee(employee);
+
+                return Ok(new
                 {
-                    return BadRequest(new { message = "Invalid leave data" });
-                }
-
-                var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
-
-                if (employee == null)
-                {
-                    return NotFound(new { message = "Employee not found" });
-                }
-
-                if (employee.SupervisorId == null)
-                {
-                    return BadRequest(new { message = "Employee does not have a supervisor" });
-                }
-
-
-                var leaveEntity = new LeaveApplication
-                {
-                    EmployeeId = id,
-                    Type = leaveDTO.Type,
-                    Status = "Pending",
-                    StartDate = DateOnly.Parse(leaveDTO.StartDate),
-                    EndDate = DateOnly.Parse(leaveDTO.EndDate),
-                    AppliedDate = DateOnly.FromDateTime(DateTime.Now),
-                    Reason = leaveDTO.Reason,
-                };
-
-                await _leaveApplicationRepository.AddAsync(leaveEntity);
-
-
-                var leaveApproval = new LeaveApproval
-                {
-                    LeaveApplicationId = leaveEntity.LeaveApplicationId,
-                    SupervisorId = employee.SupervisorId.Value,
-                    Decision = "Pending",
-                    ApprovedDate = null,
-                };
-
-
-                await _leaveApprovalRepository.AddAsync(leaveApproval);
-
-
-                return Ok(new { message = "Leave application created successfully" });
+                    messsage = "Successfully Created!",
+                    status = 200
+                });  // Return a success message
+            }
+            catch (ArgumentNullException ex)
+            {
+                _logger.LogError(ex, "Error creating employee due to null data.");
+                return BadRequest(ex.Message);  // Return BadRequest for specific exceptions
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Error creating employee: Invalid argument.");
+                return BadRequest(ex.Message);  // Return BadRequest for invalid arguments
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Error creating employee: Invalid operation.");
+                return Conflict(ex.Message);  // Return Conflict for specific scenarios like existing employee
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                _logger.LogError(ex, "An unexpected error occurred while creating employee.");
+                return StatusCode(500, "Internal server error");  // Handle unexpected errors
             }
         }
 
-
-        [HttpGet("get-supervisor/{id}")]
-        public async Task<IActionResult> GetSupervisor(int id)
+        [HttpPut("update-username/{id}")]
+        public async Task<IActionResult> ChangeUserName(int id, string name)
         {
-            var supervisor = await _employeeRepository.GetSupervisor(id);
+            var user = await _userAccountServices.GetByIdAsync(id);
 
-            if (supervisor == null) return NotFound(new { response = "This user doesn't have a superisor" });
-
-            var supervisorDTO = _mapper.Map<ReadEmployeeDTO>(supervisor);
-
-            return Ok(supervisorDTO);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetEmployee(int id)
-        {
-            var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
-
-            if (employee == null)
+            try
             {
-                return NotFound(new { message = "Employee not found" });
+                if (user == null) throw new KeyNotFoundException("User not found.");
+
+                user.UserName = name;
+
+                await _userAccountServices.UpdateAsync(user);
+                return Ok(new
+                {
+                    message = "Success!"
+                });
+
             }
-
-            var educationBackground = await _employeeInfoRepository.GetEmployeeEducationBackgroundAsync(id);
-
-            var employeeInfo = await _employeeInfoRepository.GetEmployeeInfoByIdAsync(id);
-
-            var employeeInfoDTO = new EmployeeInfoDTO
+            catch(KeyNotFoundException ex)
             {
-                EmployeeInfoId = employeeInfo.EmployeeInfoId,
-                FirstName = employeeInfo.FirstName,
-                LastName = employeeInfo.LastName,
-                Address = employeeInfo.Address,
-                BirthDate = employeeInfo.BirthDate ?? default(DateOnly),
-                Age = employeeInfo?.Age ?? 0,
-                EducationalBackground = educationBackground
-            };
-
-
-            var employeeDTO = _mapper.Map<ReadEmployeeDTO>(employee);
-
-            employeeDTO.employeeInfo = employeeInfoDTO;
-
-
-
-            return Ok(employeeDTO);
-        }
-
-
-        [HttpPost("create/clockin/{id}")]
-        public async Task<IActionResult> clockIn(int id)
-        {
-            var hasShift = await _shiftRepository.HasShiftToday(id);
-
-            if (!hasShift) return BadRequest("Employee has no shift today!");
-
-            var result = await _attendanceRepository.ClockIn(id);
-
-            return Ok(result);
-        }
-
-        [HttpPost("create/clockout/{id}")]
-        public async Task<IActionResult> clockOut(int id)
-        {
-            var result = await _attendanceRepository.ClockOut(id);
-
-            return Ok(result);
-        }
-
-
-        [HttpGet("department/{id}")]
-        public async Task<IActionResult> GetDepartment(int id)
-        {
-            var department = await _departmentRepository.GetByIdAsync(id);
-
-            if (department == null)
-            {
-                return NotFound(new { message = "Department not found" });
+                return NotFound(new
+                {
+                    ex.Message,
+                });
             }
-
-            return Ok(department);
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-
-
-        [HttpGet("subordinates/{id}")]
-        public async Task<IActionResult> GetSubordinates(int id)
-        {
-            var subordinates = await _supervisorRepository.GetSuperVisorSubordinates(id);
-
-            if (subordinates == null || subordinates.Count() == 0) return NotFound(new { response = "This supervisor has no subordinates" });
-
-            var subordinatesDTO = _mapper.Map<List<ReadEmployeeDTO>>(subordinates);
-
-            return Ok(subordinatesDTO);
-
-        }
-
     }
+
 }
+
+
+

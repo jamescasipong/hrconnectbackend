@@ -7,23 +7,49 @@ namespace hrconnectbackend.Data
     public class DataContext : DbContext
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
-
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Department> Departments { get; set; }
-        public DbSet<EmployeeInfo> EmployeesInfo { get; set; }
+        public DbSet<AboutEmployee> AboutEmployees { get; set; }
         public DbSet<LeaveApplication> LeaveApplications { get; set; }
-        public DbSet<LeaveApproval> LeaveApprovals { get; set; }
         public DbSet<OTApplication> OTApplications { get; set; }
-        public DbSet<OTApproval> OTApprovals { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
-        public DbSet<Auth> Auths { get; set; }
+        public DbSet<UserAccount> Auths { get; set; }
         public DbSet<Payroll> Payrolls { get; set; }
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Supervisor> Supervisors { get; set; }
         public DbSet<EducationBackground> EducationBackgrounds { get; set; }
+        public DbSet<Notifications> Notifications { get; set; }
+        public DbSet<UserNotification> UserNotifications { get; set; }
+        public DbSet<UserAccount> UserAccounts { get; set; }
+        public DbSet<AttendanceCertification> AttendanceCertifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<AttendanceCertification>().HasKey(x => x.Id);
+            modelBuilder.Entity<AttendanceCertification>().HasOne(a => a.Employee).WithMany(a => a.AttendanceCertifications).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<UserSettings>().HasKey(u => u.EmployeeId);
+            modelBuilder.Entity<UserSettings>()
+                .HasOne(e => e.Employee)
+                .WithOne(u => u.UserSettings)
+                .HasForeignKey<UserSettings>(u => u.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserNotification>().HasKey(e => e.EmployeeId);
+            modelBuilder.Entity<UserNotification>().HasKey(n => n.NotificationId);
+            modelBuilder.Entity<UserNotification>()
+                .HasOne(e => e.Employee)
+                .WithMany(u => u.UserNotification)
+                .HasForeignKey(a => a.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<UserNotification>()
+                .HasOne(e => e.Notification)
+                .WithMany(u => u.UserNotification)
+                .HasForeignKey(a => a.NotificationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
             // Employee
             modelBuilder.Entity<Employee>().HasKey(e => e.Id);
             modelBuilder.Entity<Employee>()
@@ -37,20 +63,33 @@ namespace hrconnectbackend.Data
                 .HasForeignKey(e => e.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Notifications
+            modelBuilder.Entity<Notifications>()
+                .HasOne(n => n.Employee)
+                .WithMany(e => e.Notifications)
+                .HasForeignKey(n => n.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Employee>()
+            .HasMany(e => e.Notifications)
+            .WithOne(e => e.Employee)
+            .HasForeignKey(e => e.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             // Supervisor
             modelBuilder.Entity<Supervisor>().HasKey(s => s.Id);
             modelBuilder.Entity<Supervisor>()
-                .HasOne(s => s.Employee)
+                .HasOne(e => e.Employee)
                 .WithOne()
                 .HasForeignKey<Supervisor>(s => s.EmployeeId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // EmployeeInfo
-            modelBuilder.Entity<EmployeeInfo>().HasKey(e => e.EmployeeInfoId);
-            modelBuilder.Entity<EmployeeInfo>()
+            modelBuilder.Entity<AboutEmployee>().HasKey(e => e.EmployeeInfoId);
+            modelBuilder.Entity<AboutEmployee>()
                 .HasOne(e => e.Employee)
-                .WithOne(e => e.EmployeeInfo)
-                .HasForeignKey<EmployeeInfo>(e => e.EmployeeInfoId)
+                .WithOne(e => e.AboutEmployee)
+                .HasForeignKey<AboutEmployee>(e => e.EmployeeInfoId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // EducationBackground
@@ -62,11 +101,11 @@ namespace hrconnectbackend.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Auth
-            modelBuilder.Entity<Auth>().HasKey(a => a.AuthEmpId);
-            modelBuilder.Entity<Auth>()
+            modelBuilder.Entity<UserAccount>().HasKey(a => a.UserId);
+            modelBuilder.Entity<UserAccount>()
                 .HasOne(a => a.Employee)
-                .WithOne(e => e.Auth)
-                .HasForeignKey<Auth>(a => a.AuthEmpId)
+                .WithOne(e => e.UserAccount)
+                .HasForeignKey<UserAccount>(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Payroll
@@ -101,18 +140,6 @@ namespace hrconnectbackend.Data
                 .HasForeignKey(l => l.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Leave Approval
-            modelBuilder.Entity<LeaveApproval>().HasKey(l => l.LeaveApprovalId);
-            modelBuilder.Entity<LeaveApproval>()
-                .HasOne(l => l.LeaveApplication)
-                .WithOne(la => la.LeaveApproval)
-                .HasForeignKey<LeaveApproval>(l => l.LeaveApplicationId)
-                .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<LeaveApproval>()
-                .HasOne(l => l.Supervisor)
-                .WithMany(s => s.LeaveApprovals)
-                .HasForeignKey(l => l.SupervisorId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             // OT Application
             modelBuilder.Entity<OTApplication>().HasKey(o => o.OTApplicationId);
@@ -121,19 +148,6 @@ namespace hrconnectbackend.Data
                 .WithMany(e => e.OTApplication)
                 .HasForeignKey(o => o.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // OT Approval
-            modelBuilder.Entity<OTApproval>().HasKey(o => o.OTApprovalId);
-            modelBuilder.Entity<OTApproval>()
-                .HasOne(o => o.OTApplication)
-                .WithOne(oa => oa.OTApproval)
-                .HasForeignKey<OTApproval>(o => o.OTApplicationId)
-                .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<OTApproval>()
-                .HasOne(o => o.Supervisor)
-                .WithMany(s => s.OTApprovals)
-                .HasForeignKey(o => o.SupervisorId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             // Attendance
             modelBuilder.Entity<Attendance>()
