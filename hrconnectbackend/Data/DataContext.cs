@@ -22,9 +22,13 @@ namespace hrconnectbackend.Data
         public DbSet<UserNotification> UserNotifications { get; set; }
         public DbSet<UserAccount> UserAccounts { get; set; }
         public DbSet<AttendanceCertification> AttendanceCertifications { get; set; }
+        public DbSet<LeaveBalance> LeaveBalances { get; set; }
+        public DbSet<UserSettings> UserSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<LeaveBalance>().HasOne(e => e.Employee).WithMany(l => l.LeaveBalance).HasForeignKey(k => k.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<AttendanceCertification>().HasKey(x => x.Id);
             modelBuilder.Entity<AttendanceCertification>().HasOne(a => a.Employee).WithMany(a => a.AttendanceCertifications).HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Restrict);
 
@@ -34,6 +38,8 @@ namespace hrconnectbackend.Data
                 .WithOne(u => u.UserSettings)
                 .HasForeignKey<UserSettings>(u => u.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+
 
             modelBuilder.Entity<UserNotification>().HasKey(e => e.EmployeeId);
             modelBuilder.Entity<UserNotification>().HasKey(n => n.NotificationId);

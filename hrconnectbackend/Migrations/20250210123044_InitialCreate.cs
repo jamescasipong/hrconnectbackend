@@ -52,15 +52,38 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AttendanceCertifications",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    EmployeeId = table.Column<int>(type: "int", nullable: false),
+                    SupervisorId = table.Column<int>(type: "int", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ClockIn = table.Column<TimeSpan>(type: "time", nullable: false),
+                    ClockOut = table.Column<TimeSpan>(type: "time", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AttendanceCertifications", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Attendances",
                 columns: table => new
                 {
                     AttendanceId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     EmployeeId = table.Column<int>(type: "int", nullable: false),
-                    DateToday = table.Column<DateOnly>(type: "date", nullable: false),
-                    ClockIn = table.Column<TimeOnly>(type: "time", nullable: false),
-                    ClockOut = table.Column<TimeOnly>(type: "time", nullable: true)
+                    DateToday = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ClockIn = table.Column<TimeSpan>(type: "time", nullable: false),
+                    ClockOut = table.Column<TimeSpan>(type: "time", nullable: true),
+                    WorkingHours = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    LateClockIn = table.Column<TimeSpan>(type: "time", nullable: true),
+                    EarlyLeave = table.Column<TimeSpan>(type: "time", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -92,7 +115,7 @@ namespace hrconnectbackend.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsAdmin = table.Column<bool>(type: "bit", nullable: false),
                     Position = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BaseSalary = table.Column<int>(type: "int", nullable: true),
+                    BaseSalary = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     BankName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     BankAccountNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TaxId = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -138,6 +161,28 @@ namespace hrconnectbackend.Migrations
                         principalTable: "Employees",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LeaveBalances",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    EmployeeId = table.Column<int>(type: "int", nullable: false),
+                    LeaveType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalLeaves = table.Column<int>(type: "int", nullable: false),
+                    UsedLeaves = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LeaveBalances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LeaveBalances_Employees_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "Employees",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -195,9 +240,17 @@ namespace hrconnectbackend.Migrations
                     PayrollId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     EmployeeId = table.Column<int>(type: "int", nullable: false),
-                    Salary = table.Column<double>(type: "float", nullable: false),
-                    Bonus = table.Column<double>(type: "float", nullable: false),
-                    PayDate = table.Column<DateOnly>(type: "date", nullable: false)
+                    BasicSalary = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Allowances = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Deductions = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    NetSalary = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    OvertimePay = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalWorkingHours = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AttendanceDeduction = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ThirteenthMonthPay = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PayDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PaymentStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PayPeriod = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -218,8 +271,8 @@ namespace hrconnectbackend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     EmployeeShiftId = table.Column<int>(type: "int", nullable: false),
                     DaysOfWorked = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TimeIn = table.Column<TimeOnly>(type: "time", nullable: false),
-                    TimeOut = table.Column<TimeOnly>(type: "time", nullable: false)
+                    TimeIn = table.Column<TimeSpan>(type: "time", nullable: false),
+                    TimeOut = table.Column<TimeSpan>(type: "time", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -310,7 +363,8 @@ namespace hrconnectbackend.Migrations
                 {
                     NotificationId = table.Column<int>(type: "int", nullable: false),
                     EmployeeId = table.Column<int>(type: "int", nullable: false),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false)
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -328,6 +382,16 @@ namespace hrconnectbackend.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AttendanceCertifications_EmployeeId",
+                table: "AttendanceCertifications",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AttendanceCertifications_SupervisorId",
+                table: "AttendanceCertifications",
+                column: "SupervisorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Attendances_EmployeeId",
@@ -358,6 +422,11 @@ namespace hrconnectbackend.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_LeaveApplications_EmployeeId",
                 table: "LeaveApplications",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LeaveBalances_EmployeeId",
+                table: "LeaveBalances",
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
@@ -400,6 +469,21 @@ namespace hrconnectbackend.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_AttendanceCertifications_Employees_EmployeeId",
+                table: "AttendanceCertifications",
+                column: "EmployeeId",
+                principalTable: "Employees",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_AttendanceCertifications_Supervisors_SupervisorId",
+                table: "AttendanceCertifications",
+                column: "SupervisorId",
+                principalTable: "Supervisors",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_Attendances_Employees_EmployeeId",
                 table: "Attendances",
                 column: "EmployeeId",
@@ -432,6 +516,9 @@ namespace hrconnectbackend.Migrations
                 table: "Supervisors");
 
             migrationBuilder.DropTable(
+                name: "AttendanceCertifications");
+
+            migrationBuilder.DropTable(
                 name: "Attendances");
 
             migrationBuilder.DropTable(
@@ -439,6 +526,9 @@ namespace hrconnectbackend.Migrations
 
             migrationBuilder.DropTable(
                 name: "LeaveApplications");
+
+            migrationBuilder.DropTable(
+                name: "LeaveBalances");
 
             migrationBuilder.DropTable(
                 name: "OTApplications");

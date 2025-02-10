@@ -1,11 +1,7 @@
 ﻿using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
-using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.VisualBasic;
-using System;
-using System.ComponentModel.DataAnnotations;
+
 
 namespace hrconnectbackend.Services
 {
@@ -41,7 +37,14 @@ namespace hrconnectbackend.Services
             };
 
             // Add the new settings to the database
-            await AddAsync(newSetting);
+            try
+            {
+                await AddAsync(newSetting);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error creating default settings: {ex.Message}");
+            }
         }
 
         public async Task ResetSettings(int employeeId)
@@ -57,25 +60,30 @@ namespace hrconnectbackend.Services
 
             if (setting == null)
             {
-                throw new KeyNotFoundException($"No setting found with an id {employeeId}");
+                throw new KeyNotFoundException($"No setting found for employee with id {employeeId}");
             }
 
-            setting.EmployeeId = employeeId;
+            // Reset settings to defaults
             setting.Theme = "Light";
             setting.Language = "en";  // Default language
             setting.NotificationsEnabled = true;  // Default to notifications enabled
             setting.Timezone = "UTC";  // Default timezone
             setting.DateFormat = "yyyy-MM-dd";  // Default date format
-            setting.TimeFormat = "24h";  // Default time format
+            setting.TimeFormat = "12h";  // Default time format
             setting.PrivacyLevel = "medium";  // Default privacy level
-            setting.CreatedAt = DateTime.UtcNow; // Set the creation timestamp
-            setting.UpdatedAt = DateTime.UtcNow; // Set the update timestamp
+            setting.UpdatedAt = DateTime.UtcNow; // Only update timestamp, don't change CreatedAt
             setting.IsTwoFactorEnabled = true;
             setting.TwoFactorMethod = null;
             setting.TwoFactorSecret = null;
 
-
-            await UpdateAsync(setting);
+            try
+            {
+                await UpdateAsync(setting);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error resetting settings: {ex.Message}");
+            }
         }
     }
 }

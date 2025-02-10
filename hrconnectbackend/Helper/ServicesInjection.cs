@@ -32,6 +32,10 @@ namespace hrconnectbackend.Helper
             services.AddScoped<INotificationServices, NotificationServices>();
             services.AddScoped<IUserSettingsServices, UserSettingServices>();
             services.AddScoped<IAttendanceCertificationServices, AttendanceCertificationServices>();
+            services.AddScoped<ILeaveApplicationServices, LeaveApplicationServices>();
+            services.AddScoped<IPayrollServices, PayrollServices>();
+            services.AddScoped<ILeaveBalanceServices, LeaveBalanceServices>();
+            services.AddScoped<IOTApplicationServices, OTApplicationServices>();
 
             services.AddScoped<DepartmentServices>();
             services.AddScoped<UserAccountServices>();

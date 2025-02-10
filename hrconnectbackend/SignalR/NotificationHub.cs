@@ -4,5 +4,6 @@ namespace hrconnectbackend.SignalR
 {
     public class NotificationHub: Hub
     {
+
     }
 }

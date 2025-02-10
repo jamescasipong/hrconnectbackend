@@ -20,7 +20,6 @@
 
     public class UpdateAttendanceDTO
     {
-        public int attendanceId { get; set; }
         public string DateToday { get; set; }  // Store as string
         public string ClockIn { get; set; }      // Store as string
         public string ClockOut { get; set; }     // Store as string

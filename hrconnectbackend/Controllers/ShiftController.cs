@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -44,12 +46,33 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateShift([FromBody] Shift shift)
+        public async Task<IActionResult> CreateShift(ShiftDTO shiftDTO)
         {
             try
             {
-                var createdShift = await _shiftServices.AddAsync(shift);
-                return CreatedAtAction(nameof(GetShiftById), new { id = createdShift.Id }, createdShift);
+                if (!IsValidDayOfWorked(shiftDTO.DaysOfWorked))
+                {
+                    return BadRequest(new ApiResponse(false, "Days of worked is invalid"));
+                }
+
+                var employee = await _shiftServices.GetAllAsync();
+
+                bool shiftExisted = employee.Where(a => a.EmployeeShiftId == shiftDTO.EmployeeShiftId && a.DaysOfWorked == shiftDTO.DaysOfWorked).Any();
+
+                if (shiftExisted)
+                {
+                    return Conflict(new ApiResponse(false, "Day of worked already existed"));
+                }
+
+                var createdShift = await _shiftServices.AddAsync(new Shift
+                {
+                    EmployeeShiftId = shiftDTO.EmployeeShiftId,
+                    DaysOfWorked = shiftDTO.DaysOfWorked,
+                    TimeIn = TimeSpan.Parse(shiftDTO.TimeIn),
+                    TimeOut = TimeSpan.Parse(shiftDTO.TimeOut)
+                });
+
+                return Ok(new ApiResponse<Shift>(success: true, message: $"Shift by Employee with ID {shiftDTO} created successfully!", data: createdShift));
             }
             catch (Exception ex)
             {
@@ -149,5 +172,22 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
+
+        private bool IsValidDayOfWorked(string name)
+        {
+            List<string> daysOfWorked = new List<string>
+        {
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        };
+
+            return daysOfWorked.Any(a => a.Contains(name));
+        }
     }
+    
 }

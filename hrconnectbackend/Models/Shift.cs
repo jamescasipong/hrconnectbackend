@@ -8,8 +8,8 @@ namespace hrconnectbackend.Models
         public int Id { get; set; }
         public int EmployeeShiftId { get; set; }
         public string DaysOfWorked { get; set; }
-        public TimeOnly TimeIn { get; set; }
-        public TimeOnly TimeOut { get; set; }
+        public TimeSpan TimeIn { get; set; }
+        public TimeSpan TimeOut { get; set; }
         public Employee Employee { get; set; }
     }
 }

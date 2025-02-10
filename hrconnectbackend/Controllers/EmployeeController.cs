@@ -17,7 +17,7 @@ namespace hrconnectbackend.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeServices _employeeService;
-        private readonly IAboutEmployeeServices _employeeInfoService;
+        private readonly IAboutEmployeeServices _aboutEmployeeServices;
         private readonly UserAccountServices _userAccountServices;
         private readonly SupervisorServices _supervisorService;
         private readonly IShiftServices _shiftService;
@@ -31,7 +31,7 @@ namespace hrconnectbackend.Controllers
         public EmployeeController(
             IEmployeeServices employeeService,
             IMapper mapper,
-            IAboutEmployeeServices employeeInfoService,
+            IAboutEmployeeServices aboutEmployeeServices,
             IDepartmentServices departmentService,
             ILogger<EmployeeController> logger,
             UserAccountServices userAccountServices,
@@ -42,7 +42,7 @@ namespace hrconnectbackend.Controllers
             INotificationServices notificationService)
         {
             _attendanceService = attendanceService;
-            _employeeInfoService = employeeInfoService;
+            _aboutEmployeeServices = aboutEmployeeServices;
             _supervisorService = supervisorService;
             _userAccountServices = userAccountServices;
             _employeeService = employeeService;
@@ -68,26 +68,22 @@ namespace hrconnectbackend.Controllers
                 // Call the CreateEmployeeAsync method
                 await _employeeService.CreateEmployee(employee);
 
-                return Ok(new
-                {
-                    messsage = "Successfully Created!",
-                    status = 200
-                });  // Return a success message
+                return Ok(new ApiResponse(false, $"Employee created successfully!"));  // Return a success message
             }
             catch (ArgumentNullException ex)
             {
                 _logger.LogError(ex, "Error creating employee due to null data.");
-                return BadRequest(ex.Message);  // Return BadRequest for specific exceptions
+                return BadRequest(new ApiResponse(false, ex.Message));  // Return BadRequest for specific exceptions
             }
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, "Error creating employee: Invalid argument.");
-                return BadRequest(ex.Message);  // Return BadRequest for invalid arguments
+                return BadRequest(new ApiResponse(false, ex.Message)); // Return BadRequest for invalid arguments
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Error creating employee: Invalid operation.");
-                return Conflict(ex.Message);  // Return Conflict for specific scenarios like existing employee
+                return Conflict(new ApiResponse(false, ex.Message));  // Return Conflict for specific scenarios like existing employee
             }
             catch (Exception ex)
             {
@@ -96,34 +92,154 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-        [HttpPut("update-username/{id}")]
-        public async Task<IActionResult> ChangeUserName(int id, string name)
+        [HttpGet]
+        public async Task<IActionResult> GetEmployees([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
-            var user = await _userAccountServices.GetByIdAsync(id);
+            try
+            {
+                var employees = new List<Employee>();
+
+                // Check if pagination parameters are provided
+                if (pageIndex == null || pageSize == null)
+                {
+                    employees = await _employeeService.GetAllAsync();
+                }
+                else
+                {
+                    if (pageIndex <= 0)
+                    {
+                        return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
+                    }
+
+                    if (pageSize <= 0)
+                    {
+                        return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
+                    }
+
+                    // Apply pagination only if pageIndex and pageSize are not null
+                    employees = await _employeeService.GetAllAsync();
+                    employees = employees.Skip((pageIndex.Value - 1) * pageSize.Value)
+                                         .Take(pageSize.Value)
+                                         .ToList();
+                }
+
+                if (!employees.Any())
+                {
+                    return NotFound(new ApiResponse(false, $"No employees exist"));
+                }
+
+                var employeesDTO = _mapper.Map<List<ReadEmployeeDTO>>(employees);
+
+                return Ok(new ApiResponse<List<ReadEmployeeDTO>>(true, $"Employees retrieved successfully!", employeesDTO));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving employees");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetEmployee(int id)
+        {
+            try
+            {
+                var employee = await _employeeService.GetByIdAsync(id);
+
+                if (employee == null)
+                {
+                    return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
+                }
+
+                var employeeDTO = _mapper.Map<ReadEmployeeDTO>(employee);
+
+                return Ok(new ApiResponse<ReadEmployeeDTO>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving an employee with ID: {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDTO employeeDTO)
+        {
+            var employee = await _employeeService.GetByIdAsync(id);
 
             try
             {
-                if (user == null) throw new KeyNotFoundException("User not found.");
+                if (employee == null)
+                {
+                    return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                employee.FirstName = employee.FirstName;
+                employee.LastName = employee.LastName;
+                employee.Email = employee.Email;
+                employee.Status = employee.Status;
+
+                await _employeeService.UpdateAsync(employee);
+
+                return Ok(new ApiResponse(true, $"Employee with an ID: {id} updated successfully"));
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error updating an employee with ID {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteEmployee(int id)
+        {
+            var employee = await _employeeService.GetByIdAsync(id);
+
+            try
+            {
+                if (employee == null)
+                {
+                    return NotFound(new ApiResponse(false, $"Employee with ID: {id} not found."));
+                }
+
+                
+
+                await _employeeService.DeleteAsync(employee);
+
+                return Ok(new ApiResponse(true, $"Employee with ID: {id} deleted successfully!"));
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting an employee with ID {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPut("update-username/{accountId:int}")]
+        public async Task<IActionResult> ChangeUserName(int accountId, string name)
+        {
+            var user = await _userAccountServices.GetByIdAsync(accountId);
+
+            try
+            {
+                if (user == null) return NotFound(new ApiResponse(false, $"Employee account with account ID: {accountId} not found."));
 
                 user.UserName = name;
 
                 await _userAccountServices.UpdateAsync(user);
-                return Ok(new
-                {
-                    message = "Success!"
-                });
+                return Ok(new ApiResponse(true, $"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
 
-            }
-            catch(KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    ex.Message,
-                });
             }
             catch(Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError(ex, "Error updating an employee's account username with account ID {id}", accountId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
     }

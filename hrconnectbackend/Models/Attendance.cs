@@ -1,16 +1,34 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using hrconnectbackend.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace hrconnectbackend.Models
+public class Attendance
 {
-    public class Attendance
+    [Key]
+    public int AttendanceId { get; set; }
+    public int EmployeeId { get; set; }
+    public DateTime DateToday { get; set; }
+    public TimeSpan ClockIn { get; set; }
+    public TimeSpan? ClockOut { get; set; }
+    //public string Status { get; set; }
+
+    // This will store the total working hours, including overtime if applicable
+    public decimal WorkingHours { get; set; }
+    public TimeSpan? LateClockIn { get; set; }
+    public TimeSpan? EarlyLeave { get; set; }
+
+    public Employee? Employee { get; set; }
+
+    // Method to calculate working hours (you can adjust this logic as per your needs)
+    public void CalculateWorkingHours()
     {
-        [Key]
-        public int AttendanceId { get; set; }
-        public int EmployeeId { get; set; }
-        public DateOnly DateToday { get; set; }
-        public TimeSpan ClockIn { get; set; }
-        public TimeSpan? ClockOut { get; set; }
-        public Employee? Employee { get; set; }
+        if (ClockOut.HasValue)
+        {
+            var totalHours = (ClockOut.Value - ClockIn).TotalHours;
+            WorkingHours = (decimal)totalHours;
+        }
+        else
+        {
+            WorkingHours = 0;
+        }
     }
 }

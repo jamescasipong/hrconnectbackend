@@ -30,8 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Helper\CustomExceptions\" />
     <Folder Include="Migrations\" />
+    <Folder Include="Models\ReturnDTOs\" />
   </ItemGroup>
 
 </Project>

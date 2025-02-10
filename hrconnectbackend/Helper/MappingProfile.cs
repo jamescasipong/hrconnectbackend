@@ -15,6 +15,24 @@ namespace hrconnectbackend.Helper
             CreateAuthMappings();
             CreateNotificationMappings();
             CreateAttendanceCertification();
+            CreateLeaveApplicationMappings();
+        }
+
+        private void PayrollMappings()
+        {
+            
+        }
+
+        private void CreateLeaveApplicationMappings()
+        {
+            CreateMap<ReadLeaveApplicationDTO, LeaveApplication>();
+            CreateMap<LeaveApplication, ReadLeaveApplicationDTO>();
+
+            CreateMap<CreateLeaveApplicationDTO, LeaveApplication>();
+            CreateMap<LeaveApplication, CreateLeaveApplicationDTO>();
+
+            CreateMap<UpdateLeaveApplicationDTO, LeaveApplication>();
+            CreateMap<LeaveApplication,  UpdateLeaveApplicationDTO>();
         }
 
         private void CreateNotificationMappings()

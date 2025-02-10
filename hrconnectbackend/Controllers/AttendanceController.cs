@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using hrconnectbackend.Helper;
+using hrconnectbackend.Helper.CustomExceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -44,54 +46,52 @@ namespace hrconnectbackend.Controllers
             {
                 var attendances = await _attendanceServices.GetAllAsync();
 
-                return Ok(attendances);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                var mappedAttendances = _mapper.Map<List<ReadAttendanceDTO>>(attendances);
+
+                if (!attendances.Any()) Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances not found.", mappedAttendances));
+
+                return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances retrived successfully!", mappedAttendances));
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError(ex, "Error retrieving attendance");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetAttendance(int id)
         {
             try
             {
                 var attendance = await _attendanceServices.GetByIdAsync(id);
 
-                if (attendance == null) throw new KeyNotFoundException("No attendance found");
+                if (attendance == null) return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
 
                 return Ok(attendance);
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
             catch (Exception ex)
             {
-                return BadRequest();
+                _logger.LogError(ex, "Error deleting attendance with an ID: {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateAttendance(UpdateAttendanceDTO updateAttendanceDTO)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateAttendance(int id, UpdateAttendanceDTO updateAttendanceDTO)
         {
             try
             {
-                var attendance = await _attendanceServices.GetByIdAsync(updateAttendanceDTO.attendanceId);
+                var attendance = await _attendanceServices.GetByIdAsync(id);
 
                 if (attendance == null)
                 {
-                    throw new KeyNotFoundException("No attendance found");
+                    return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
                 }
 
                 attendance.ClockIn = TimeSpan.Parse(updateAttendanceDTO.ClockIn);
                 attendance.ClockOut = TimeSpan.Parse(updateAttendanceDTO.ClockOut);
-                attendance.DateToday = DateOnly.Parse(updateAttendanceDTO.DateToday);
+                attendance.DateToday = DateTime.Parse(updateAttendanceDTO.DateToday);
 
                 await _attendanceServices.UpdateAsync(attendance);
 
@@ -103,15 +103,16 @@ namespace hrconnectbackend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return BadRequest(e.Message);
+                _logger.LogError(ex, "Error deleting attendance with an ID: {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteAttendance(int id)
         {
             try
@@ -120,160 +121,218 @@ namespace hrconnectbackend.Controllers
 
                 if (attendance == null)
                 {
-                    throw new KeyNotFoundException("No attendance found");
+                    return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
                 }
 
                 await _attendanceServices.DeleteAsync(attendance);
 
-                return Ok(new
-                {
-                    message = "Success!",
-                    status = 200
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
+                return Ok(new ApiResponse(false, $"Attendance with an ID: {id} deleted successfully!"));
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                _logger.LogError(ex, "Error deleting attendance with an ID: {id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpGet("employee/{id}")]
-        public async Task<IActionResult> GetAttendanceByEmployee(int id)
-        {
-            var attendances = await _attendanceServices.GetAttendanceByEmployeeId(id);
-
-            return Ok(attendances);
-        }
-
-        [HttpPost("clock-in/{id}")]
-        public async Task<IActionResult> ClockIn(int id)
+        [HttpGet("employee/{employeeId:int}")]
+        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId)
         {
             try
             {
-                await _attendanceServices.ClockIn(id);
+                var attendances = await _attendanceServices.GetAttendanceByEmployeeId(employeeId);
 
-                return Ok(new
-                {
-                    message = "Success!",
-                    status = 200,
-                });
+                var mappedAttendance = _mapper.Map<List<ReadAttendanceDTO>>(attendances);
+
+                if (!attendances.Any()) return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances by employee {employeeId} not found.", mappedAttendance));
+
+                return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance for employee with an ID: {id}", employeeId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPost("clock-in/{employeeId:int}")]
+        public async Task<IActionResult> ClockIn(int employeeId)
+        {
+            try
+            {
+                await _attendanceServices.ClockIn(employeeId);
+
+                return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message));
+            }
+            catch (ConflictException ex)
+            {
+                return Conflict(new ApiResponse(false, ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ApiResponse(false, $"Clock-out record for employee {employeeId} not found."));
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                _logger.LogError(ex, "Error processing clock-in for employee {EmployeeId}", employeeId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpPost("clock-out/{id}")]
-        public async Task<IActionResult> ClockOut(int id)
+        [HttpGet("clocked-in/{employeeId:int}")]
+        public async Task<IActionResult> HasClockedIn(int employeeId)
         {
             try
             {
-                await _attendanceServices.ClockOut(id);
+                var clockedOut =await _attendanceServices.HasClockedOut(employeeId);
 
-                return Ok(new
-                {
-                    message = "Success!",
-                    status = 200,
-                });
+                return Ok(new ApiResponse<bool>(true, $"Has already clocked in.", clockedOut));
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error checking's employee attendance {EmployeeId}", employeeId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPost("clock-out/{employeeId:int}")]
+        public async Task<IActionResult> ClockOut(int employeeId)
+        {
+            try
+            {
+                bool clockedIn = await _attendanceServices.HasClockedIn(employeeId);
+
+                return Ok(new ApiResponse(true, $"Clock-out recorded for employee {employeeId} successfully"));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ApiResponse(false,ex.Message));
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                _logger.LogError(ex, "Error processing clock-out for employee {EmployeeId}", employeeId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpGet("clocked-out/{employeeId:int}")]
+        public async Task<IActionResult> HasClockedOut(int employeeId)
+        {
+            try
+            {
+                bool clockedOut = await _attendanceServices.HasClockedOut(employeeId);
+
+                return Ok(new ApiResponse<bool>(true, $"Has already clocked in.", clockedOut));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking's employee attendance {EmployeeId}", employeeId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
 
-        [HttpGet("daily/{id}")]
-        public async Task<IActionResult> GetDailyAttendance(int id)
+        [HttpGet("daily/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetDailyAttendance(int employeeId)
         {
             try
             {
-                var attendanceToday = await _attendanceServices.GetDailyAttendanceByEmployeeId(id);
+                var attendanceToday = await _attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+
                 return Ok(attendanceToday);
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new
-                {
-                    error = ex.Message,
-                });
+                return NotFound(new ApiResponse(false, $"Daily attendance for employee {employeeId} not found."));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new
-                {
-                    error = ex.Message
-                });
+                return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
+                _logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
                 return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
 
 
-        [HttpGet("range-date/{id}")]
-        public async Task<IActionResult> GetAttendanceInRange(int id, [FromQuery] DateTime start, [FromQuery] DateTime end)
+        [HttpGet("range/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end)
         {
             try
             {
-                var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(id, start, end);
-                return Ok(attendanceRecords);
+                var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end));
+                return Ok(new ApiResponse<List<Attendance>>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid request parameters for employee ID: {id}", id);
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                _logger.LogWarning(ex, "No attendance found for employee ID: {id} in the given range", id);
-                return NotFound(new { error = ex.Message });
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
+                _logger.LogError(ex, $"Error retrieving in the range between {start} and {end} for employee ID: {employeeId}");
                 return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
 
-        [HttpGet("monthly/{id}")]
+        [HttpGet("monthly/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetMonthlyAttendance(int id)
         {
             try
             {
                 var attendanceRecords = await _attendanceServices.GetMonthlyAttendanceByEmployeeId(id);
-                return Ok(attendanceRecords);
+                return Ok(new ApiResponse<List<Attendance>>(true, "Monthly attendance retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid employee ID: {id}", id);
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (KeyNotFoundException ex)
             {
-                _logger.LogWarning(ex, "No attendance found for employee ID: {id}", id);
-                return NotFound(new { error = ex.Message });
+                return NotFound(new ApiResponse(false, $"Monthly attendance with ID {id} not found"));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving attendance for employee ID: {id}", id);
-                return StatusCode(500, new { error = "An internal error occurred" });
+                _logger.LogError(ex, "Error retrieving monthly attendance with ID {Id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
+        }
+
+        [HttpGet("department/{departmentId:int}/attendance-stats")]
+        public async Task<IActionResult> GetPresentEmployeesByDept(int departmentId)
+        {
+            var employeeAttendanceStats = await _attendanceServices.EmployeePresentStatsByDept(departmentId);
+
+            return Ok(new ApiResponse<dynamic>(true, "Employees present", employeeAttendanceStats));
+        }
+
+        [HttpGet("attendance-stats")]
+        public async Task<IActionResult> GetPresentEmployees()
+        {
+            var employeeAttendanceStats = await _attendanceServices.EmployeePresentStats();
+
+            return Ok(new ApiResponse<dynamic>(true, "Employees present", employeeAttendanceStats));
         }
 
         [HttpPost("certification")]
@@ -282,16 +341,17 @@ namespace hrconnectbackend.Controllers
 
             var supervisor = await _supervisorServices.GetByIdAsync(attendanceDTO.SupervisorId);
 
-            if (supervisor == null)
+
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Supervisor not found");
+                return BadRequest(new ApiResponse(false, "Employee Id or Date is required."));
             }
 
             var newAttendance = new AttendanceCertification
             {
                 EmployeeId = attendanceDTO.EmployeeId,
                 SupervisorId = attendanceDTO.SupervisorId,
-                Date = DateOnly.Parse(attendanceDTO.Date),
+                Date = DateTime.Parse(attendanceDTO.Date),
                 Status = "Pending",
                 ClockIn = TimeSpan.Parse(attendanceDTO.ClockIn),
                 ClockOut = TimeSpan.Parse(attendanceDTO.ClockOut),
@@ -301,98 +361,139 @@ namespace hrconnectbackend.Controllers
 
             await _attendanceCertificationServices.AddAsync(newAttendance);
 
-            return Ok(new
-            {
-                message = "Success!",
-                status = 200
-            });
+            return Ok(new ApiResponse(true, $"Attendance certifications created sucessfully!"));
         }
 
-        [HttpPost("certification/approve/{id}")]
+        [HttpGet("certification")]
+        public async Task<IActionResult> GetAttendanceCertification()
+        {
+            var certifications = await _attendanceCertificationServices.GetAllAsync();
+
+            return Ok(new ApiResponse<List<AttendanceCertification>>(true, $"Attendance certifications retrieved sucessfully!", certifications));
+        }
+
+        [HttpGet("certification/{id:int}")]
+        public async Task<IActionResult> GetAttendanceCertification(int id)
+        {
+            var certification = await _attendanceCertificationServices.GetByIdAsync(id);
+
+            try
+            {
+                if (certification == null)
+                {
+                    return NotFound(new ApiResponse(false, $"Attendance certification with ID {id} not found"));
+                }
+
+                return Ok(new ApiResponse<AttendanceCertification>(true, $"Attendance certification retrieved sucessfully!", certification));
+            }
+
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance with ID {Id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPut("certification/{id:int}")]
+        public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDTO attendanceDTO)
+        {
+            if (id == null)
+            {
+                return BadRequest(new ApiResponse(false, "Id required in the parameter"));
+            }
+
+            try
+            {
+                var existingAttendance = await _attendanceCertificationServices.GetByIdAsync(id);
+                if (existingAttendance == null)
+                {
+                    return NotFound(new ApiResponse(false, $"Attendance certification with ID {id} not found"));
+                }
+
+                existingAttendance.ClockIn = TimeOnly.Parse(attendanceDTO.ClockIn).ToTimeSpan();
+                existingAttendance.ClockOut = TimeOnly.Parse(attendanceDTO.ClockOut).ToTimeSpan();
+                existingAttendance.Date = DateTime.Parse(attendanceDTO.Date);
+                existingAttendance.Reason = attendanceDTO.Reason;
+
+                await _attendanceCertificationServices.UpdateAsync(existingAttendance);
+
+                return Ok(new { message = "Success!", status = 200 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating attendance with ID {Id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpDelete("certification/{id:int}")]
+        public async Task<IActionResult> DeleteCertification(int id)
+        {
+            var certification = await _attendanceCertificationServices.GetByIdAsync(id);
+
+            try
+            {
+                if (certification == null)
+                {
+                    return NotFound("No certification found");
+                }
+
+                await _attendanceCertificationServices.DeleteAsync(certification);
+
+                return Ok(new ApiResponse
+                (
+                    true, "Attendance certification deleted succcessfully."
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance with ID {Id}", id);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+
+        [HttpPost("certification/approve/{id:int}")]
         public async Task<IActionResult> ApproveCOA(int id)
         {
 
-            var coa = await _attendanceCertificationServices.GetByIdAsync(id);
-
-            if (coa == null) return NotFound();
-
-            coa.Status = "Approved";
-
-            await _attendanceCertificationServices.UpdateAsync(coa);
-
-            var attendances = await _attendanceServices.GetAllAsync();
-
-            var attendance = attendances.Where(a => a.EmployeeId == coa.EmployeeId && a.DateToday == coa.Date).FirstOrDefault();
-
-            if (attendance == null)
+            try
             {
-                var newAttendance = new Attendance
-                {
-                    EmployeeId = coa.EmployeeId,
-                    ClockIn = coa.ClockIn,
-                    ClockOut = coa.ClockOut,
-                    DateToday = coa.Date,
-                };
+                await _attendanceCertificationServices.ApproveCertification(id);
 
-                await _attendanceServices.AddAsync(newAttendance);
+                return Ok(new ApiResponse(true, "Attendance certification approved successfully."));
             }
-            else
+            catch (KeyNotFoundException ex)
             {
-                attendance.ClockIn = coa.ClockIn;
-                attendance.ClockOut = coa.ClockOut;
-
-                await _attendanceServices.UpdateAsync(attendance);
+                return NotFound(new ApiResponse(false, ex.Message));
             }
-
-            return Ok(new
+            catch (Exception ex) 
             {
-                message = "Success!",
-                status = 200
-            });
+                _logger.LogError(ex, "Error approving a certification with ID {id}", id);
+                return StatusCode(500, "An internal server error occurred.");
+            }
         }
 
 
-        [HttpPost("certification/reject/{id}")]
+        [HttpPost("certification/reject/{id:int}")]
         public async Task<IActionResult> RejectCOA(int id)
         {
 
-            var coa = await _attendanceCertificationServices.GetByIdAsync(id);
-
-            if (coa == null) return NotFound();
-
-            coa.Status = "Reject";
-
-            await _attendanceCertificationServices.UpdateAsync(coa);
-
-            var attendances = await _attendanceServices.GetAllAsync();
-
-            var attendance = attendances.Where(a => a.EmployeeId == coa.EmployeeId && a.DateToday == coa.Date).FirstOrDefault();
-
-            if (attendance == null)
+            try
             {
-                var newAttendance = new Attendance
-                {
-                    EmployeeId = coa.EmployeeId,
-                    ClockIn = coa.ClockIn,
-                    ClockOut = coa.ClockOut,
-                    DateToday = coa.Date,
-                };
+                await _attendanceCertificationServices.RejectCertification(id);
 
-                await _attendanceServices.AddAsync(newAttendance);
+                return Ok(new ApiResponse(true, "Attendance certification deleted successfully."));
             }
-            else
+            catch (KeyNotFoundException ex)
             {
-                attendance.ClockIn = coa.ClockIn;
-                attendance.ClockOut = coa.ClockOut;
-
-                await _attendanceServices.UpdateAsync(attendance);
+                return NotFound(new ApiResponse(false, ex.Message));
             }
-
-            return Ok(new
+            catch (Exception ex)
             {
-                message = "Success!",
-                status = 200
-            });
+                _logger.LogError(ex, "Error rejecting attendance certification.");
+                return StatusCode(500, "An internal server error occurred.");
+            }
         }
     }
 }

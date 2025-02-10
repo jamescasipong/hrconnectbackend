@@ -15,7 +15,7 @@ namespace hrconnectbackend.Models
         public string Email { get; set; }
         public bool IsAdmin { get; set; }
         public string? Position { get; set; } = "N/A";
-        public int? BaseSalary { get; set; } = 0;
+        public decimal BaseSalary { get; set; } = 18000m;
         public string? BankName { get; set; } = "N/A";
         public string? BankAccountNumber { get; set; } = "N/A";
         public string? TaxId { get; set; } = "N/A";
@@ -41,5 +41,6 @@ namespace hrconnectbackend.Models
         public virtual List<UserNotification>? UserNotification { get; set; }
         public virtual List<AttendanceCertification>? AttendanceCertifications { get; set; }
         public virtual UserSettings? UserSettings { get; set; }
+        public virtual List<LeaveBalance>? LeaveBalance { get; set; }
     }
 }

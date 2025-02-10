@@ -38,16 +38,6 @@ public class LeaveApplicationServices : GenericRepository<LeaveApplication>, ILe
 
     public async Task<LeaveApplication> RequestLeave(LeaveApplication leaveApplication)
     {
-        if (leaveApplication == null)
-            throw new ArgumentNullException(nameof(leaveApplication), "Leave application cannot be null.");
-
-        if (string.IsNullOrWhiteSpace(leaveApplication.Reason))
-            throw new ArgumentException("Leave reason is required.");
-
-        if (!IsValidLeaveType(leaveApplication.Type))
-            throw new InvalidOperationException("Invalid leave type.");
-
-
         var employee = await GetByIdAsync(leaveApplication.EmployeeId);
         if (employee == null)
         {
@@ -69,18 +59,24 @@ public class LeaveApplicationServices : GenericRepository<LeaveApplication>, ILe
 
         if (leaveApplication == null)
         {
-            _logger.LogWarning($"Employee with ID {id} not found.");
-            throw new ArgumentException("Employee not found.");
+            throw new KeyNotFoundException($"Leave application with ID: {id} not found.");
         }
 
         leaveApplication.Status = "Approved";
         await UpdateAsync(leaveApplication);
+
         _logger.LogInformation($"Leave application ID {id} approved.");
     }
 
     public async Task RejectLeave(int id)
     {
         var leaveApplication = await GetLeaveApplicationByIdAsync(id);
+
+        if (leaveApplication == null)
+        {
+            throw new KeyNotFoundException($"Leave application with ID: {id} not found.");
+        }
+
         leaveApplication.Status = "Rejected";
         await UpdateAsync(leaveApplication);
         _logger.LogInformation($"Leave application ID {id} rejected.");
@@ -141,14 +137,14 @@ public class LeaveApplicationServices : GenericRepository<LeaveApplication>, ILe
 
         if (employee == null)
         {
-            _logger.LogWarning($"Employee not found.");
-            throw new KeyNotFoundException($"No employee found with an id {employeeId}.");
+            _logger.LogWarning($"Leave application with ID: {employeeId} not found.");
+            throw new KeyNotFoundException($"Leave application with ID: {employeeId} not found.");
         }
 
-        if (leaveApplication.Count == 0)
+        if (!leaveApplication.Any())
         {
             _logger.LogWarning($"Leave application by employee: {employee.Id} not found.");
-            throw new KeyNotFoundException($"No leave application found with an id {employeeId}.");
+            throw new KeyNotFoundException($"Leave application with ID: {employeeId} not found.");
         }
 
         return leaveApplication;

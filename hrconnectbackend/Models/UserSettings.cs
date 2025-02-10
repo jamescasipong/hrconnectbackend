@@ -35,5 +35,5 @@ public class UserSettings
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  // Timestamp of when the settings were created
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;  // Timestamp of when the settings were last updated
 
-    public virtual Employee Employee { get; set; }
+    public virtual Employee? Employee { get; set; }
 }

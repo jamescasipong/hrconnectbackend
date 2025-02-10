@@ -108,9 +108,9 @@ namespace hrconnectbackend.Repositories
                 }
 
                 // Check if the status is valid
-                if (employee.Status != "offline" && employee.Status != "online")
+                if (employee.Status != "Online" && employee.Status != "Offline")
                 {
-                    _logger.LogWarning("Invalid status provided: {Status}. Expected 'online' or 'offline'.", employee.Status);
+                    _logger.LogWarning("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.", employee.Status);
                     throw new ArgumentException("Invalid status", nameof(employee.Status));
                 }
 
@@ -171,7 +171,7 @@ namespace hrconnectbackend.Repositories
                     EmployeeId = employeeEntity.Id,
                     ClockIn = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan(),
                     ClockOut = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan(),
-                    DateToday = DateOnly.FromDateTime(DateTime.Now)
+                    DateToday = DateTime.Now
                 });
 
                 await _aboutEmployeeService.AddEducationBackgroundAsync(new EducationBackground
