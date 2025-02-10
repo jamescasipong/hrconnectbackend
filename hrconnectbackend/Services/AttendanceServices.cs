@@ -99,7 +99,7 @@ namespace hrconnectbackend.Repositories
             {
                 throw new InvalidOperationException($"Employee with ID {employeeId} has no shift today. Cannot clock in.");
             }
-            
+
             // Convert clock-out time to TimeSpan
             var timeClockedOut = dayToday.TimeOfDay; // This gives us the TimeSpan of the current time
 
@@ -115,7 +115,7 @@ namespace hrconnectbackend.Repositories
             }
 
             var hasClockedOut = await HasClockedOut(employeeId);
-            
+
 
             if (hasClockedOut)
             {
@@ -125,7 +125,7 @@ namespace hrconnectbackend.Repositories
 
             foreach (var shift in employeeShift)
             {
-                
+
                 if (dayToday.ToString("dddd") == shift.DaysOfWorked)
                 {
                     // Early leave calculation
@@ -152,106 +152,41 @@ namespace hrconnectbackend.Repositories
 
         //Return Late and by Dept
 
-        public async Task<dynamic> EmployeePresentStatsByDept(int departmentId)
+        public async Task<dynamic> EmployeeAttendanceStatsByDeptSpecificOrToday(int departmentId, DateTime? specificDate)
         {
-            var today = DateTime.Now.Date;
             var employees = await _context.Employees.Where(e => e.DepartmentId == departmentId).ToListAsync();
-            var shifts = await _context.Shifts.ToListAsync();
-            var attendances = await _context.Attendances.Where(a => a.DateToday == today).ToListAsync();
 
-            int absent = 0, present = 0, hasNotClockedIn = 0, late = 0, offWork = 0;
-
-            var absentsId = new List<ReadEmployeeDTO>();
-            var presentsId = new List<ReadEmployeeDTO>();
-            var hasNotClockedInId = new List<ReadEmployeeDTO>();
-            var latesId = new List<ReadEmployeeDTO>();
-            var offWorksId = new List<ReadEmployeeDTO>();
-
-
-            foreach (var employee in employees)
-            {
-                var employeeShift = shifts.FirstOrDefault(s => s.EmployeeShiftId == employee.Id);
-                var employeeAttendance = attendances.FirstOrDefault(a => a.EmployeeId == employee.Id);
-
-                if (employeeShift == null)
-                {
-                    offWork++; // No assigned shift
-                    offWorksId.Add(_mapper.Map<ReadEmployeeDTO>(employee));
-                    continue;
-                }
-
-                var shiftStartTime = employeeShift.TimeIn;
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan();
-
-                if (employeeAttendance == null)
-                {
-                    // If the employee has a shift but hasn't clocked in after 5 hours
-                    if ((currentTime - shiftStartTime).TotalHours <= 5)
-                    {
-                        hasNotClockedIn++;
-                        hasNotClockedInId.Add(_mapper.Map<ReadEmployeeDTO>(employee));
-                    }
-                    else
-                    {
-                        absent++;
-                        absentsId.Add(_mapper.Map<ReadEmployeeDTO>(employee));
-                    }
-                }
-                else
-                {
-                    var clockInTime = employeeAttendance.ClockIn;
-                    //var hoursLate = (clockInTime - shiftStartTime).TotalHours;
-
-                    if (clockInTime > shiftStartTime)
-                    {
-                        late++;
-                        latesId.Add(_mapper.Map<ReadEmployeeDTO>(employee));
-                    }
-                    else
-                    {
-                        present++;
-                        presentsId.Add(_mapper.Map<ReadEmployeeDTO>(employee));
-                    }
-
-                }
-            }
-
-            return new
-            {
-                Absent = new
-                {
-                    quantity = absent,
-                    employees = absentsId
-                },
-                Present = new
-                {
-                    quantity = present,
-                    employees = presentsId
-                },
-                NotClockedIn = new
-                {
-                    quantity = hasNotClockedIn,
-                    employees = hasNotClockedInId
-                },
-                Late = new
-                {
-                    quantity = late,
-                    employees = latesId
-                },
-                OffWork = new
-                {
-                    quantity = offWork,
-                    employees = offWorksId
-                },
-            };
+            return await EmployeeAttendanceStats(employees, specificDate);
         }
 
-        public async Task<dynamic> EmployeePresentStats()
+        public async Task<dynamic> EmployeeAttendanceStatsByShiftSpecificOrToday(int shiftId, DateTime? specificDate)
         {
-            var today = DateTime.Now;
+            var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee).ToListAsync();
+
+            return await EmployeeAttendanceStats(employees, specificDate);
+        }
+
+        public async Task<dynamic> EmployeeAttendanceStatsSpecificOrToday(DateTime? specificDate)
+        {
             var employees = await _context.Employees.ToListAsync();
+
+            return await EmployeeAttendanceStats(employees, specificDate);
+        }
+
+        private async Task<dynamic> EmployeeAttendanceStats(List<Employee> employees, DateTime? specificDate)
+        {
+            var today = DateTime.Now.Date;
             var shifts = await _context.Shifts.ToListAsync();
-            var attendances = await _context.Attendances.Where(a => a.DateToday.Date == today.Date).ToListAsync();
+            var attendances = new List<Attendance>();
+
+            if (specificDate != null)
+            {
+                attendances = await _context.Attendances.Where(a => a.DateToday.Date == specificDate.Value.Date).ToListAsync();
+            }
+            else
+            {
+                attendances = await _context.Attendances.Where(a => a.DateToday.Date == today).ToListAsync();
+            }
 
             int absent = 0, present = 0, hasNotClockedIn = 0, late = 0, offWork = 0;
             TimeSpan lateDuration = TimeSpan.Zero;

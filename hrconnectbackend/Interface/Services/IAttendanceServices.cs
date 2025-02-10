@@ -13,7 +13,8 @@ namespace hrconnectbackend.Interface.Services
         Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end);
         Task<bool> HasClockedIn(int employeeId);
         Task<bool> HasClockedOut(int employeeId);
-        Task<dynamic> EmployeePresentStatsByDept(int departmentId);
-        Task<dynamic> EmployeePresentStats();
+        Task<dynamic> EmployeeAttendanceStatsByDeptSpecificOrToday(int departmentId, DateTime? specificDate);
+        Task<dynamic> EmployeeAttendanceStatsByShiftSpecificOrToday(int shiftId, DateTime? specificDate);
+        Task<dynamic> EmployeeAttendanceStatsSpecificOrToday(DateTime? specificDate);
     }
 }
