@@ -2,10 +2,13 @@
 {
     public class UserAccountDTO
     {
-        public int AuthEmpId { get; set; }
-        public int VerificationCode { get; set; }
+        public int UserId { get; set; }
+        public int? VerificationCode { get; set; }
         public bool IsAuthenticated { get; set; } = false;
-        public bool EmailConfirmed { get; set; } = false;
-        public bool PhoneConfirmed { get; set; } = false;
+        public bool EmailVerified { get; set; } = false;
+        public bool SMSVerified { get; set; } = false;
+        public string UserName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
     }
 }

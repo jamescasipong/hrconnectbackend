@@ -7,6 +7,7 @@ using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AttendanceDTOs;
 using hrconnectbackend.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers
 {
@@ -40,6 +41,9 @@ namespace hrconnectbackend.Controllers
         //}
 
         [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendances()
         {
             try
@@ -60,6 +64,9 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendance(int id)
         {
             try
@@ -78,11 +85,20 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateAttendance(int id, UpdateAttendanceDTO updateAttendanceDTO)
         {
             try
             {
                 var attendance = await _attendanceServices.GetByIdAsync(id);
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
                 if (attendance == null)
                 {
@@ -95,11 +111,7 @@ namespace hrconnectbackend.Controllers
 
                 await _attendanceServices.UpdateAsync(attendance);
 
-                return Ok(new
-                {
-                    message = "Success!",
-                    status = 200
-                });
+                return Ok(new ApiResponse(true, $"Attendance with id: {id} updated successfully!"));
             }
             catch (KeyNotFoundException ex)
             {
@@ -113,6 +125,8 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteAttendance(int id)
         {
             try
@@ -136,6 +150,8 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("employee/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendanceByEmployee(int employeeId)
         {
             try
@@ -156,6 +172,11 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPost("clock-in/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> ClockIn(int employeeId)
         {
             try
@@ -184,6 +205,8 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("clocked-in/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedIn(int employeeId)
         {
             try
@@ -200,11 +223,14 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPost("clock-out/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ClockOut(int employeeId)
         {
             try
             {
-                bool clockedIn = await _attendanceServices.HasClockedIn(employeeId);
+                await _attendanceServices.ClockOut(employeeId);
 
                 return Ok(new ApiResponse(true, $"Clock-out recorded for employee {employeeId} successfully"));
             }
@@ -220,6 +246,8 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("clocked-out/{employeeId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedOut(int employeeId)
         {
             try
@@ -319,23 +347,78 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-        [HttpGet("department/{departmentId:int}/attendance-stats")]
-        public async Task<IActionResult> GetPresentEmployeesByDept(int departmentId)
+        [HttpGet("department/{departmentId:int}/attendance-stats/today")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> EmployeeAttendanceStatsByDeptToday(int departmentId)
         {
-            var employeeAttendanceStats = await _attendanceServices.EmployeePresentStatsByDept(departmentId);
+            try
+            {
 
-            return Ok(new ApiResponse<dynamic>(true, "Employees present", employeeAttendanceStats));
+                var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, null);
+
+                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance statistics of employees of today from department ID: {departmentId}", departmentId);
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpGet("department/{departmentId:int}/attendance-stats")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> EmployeeAttendanceStatsByDeptSpecificDate(int departmentId, [FromQuery] string specificDate)
+        {
+            try
+            {
+
+                var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, DateTime.Parse(specificDate));
+
+                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving attendance statistics of employees of {specificDate} from department ID: {departmentId}");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpGet("attendance-stats/today")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> EmployeeAttendanceStatsToday()
+        {
+            try
+            {
+                var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsSpecificOrToday(null);
+
+                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving attendance statistics of employees of today");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
         }
 
         [HttpGet("attendance-stats")]
-        public async Task<IActionResult> GetPresentEmployees()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> EmployeeAttendanceStatsSpecificOrToday(string specificDate)
         {
-            var employeeAttendanceStats = await _attendanceServices.EmployeePresentStats();
+            var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsSpecificOrToday(DateTime.Parse(specificDate));
 
-            return Ok(new ApiResponse<dynamic>(true, "Employees present", employeeAttendanceStats));
+            return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
         }
 
         [HttpPost("certification")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCOA(CreateAttendanceCertificationDTO attendanceDTO)
         {
 
@@ -365,6 +448,8 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("certification")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendanceCertification()
         {
             var certifications = await _attendanceCertificationServices.GetAllAsync();
@@ -373,12 +458,20 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpGet("certification/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendanceCertification(int id)
         {
             var certification = await _attendanceCertificationServices.GetByIdAsync(id);
 
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse(false, ModelState.ToString()));
+                }
+
                 if (certification == null)
                 {
                     return NotFound(new ApiResponse(false, $"Attendance certification with ID {id} not found"));
@@ -395,13 +488,15 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPut("certification/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDTO attendanceDTO)
         {
-            if (id == null)
+            if (!ModelState.IsValid)
             {
-                return BadRequest(new ApiResponse(false, "Id required in the parameter"));
+                return BadRequest(new ApiResponse(false, ModelState.IsValid.ToJson().ToString()));
             }
-
             try
             {
                 var existingAttendance = await _attendanceCertificationServices.GetByIdAsync(id);
@@ -417,7 +512,7 @@ namespace hrconnectbackend.Controllers
 
                 await _attendanceCertificationServices.UpdateAsync(existingAttendance);
 
-                return Ok(new { message = "Success!", status = 200 });
+                return Ok(new ApiResponse(false, $"Attendance certification with ID: {id} updated successfully"));
             }
             catch (Exception ex)
             {
@@ -427,6 +522,9 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpDelete("certification/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteCertification(int id)
         {
             var certification = await _attendanceCertificationServices.GetByIdAsync(id);
@@ -454,6 +552,10 @@ namespace hrconnectbackend.Controllers
 
 
         [HttpPost("certification/approve/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ApproveCOA(int id)
         {
 
@@ -476,6 +578,9 @@ namespace hrconnectbackend.Controllers
 
 
         [HttpPost("certification/reject/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RejectCOA(int id)
         {
 

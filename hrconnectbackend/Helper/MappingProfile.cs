@@ -16,11 +16,24 @@ namespace hrconnectbackend.Helper
             CreateNotificationMappings();
             CreateAttendanceCertification();
             CreateLeaveApplicationMappings();
+            CreateOTApplication();
         }
 
         private void PayrollMappings()
         {
             
+        }
+
+        private void CreateOTApplication()
+        {
+            CreateMap<CreateOTApplicationDTO, OTApplication>();
+            CreateMap<OTApplication, CreateOTApplicationDTO>();
+
+            CreateMap<ReadOTApplicationDTO, OTApplication>();
+            CreateMap<OTApplication, ReadOTApplicationDTO>();
+
+            CreateMap<UpdateOTApplicationDTO, OTApplication>();
+            CreateMap<OTApplication, UpdateOTApplicationDTO>();
         }
 
         private void CreateLeaveApplicationMappings()

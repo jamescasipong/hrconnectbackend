@@ -27,6 +27,7 @@ namespace hrconnectbackend.Models
         public int? SupervisorId { get; set; } // Foreign Key
         public int? DepartmentId { get; set; }
 
+
         // Tables that will use EmployeeID as its foreign keys
         public virtual Supervisor? Supervisor { get; set; }
         public virtual Department? Department { get; set; }

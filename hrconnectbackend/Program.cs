@@ -1,6 +1,7 @@
 using System.Text;
 using hrconnectbackend.Data;
 using hrconnectbackend.Helper;
+using hrconnectbackend.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -28,26 +29,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             builder.Configuration.GetSection("JWT:Key").Value
             )),
             ValidateIssuer = false,
-            // ValidIssuer = builder.Configuration.GetSection("JWT:Issuer").Value,
             ValidateAudience = false,
-            // ValidAudience = builder.Configuration.GetSection("JWT:Audience").Value,
             ValidateLifetime = true,
-            // ClockSkew = TimeSpan.Zero
         };
     });
 
-
 builder.Services.AddAuthorization(options =>
 {
-    // options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
     options.AddPolicy("RequireAdmin", policy =>
     {
         policy.RequireAssertion(context =>
         {
-            return context.User.HasClaim(claim => claim.Type == "Role" && claim.Value == "Admin" || claim.Value == "SuperAdmin");
+            return context.User.HasClaim(claim => claim.Type == "Role" && (claim.Value == "Admin" || claim.Value == "SuperAdmin"));
         });
-
-
     });
 
     options.AddPolicy("RequireUser", policy =>
@@ -57,8 +51,22 @@ builder.Services.AddAuthorization(options =>
             return context.User.HasClaim(claim => claim.Type == "Role" && claim.Value == "User");
         });
     });
-
 });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials()
+               .WithOrigins("http://localhost:5173"); // Replace with your React app's URL
+    });
+});
+
+// Register SignalR services
+builder.Services.AddSignalR();
+
 // Swagger setup
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -103,11 +111,13 @@ app.UseStatusCodePages();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
-
-// Remove these if you're not using authentication
-app.UseAuthentication();  // Only needed if you are using authentication middleware
-app.UseAuthorization();   // Only needed if authorization is required
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
+app.UseWebSockets();
+
+// Map SignalR hubs
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

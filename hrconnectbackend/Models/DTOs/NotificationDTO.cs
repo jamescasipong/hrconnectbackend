@@ -16,4 +16,11 @@
         public bool IsRead { get; set; }
 
     }
+
+    public class CreateNotificationHubDTO
+    {
+        public int EmployeeId { get; set; }
+        public string Title { get; set; }
+        public string Message { get; set; }
+    }
 }

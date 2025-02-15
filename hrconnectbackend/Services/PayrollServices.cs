@@ -3,11 +3,6 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace hrconnectbackend.Services
 {
@@ -65,6 +60,8 @@ namespace hrconnectbackend.Services
                 .Where(a => a.EmployeeId == employeeId && a.DateToday >= startDate && a.DateToday <= endDate)
                 .ToListAsync();
 
+            
+
             var employee = await _context.Employees.FindAsync(employeeId);
 
             decimal totalHoursWorked = 0;
@@ -75,6 +72,13 @@ namespace hrconnectbackend.Services
             {
                 attendance.CalculateWorkingHours();
                 totalHoursWorked += attendance.WorkingHours;
+
+                var overtime = await _context.OTApplications.FirstOrDefaultAsync(a => a.StartDate == DateOnly.FromDateTime(attendance.DateToday));
+
+                if (overtime != null)
+                {
+                   totalHoursWorked += (decimal)(overtime.StartTime - overtime.EndTime).TotalHours;
+                }
 
                 if (attendance.ClockIn > new TimeSpan(9, 0, 0))
                 {

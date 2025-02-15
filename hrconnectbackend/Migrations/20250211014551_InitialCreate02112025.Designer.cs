@@ -12,8 +12,8 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20250210123044_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250211014551_InitialCreate02112025")]
+    partial class InitialCreate02112025
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

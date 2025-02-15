@@ -1,8 +1,11 @@
-﻿namespace hrconnectbackend.Models.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace hrconnectbackend.Models.DTOs
 {
     public class CreateDepartmentDTO
     {
-        public int ManagerId { get; set; }
+        public int? ManagerId { get; set; }
+        [Required(ErrorMessage = "Department name is required")]
         public string DeptName { get; set; }
     }
 

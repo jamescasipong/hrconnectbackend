@@ -5,5 +5,7 @@ namespace hrconnectbackend.Interface.Services;
 
 public interface ISupervisorServices : IGenericRepository<Supervisor>
 {
-    Task<List<Employee>> GetSuperVisorSubordinates(int id);
+    Task<List<Supervisor>> GetSupervisorSubordinates(int id);
+    Task<Supervisor> GetSupervisorByEmployee(int employeeId);
+
 }

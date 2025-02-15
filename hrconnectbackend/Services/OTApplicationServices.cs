@@ -14,33 +14,17 @@ public class OTApplicationServices : GenericRepository<OTApplication>, IOTApplic
         _logger = logger;
     }
 
-    public async Task<OTApplication> RequestOT(OTApplication otRequest)
-    {
-        // Validate the input here and any business logic you need
-        if (otRequest.StartDate == null && otRequest.EndTime == null && otRequest.StartDate == null)
-        {
-            _logger.LogWarning("Attempted to create OT application with invalid data.");
-            throw new InvalidOperationException("Invalid OT application data.");
-        }
-
-        // Add to the database
-        await AddAsync(otRequest);
-        _logger.LogInformation($"OT application created for Employee ID: {otRequest.EmployeeId}");
-        return otRequest;
-    }
-
     public async Task ApproveOT(int id)
     {
         var otApplication = await GetByIdAsync(id);
         if (otApplication == null)
         {
-            _logger.LogWarning($"OT application with ID {id} not found.");
-            throw new ArgumentException("OT application not found.");
+            _logger.LogWarning($"OT Application with id: {id} not found.");
+            throw new KeyNotFoundException($"OT Application with id: {id} not found.");
         }
 
         otApplication.Status = "Approved";
         await UpdateAsync(otApplication);
-        _logger.LogInformation($"OT Application with ID {id} has been approved.");
     }
 
     public async Task RejectOT(int id)
@@ -48,8 +32,8 @@ public class OTApplicationServices : GenericRepository<OTApplication>, IOTApplic
         var otApplication = await GetByIdAsync(id);
         if (otApplication == null)
         {
-            _logger.LogWarning($"OT application with ID {id} not found.");
-            throw new ArgumentException("OT application not found.");
+            _logger.LogWarning($"OT Application with id: {id} not found.");
+            throw new KeyNotFoundException($"OT Application with id: {id} not found.");
         }
 
         otApplication.Status = "Rejected";
@@ -57,65 +41,47 @@ public class OTApplicationServices : GenericRepository<OTApplication>, IOTApplic
         _logger.LogInformation($"OT Application with ID {id} has been rejected.");
     }
 
-    public async Task<List<OTApplication>> GetOTByDate(string startDate, string endDate)
+
+    public async Task<List<OTApplication>> GetOTByDate(DateOnly startDate, DateOnly endDate, int? pageIndex, int? pageSize)
     {
-        var parsedStartDate = DateOnly.Parse(startDate);
-        var parsedEndDate = DateOnly.Parse(endDate);
 
         var otApplications = await _context.OTApplications
-            .Where(a => a.StartDate >= parsedStartDate && a.StartDate <= parsedEndDate)
+            .Where(a => a.StartDate >= startDate && a.StartDate <= endDate)
             .ToListAsync();
 
-        if (otApplications == null || otApplications.Count == 0)
+        if (!otApplications.Any())
         {
-            _logger.LogWarning($"OT application with an interval date between {startDate} and {endDate} not found.");
-            throw new ArgumentException("OT Application not found.");
+            throw new KeyNotFoundException("OT Application not found.");
+        }
+
+        if (pageIndex != null && pageSize != null && otApplications.Count < pageSize)
+        {
+            return GetOTPagination(otApplications, pageIndex.Value, pageSize.Value);
         }
 
         return otApplications;
     }
 
-    public async Task<List<OTApplication>> GetOTBySupervisor(int supervisorId)
+    public async Task<List<OTApplication>> GetOTBySupervisor(int supervisorId, int? pageIndex, int? pageSize)
     {
         var otApplication = await GetAllAsync();
 
         if (otApplication == null || otApplication.Count == 0)
         {
-            _logger.LogWarning($"OT Application with supervisor {supervisorId} not found.");
-            throw new ArgumentException("OT Application not found.");
+            throw new KeyNotFoundException($"Unable to process. Supervisor with id: {supervisorId} not found.");
         }
 
-        return otApplication.Where(ot => ot.SupervisorId == supervisorId).ToList();
+        var supervisorOT = otApplication.Where(ot => ot.SupervisorId == supervisorId).ToList();
+
+        if (pageIndex != null && pageSize != null && otApplication.Count < pageSize)
+        {
+            return GetOTPagination(supervisorOT, pageIndex.Value, pageSize.Value);
+        }
+
+        return supervisorOT;
     }
 
-    public async Task<List<OTApplication>> GetOTPagination(int pageIndex, int pageSize, int? employeeId)
-    {
-        var otApplication = new List<OTApplication>();
-
-        if (pageIndex <= 0)
-        {
-            throw new ArgumentOutOfRangeException("Page index must be greater than 0");
-        }
-
-        if (pageSize <= 0)
-        {
-            throw new ArgumentOutOfRangeException("Page size must be greater than 0");
-        }
-
-        if (employeeId == null)
-        {
-            otApplication = await _context.OTApplications.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
-        }
-        else
-        {
-            var employeeOT = await _context.OTApplications.Where(ot => ot.EmployeeId == employeeId).ToListAsync();
-            otApplication = employeeOT.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
-        }
-
-        return otApplication;
-    }
-
-    public async Task<List<OTApplication>> GetOTByEmployee(int employeeId)
+    public async Task<List<OTApplication>> GetOTByEmployee(int employeeId, int? pageIndex, int? pageSize)
     {
         var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
         var otApplication = await _context.OTApplications.Where(ot => ot.EmployeeId == employeeId).ToListAsync();
@@ -125,6 +91,26 @@ public class OTApplicationServices : GenericRepository<OTApplication>, IOTApplic
             throw new KeyNotFoundException($"No employee found with an id {employeeId}");
         }
 
+        if (pageIndex != null && pageSize != null && otApplication.Count < pageSize)
+        {
+            return GetOTPagination(otApplication, pageIndex.Value, pageSize.Value);
+        }
+
         return otApplication;
+    }
+
+    public List<OTApplication> GetOTPagination(List<OTApplication> otApplication, int pageIndex, int pageSize)
+    {
+        if (pageSize < 0)
+        {
+            throw new ArgumentException($"Page index must be higher than 0");
+        }
+
+        if (pageIndex < 0)
+        {
+            throw new ArgumentException($"Page size must be higher than 0");
+        }
+
+        return otApplication.Take((pageIndex - 1) * pageSize).Take(pageSize).ToList();
     }
 }

@@ -1,5 +1,6 @@
 using AutoMapper;
 using hrconnectbackend.Data;
+using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -47,100 +48,49 @@ public class SupervisorController : Controller
         return Ok(newSupervisor);
     }
 
-    [HttpGet("get/all")]
+    [HttpGet]
     public async Task<IActionResult> GetAllSupervisors()
     {
-        var supervisors = await _supervisorServices.GetAllAsync();
-
-        if (supervisors.Count == 0)
+        try
         {
-            return NotFound(new { message = "No supervisors found" });
-        }
+            var supervisors = await _supervisorServices.GetAllAsync();
 
-        return Ok(supervisors);
+            var mappedSupervisors = _mapper.Map<List<ReadSupervisorDTO>>(supervisors);
+
+            if (!supervisors.Any())
+            {
+                return Ok(new ApiResponse<List<ReadSupervisorDTO>>(false, $"Supervisors not found.", mappedSupervisors));
+            }
+
+            return Ok(new ApiResponse<List<ReadSupervisorDTO>>(true, $"Supervisors retreved successfully!", mappedSupervisors));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+        }
     }
 
-    [HttpGet("get/{id}")]
-    public async Task<IActionResult> GetSupervisor(int id)
+    [HttpGet("{supervisorId:int}")]
+    public async Task<IActionResult> GetSupervisor(int supervisorId)
     {
-        var supervisor = await _supervisorServices.GetByIdAsync(id);
-
-        if (supervisor == null)
+        try
         {
-            return NotFound(new { message = "Supervisor not found" });
+            var supervisor = await _supervisorServices.GetByIdAsync(supervisorId);
+
+            if (supervisor == null)
+            {
+                return NotFound(new ApiResponse(false, $"Supervisor with id: {supervisorId} not found."));
+            }
+
+            var mapped = _mapper.Map<ReadSupervisorDTO>(supervisor);
+
+            return Ok(new ApiResponse<ReadSupervisorDTO>(true, $"Supervisor with id: {supervisorId} retrieved successfully!", mapped));
         }
-
-        return Ok(supervisor);
-    }
-
-    [HttpPut("leaveapproval/approve/{id}")]
-    public async Task<IActionResult> ApproveLeave(int id)
-    {
-        var leave = await _leaveApplicationServices.GetByIdAsync(id);
-
-        if (leave == null)
+        catch (Exception)
         {
-            return NotFound(new { message = "Leave not found" });
+            return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
+    } 
 
-        if (leave.Status == "Approved")
-        {
-            return BadRequest(new { message = "Leave already approved" });
-        }
 
-        if (leave.Status == "Rejected")
-        {
-            return BadRequest(new { message = "Leave already rejected" });
-        }
-
-        return Ok(new { message = "Leave approved" });
-    }
-
-    [HttpPut("leaveapproval/reject/{id}")]
-    public async Task<IActionResult> RejectLeave(int id)
-    {
-        var leave = await _leaveApplicationServices.GetByIdAsync(id);
-
-        if (leave == null)
-        {
-            return NotFound(new { message = "Leave not found" });
-        }
-
-        if (leave.Status == "Approved")
-        {
-            return BadRequest(new { message = "Leave already approved" });
-        }
-
-        if (leave.Status == "Rejected")
-        {
-            return BadRequest(new { message = "Leave already rejected" });
-        }
-
-        return Ok(new { message = "Leave rejected" });
-    }
-
-    [HttpPost("send-notification/{id}")]
-    public async Task<IActionResult> SendNotification(int employeeId, [FromBody] CreateNotificationDTO notificationDTO)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        if (notificationDTO == null)
-        {
-            return BadRequest(new { message = "Invalid data" });
-        }
-
-        if (_employeeServices.GetByIdAsync(employeeId) == null)
-        {
-            return NotFound(new { message = "Employee not found" });
-        }
-
-        var mappedNotification = _mapper.Map<Notifications>(notificationDTO);
-
-        await _notificationServices.AddAsync(mappedNotification);
-
-        return Ok(new { message = "Notification sent" });
-    }
 }

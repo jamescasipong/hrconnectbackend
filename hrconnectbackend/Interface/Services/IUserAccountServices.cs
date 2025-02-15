@@ -7,9 +7,8 @@ public interface IUserAccountServices : IGenericRepository<UserAccount>
 {
     Task<UserAccount> GetUserAccountByEmail(string email);
     Task<string> RetrievePassword(string email);
-    Task<string> ConfirmPhone(int id, int code);
-    Task<string> ConfirmEmail(int id, int code);
     Task GenerateOTP(int id);
-    Task<string> VerifyOTP(int id, int code);
+    Task VerifyOTP(int id, int code);
     Task<string> RetrieveUsername(string email);
+    Task<bool> IsVerified(string email); 
 }

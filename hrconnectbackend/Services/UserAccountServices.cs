@@ -3,6 +3,7 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace hrconnectbackend.Repositories
 {
@@ -17,7 +18,7 @@ namespace hrconnectbackend.Repositories
 
         public async Task<UserAccount> GetUserAccountByEmail(string email)
         {
-            var userAccount = await _context.Auths.Select(a => a.Employee).Where(a => a.Email == email).Select(a => a.UserAccount).FirstOrDefaultAsync();
+            var userAccount = await _context.Auths.Where(a => a.Email == email).FirstOrDefaultAsync();
 
             if (userAccount == null)
             {
@@ -25,21 +26,6 @@ namespace hrconnectbackend.Repositories
             }
 
             return userAccount;
-        }
-
-        public async Task<string> ConfirmPhone(int id, int code)
-        {
-            var verify = await VerifyOTP(id, code);
-
-            return verify;
-        }
-
-        public async Task<string> ConfirmEmail(int id, int code)
-        {
-            var verify = await VerifyOTP(id, code);
-
-            return verify;
-
         }
 
         public async Task GenerateOTP(int id)
@@ -54,13 +40,13 @@ namespace hrconnectbackend.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> IsVerified(int id)
+        public async Task<bool> IsVerified(string email)
         {
-            var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
+            var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
 
             if (userAccount == null)
             {
-                throw new KeyNotFoundException($"No user account for an employee with an ${id}");
+                throw new KeyNotFoundException($"User account for employee with email: ${email} not found.");
             }
 
             if (userAccount.SMSVerified || userAccount.EmailVerified)
@@ -69,22 +55,20 @@ namespace hrconnectbackend.Repositories
             return false;
         }
 
-        public async Task<string> VerifyOTP(int id, int code)
+        public async Task VerifyOTP(int id, int code)
         {
-            var auth = await _context.Auths.FirstOrDefaultAsync(a => a.UserId == id);
+            var userAccount = await _context.Auths.FirstOrDefaultAsync(a => a.UserId == id);
 
-            if (auth == null) return "Auth not found!";
+            if (userAccount == null) throw new KeyNotFoundException("No user account found!");
 
-            if (auth.VerificationCode == 0) return "No code generated!";
+            if (userAccount.VerificationCode == null) throw new KeyNotFoundException("No verification code found!");
 
-            if (auth.VerificationCode != code) return "Invalid code!";
+            if (userAccount.VerificationCode != code) throw new ArgumentException("Invalid code!");
 
-            auth.SMSVerified = true;
-            auth.VerificationCode = 0;
+            userAccount.SMSVerified = true;
+            userAccount.VerificationCode = 0;
 
-            await _context.SaveChangesAsync();
-
-            return "Code confirmed!";
+            await UpdateAsync(userAccount);
         }
 
         public async Task<string> RetrievePassword(string email)
