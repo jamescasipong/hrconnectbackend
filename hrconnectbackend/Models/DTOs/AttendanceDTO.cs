@@ -11,11 +11,12 @@
     {
         public int AttendanceId { get; set; }
         public int EmployeeId { get; set; }
-        public DateOnly DateToday { get; set; }  // Store as string
-        public string Day { get; set; }
-        public string ClockIn { get; set; }      // Store as string
-        public string ClockOut { get; set; }     // Store as string
-        public int hoursWorked { get; set; }
+        public DateTime DateToday { get; set; }  // Store as string
+        public TimeSpan ClockIn { get; set; }      // Store as string
+        public TimeSpan ClockOut { get; set; }     // Store as string
+        public decimal WorkingHours { get; set; }
+        public TimeSpan? LateClockIn { get; set; }
+        public TimeSpan? EarlyLeave { get; set; }
     }
 
     public class UpdateAttendanceDTO

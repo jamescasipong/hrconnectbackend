@@ -4,10 +4,12 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/leave")]
 public class LeaveController : ControllerBase

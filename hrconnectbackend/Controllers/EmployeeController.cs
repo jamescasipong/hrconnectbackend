@@ -9,9 +9,11 @@ using hrconnectbackend;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Repositories;
 using hrconnectbackend.Interface.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace hrconnectbackend.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class EmployeeController : ControllerBase
@@ -55,7 +57,7 @@ namespace hrconnectbackend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDTO employee)
+        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDTO employee, bool? createAccount)
         {
             if (employee == null)
             {
@@ -68,7 +70,7 @@ namespace hrconnectbackend.Controllers
                 // Call the CreateEmployeeAsync method
                 await _employeeService.CreateEmployee(employee);
 
-                return Ok(new ApiResponse(false, $"Employee created successfully!"));  // Return a success message
+                return Ok(new ApiResponse(true, $"Employee created successfully!"));  // Return a success message
             }
             catch (ArgumentNullException ex)
             {
@@ -218,6 +220,27 @@ namespace hrconnectbackend.Controllers
             {
                 _logger.LogError(ex, "Error deleting an employee with ID {id}", id);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpGet("department/{departmentId}")]
+        public async Task<IActionResult> RetrieveEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize)
+        {
+            try
+            {
+                var employeesByDept = await _employeeService.GetEmployeeByDepartment(deptId, pageIndex, pageSize);
+
+                var employeesMapped = _mapper.Map<List<ReadEmployeeDTO>>(employeesByDept);
+                
+                return Ok(new ApiResponse<List<ReadEmployeeDTO>>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Ok(new ApiResponse(false, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
             }
         }
 

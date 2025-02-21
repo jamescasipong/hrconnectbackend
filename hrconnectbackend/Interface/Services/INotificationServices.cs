@@ -5,6 +5,6 @@ namespace hrconnectbackend.Interface.Services;
 
 public interface INotificationServices : IGenericRepository<Notifications>
 {
-    Task<List<Notifications>> GetNotificationsByEmployeeId(int id);
-    Task<List<Notifications>> NotifcationPagination(int pageIndex, int pageSize, int? employeeId);
+    Task<List<Notifications>> GetNotificationsByEmployeeId(int id, int? pageIndex, int? pageSize);
+    List<Notifications> NotifcationPagination(List<Notifications> notifications, int? pageIndex, int? pageSize);
 }

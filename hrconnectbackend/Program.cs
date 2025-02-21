@@ -19,8 +19,8 @@ builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(conne
 
 builder.Services.AddControllers();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -32,6 +32,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
             ValidateLifetime = true,
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = (context) =>
+            {
+                context.Token = context.Request.Cookies["token"]; // JWT from cookie
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -41,16 +49,25 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAssertion(context =>
         {
             return context.User.HasClaim(claim => claim.Type == "Role" && (claim.Value == "Admin" || claim.Value == "SuperAdmin"));
-        });
+        }).RequireAuthenticatedUser();
     });
+
 
     options.AddPolicy("RequireUser", policy =>
     {
         policy.RequireAssertion(context =>
         {
             return context.User.HasClaim(claim => claim.Type == "Role" && claim.Value == "User");
-        });
+        }).RequireAuthenticatedUser();
+
     });
+
+    options.AddPolicy("HR Department", policy =>
+    {
+        policy.RequireRole("HR Department");
+    });
+
+
 });
 
 builder.Services.AddCors(options =>
@@ -60,7 +77,7 @@ builder.Services.AddCors(options =>
         builder.AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials()
-               .WithOrigins("http://localhost:5173"); // Replace with your React app's URL
+               .WithOrigins("http://localhost:3000"); // Replace with your React app's URL
     });
 });
 
@@ -116,7 +133,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.UseWebSockets();
-
 // Map SignalR hubs
 app.MapHub<NotificationHub>("/notificationHub");
 

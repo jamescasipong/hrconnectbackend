@@ -8,6 +8,7 @@ namespace hrconnectbackend.Models.DTOs
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string? Password { get; set; }
+        public int? DepartmentId { get; set; }
         public bool IsAdmin { get; set; } = false;
         public string Status { get; set; } = StatusType.Offline.ToString();
     }
@@ -18,7 +19,6 @@ namespace hrconnectbackend.Models.DTOs
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
-        public string Password { get; set; }
         public bool IsAdmin { get; set; } = false;
         public string Status { get; set; } = RequestStatus.Pending.ToString();
         public DateOnly CreatedAt { get; set; } = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);

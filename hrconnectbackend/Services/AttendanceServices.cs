@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Amazon.Runtime.Internal.Util;
 using AutoMapper;
 using hrconnectbackend.Data;
@@ -33,7 +34,7 @@ namespace hrconnectbackend.Repositories
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"Employee with ID {employeeId} not found.");
+                throw new KeyNotFoundException($"Employee with id: {employeeId} not found.");
             }
 
             if (!hasShift)
@@ -278,11 +279,13 @@ namespace hrconnectbackend.Repositories
         }
 
 
-        public async Task<List<Attendance>> GetAttendanceByEmployeeId(int id)
+        public async Task<List<Attendance>> GetAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize)
         {
             var attendance = await _context.Attendances.Where(e => e.EmployeeId == id).ToListAsync();
 
-            return attendance;
+            var attendancePagination = GetAttendancesPagination(attendance, pageIndex, pageSize);
+
+            return attendancePagination;
         }
 
         public async Task<Attendance> GetDailyAttendanceByEmployeeId(int employeeId)
@@ -291,13 +294,13 @@ namespace hrconnectbackend.Repositories
 
             if (attendance == null)
             {
-                throw new KeyNotFoundException($"No attendance records found for employee with ID {employeeId} today");
+                throw new KeyNotFoundException($"Daily attendance for employee {employeeId} not found.");
             }
 
             return attendance;
         }
 
-        public async Task<List<Attendance>> GetMonthlyAttendanceByEmployeeId(int id)
+        public async Task<List<Attendance>> GetMonthlyAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize)
         {
             if (id <= 0)
                 throw new ArgumentException("Invalid employee ID", nameof(id));
@@ -310,14 +313,16 @@ namespace hrconnectbackend.Repositories
                 .OrderBy(a => a.DateToday)
                 .ToListAsync();
 
+            var attendancePagination = GetAttendancesPagination(attendanceRecords, pageIndex, pageSize);
+
             if (!attendanceRecords.Any())
                 throw new KeyNotFoundException($"No attendance records found for employee with ID {id} in the current month.");
 
-            return attendanceRecords;
+            return attendancePagination;
         }
 
 
-        public async Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end)
+        public async Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end, int? pageIndex, int? pageSize)
         {
             if (id <= 0)
                 throw new ArgumentException("Invalid employee ID", nameof(id));
@@ -330,10 +335,12 @@ namespace hrconnectbackend.Repositories
                 .OrderBy(a => a.DateToday)
                 .ToListAsync();
 
+            var paginationAttendance = GetAttendancesPagination(attendanceRecords, pageIndex, pageSize);
+
             if (!attendanceRecords.Any())
                 throw new KeyNotFoundException($"No attendance records found for employee with ID {id} in the given date range.");
 
-            return attendanceRecords;
+            return paginationAttendance;
         }
 
         // Conditional Methods
@@ -351,5 +358,19 @@ namespace hrconnectbackend.Repositories
             return attendance != null;
         }
 
+        public List<Attendance> GetAttendancesPagination(List<Attendance> attendances, int? pageIndex, int? pageSize)
+        {
+            if (pageSize.HasValue && pageSize.Value <= 0)
+                throw new ArgumentOutOfRangeException("Page number must be greater than zero.");
+            if (pageSize.HasValue && pageSize.Value <= 0)
+                throw new ArgumentOutOfRangeException("Quantity must be greater than zero.");
+
+            if (!pageIndex.HasValue || !pageSize.HasValue)
+            {
+                return attendances;
+            }
+
+            return attendances.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
+        }
     }
 }

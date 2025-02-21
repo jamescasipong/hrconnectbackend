@@ -10,5 +10,6 @@ public interface IUserAccountServices : IGenericRepository<UserAccount>
     Task GenerateOTP(int id);
     Task VerifyOTP(int id, int code);
     Task<string> RetrieveUsername(string email);
-    Task<bool> IsVerified(string email); 
+    Task<bool> IsVerified(string email);
+    Task UpdateEmail(int employeeId, string email);
 }

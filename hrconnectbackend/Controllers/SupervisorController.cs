@@ -4,10 +4,12 @@ using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("[controller]")]
 public class SupervisorController : Controller
@@ -90,7 +92,68 @@ public class SupervisorController : Controller
         {
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
-    } 
+    }
 
+    [HttpDelete("{supervisorId:int}")]
+    public async Task<IActionResult> DeleteSupervisor(int supervisorId)
+    {
+        try
+        {
+            var supervisor = await _supervisorServices.GetByIdAsync(supervisorId);
 
+            if (supervisor == null) return NotFound(new ApiResponse(false, $"Supervisor with id: {supervisorId} not found."));
+
+            return Ok(new ApiResponse<ReadSupervisorDTO>(false, $"Supervisor with id: {supervisorId} retrieved successfully."));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+        }
+    }
+
+    [HttpGet("{supervisorId:int}/employee")]
+    public async Task<IActionResult> RetrieveEmployeesBySupervisor(int supervisorId)
+    {
+        try
+        {
+            var employee = await _supervisorServices.GetEmployeesUnderASupervisor(supervisorId);
+
+            var mapped = _mapper.Map<List<ReadEmployeeDTO>>(employee);
+
+            return Ok(new ApiResponse<List<ReadEmployeeDTO>>(false, $"Employees under a supervisor with id: {supervisorId} retrieved successfully.", mapped));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ApiResponse(false, ex.Message));
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse(false, "Internal Server Error"));
+        }
+    }
+
+    [HttpGet("employee/{employeeId:int}")]
+    public async Task<IActionResult> RetrieveEmployeeSupervisor(int employeeId)
+    {
+        try
+        {
+            var employeeSupervisor = await _supervisorServices.GetSupervisorByEmployee(employeeId);
+
+            return Ok(new ApiResponse<ReadSupervisorDTO>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", _mapper.Map<ReadSupervisorDTO>(employeeSupervisor)));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ApiResponse(false, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+        }
+    }
+
+    
 }

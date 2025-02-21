@@ -6,11 +6,13 @@ using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AttendanceDTOs;
 using hrconnectbackend.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class AttendanceController : Controller
@@ -75,7 +77,7 @@ namespace hrconnectbackend.Controllers
 
                 if (attendance == null) return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
 
-                return Ok(attendance);
+                return Ok(new ApiResponse<ReadAttendanceDTO>(false, $"Attendance with id: {id} retrieved successfully.", _mapper.Map<ReadAttendanceDTO>(attendance)));
             }
             catch (Exception ex)
             {
@@ -113,10 +115,6 @@ namespace hrconnectbackend.Controllers
 
                 return Ok(new ApiResponse(true, $"Attendance with id: {id} updated successfully!"));
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
-            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting attendance with an ID: {id}", id);
@@ -152,11 +150,11 @@ namespace hrconnectbackend.Controllers
         [HttpGet("employee/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId)
+        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId, int? pageIndex, int? pageSize)
         {
             try
             {
-                var attendances = await _attendanceServices.GetAttendanceByEmployeeId(employeeId);
+                var attendances = await _attendanceServices.GetAttendanceByEmployeeId(employeeId, pageIndex, pageSize);
 
                 var mappedAttendance = _mapper.Map<List<ReadAttendanceDTO>>(attendances);
 
@@ -195,7 +193,7 @@ namespace hrconnectbackend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse(false, $"Clock-out record for employee {employeeId} not found."));
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
@@ -298,11 +296,11 @@ namespace hrconnectbackend.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end)
+        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, int? pageIndex, int? pageSize)
         {
             try
             {
-                var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end));
+                var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end), pageIndex, pageSize);
                 return Ok(new ApiResponse<List<Attendance>>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)
@@ -325,11 +323,11 @@ namespace hrconnectbackend.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMonthlyAttendance(int id)
+        public async Task<IActionResult> GetMonthlyAttendance(int id, int? pageIndex, int? pageSize)
         {
             try
             {
-                var attendanceRecords = await _attendanceServices.GetMonthlyAttendanceByEmployeeId(id);
+                var attendanceRecords = await _attendanceServices.GetMonthlyAttendanceByEmployeeId(id, pageIndex, pageSize);
                 return Ok(new ApiResponse<List<Attendance>>(true, "Monthly attendance retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)

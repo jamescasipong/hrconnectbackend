@@ -2,6 +2,7 @@
 using hrconnectbackend.Repositories;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Services;
+using Microsoft.AspNetCore.WebSockets;
 
 
 namespace hrconnectbackend.Helper
@@ -56,6 +57,5 @@ namespace hrconnectbackend.Helper
                     });
             });
         }
-
     }
 }

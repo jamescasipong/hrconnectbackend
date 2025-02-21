@@ -94,5 +94,19 @@ namespace hrconnectbackend.Repositories
 
             return userAcount.UserName;
         }
+
+        public async Task UpdateEmail(int employeeId, string email)
+        {
+            var userAccount = await GetByIdAsync(employeeId);
+
+            if (userAccount == null)
+            {
+                throw new KeyNotFoundException($"User account with id: {employeeId} does not exist.");
+            }
+
+            userAccount.Email = email;
+
+            await UpdateAsync(userAccount);
+        }
     }
 }

@@ -14,8 +14,34 @@ public class SupervisorServices : GenericRepository<Supervisor>, ISupervisorServ
 
     }
 
-    public async Task<List<Employee>> GetSuperVisorSubordinates(int id)
+    public async Task<Supervisor> GetSupervisorByEmployee(int employeeId)
     {
-        return await _context.Supervisors.Where(s => s.Id == id).SelectMany(s => s.Subordinates).ToListAsync();
+        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+
+        if (employee == null)
+        {
+            throw new KeyNotFoundException($"Unable to process. Employee with id: {employeeId} not found.");
+        }
+
+        if (employee.Supervisor == null)
+        {
+            throw new ArgumentException($"Unable to process. Employee with id: {employeeId} has no supervisor");
+        }
+
+        return employee.Supervisor;
+    }
+
+    public async Task<List<Employee>> GetEmployeesUnderASupervisor(int id)
+    {
+        var supervisor = await GetByIdAsync(id);
+
+        if (supervisor == null)
+        {
+            throw new KeyNotFoundException($"{id} is not a supervisor");
+        }
+
+        var supervisorEmployees = supervisor.Subordinates?.ToList() ?? new List<Employee>();
+
+        return supervisorEmployees;
     }
 }

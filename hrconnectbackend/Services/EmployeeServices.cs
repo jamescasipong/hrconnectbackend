@@ -15,40 +15,45 @@ namespace hrconnectbackend.Repositories
         private readonly IAboutEmployeeServices _aboutEmployeeService;
         private readonly IAttendanceServices _attendanceService;
         private readonly IUserAccountServices _userAccountService;
-
+        private readonly IDepartmentServices _departmentServices;
         private readonly ILogger<EmployeeServices> _logger;
 
-        public EmployeeServices(DataContext context, IAboutEmployeeServices aboutEmployeeService, IAttendanceServices attendanceService, IUserAccountServices userAccountService, ILogger<EmployeeServices> logger)
+        public EmployeeServices(DataContext context, IAboutEmployeeServices aboutEmployeeService, IAttendanceServices attendanceService, IUserAccountServices userAccountService, ILogger<EmployeeServices> logger, IDepartmentServices departmentServices)
             : base(context)
         {
             _aboutEmployeeService = aboutEmployeeService;
             _attendanceService = attendanceService;
             _userAccountService = userAccountService;
+            _departmentServices = departmentServices;
             _logger = logger;
         }
 
 
-        public async Task<List<Employee>> GetEmployeeByDepartment(int deptId)
+        public async Task<List<Employee>> GetEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize)
         {
-            var employee = await _context.Employees.Where(e => e.DepartmentId == deptId).ToListAsync();
+            var department = await _context.Departments.FindAsync(deptId);
 
-            if (employee == null)
+
+            if (department == null)
             {
-                _logger.LogWarning($"Employee with Id {deptId} not found.");
-                throw new ArgumentException("Employee not found.");
+                throw new KeyNotFoundException($"No department found with an id {deptId}");
             }
 
-            return employee;
+            var employees = await _context.Employees.Where(e => e.DepartmentId == deptId).ToListAsync();
+
+            var employeesPagination = GetEmployeesPagination(employees, pageIndex, pageSize);
+
+            return employeesPagination;
         }
 
         public async Task<List<Employee>> GetSubordinates(int empSupervisorId)
         {
-            return await _context.Supervisors.Where(s => s.Id == empSupervisorId).SelectMany(s => s.Subordinates).ToListAsync();
+            return await _context.Supervisors.Where(s => s.Id == empSupervisorId).SelectMany(s => s.Subordinates ?? new List<Employee>()).ToListAsync();
         }
 
         public async Task<Employee> GetEmployeeByEmail(string email)
         {
-            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email == email);
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email.ToString().Trim() == email.ToString().Trim());
 
             if (employee == null)
             {
@@ -56,25 +61,6 @@ namespace hrconnectbackend.Repositories
             }
 
             return employee;
-        }
-
-        public async Task<List<Employee>> GetEmployeesByDepartmentId(int id)
-        {
-            var department = await _context.Departments.FindAsync(id);
-
-            if (department == null)
-            {
-                throw new KeyNotFoundException($"No department found with an id {id}");
-            }
-
-            var employees = await _context.Employees.Where(e => e.DepartmentId == id).ToListAsync();
-
-            if (!employees.Any())
-            {
-                throw new KeyNotFoundException($"No employees found for a department {department.DeptName}");
-            }
-
-            return employees;
         }
 
         public async Task CreateEmployee(CreateEmployeeDTO employee)
@@ -111,7 +97,7 @@ namespace hrconnectbackend.Repositories
                 if (employee.Status != "Online" && employee.Status != "Offline")
                 {
                     _logger.LogWarning("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.", employee.Status);
-                    throw new ArgumentException("Invalid status", nameof(employee.Status));
+                    throw new ArgumentException("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.");
                 }
 
                 string password = "";
@@ -135,9 +121,18 @@ namespace hrconnectbackend.Repositories
                     Status = employee.Status,
                 };
 
-                // Hash the password before saving
-                
-                
+                bool departmentHasValue = employee.DepartmentId != null && employee.DepartmentId.HasValue;
+
+                if (departmentHasValue)
+                {
+                    var department = await _departmentServices.GetByIdAsync(employee.DepartmentId.Value);
+
+                    if (department != null)
+                    {
+                        employeeEntity.DepartmentId = employee.DepartmentId ?? null;
+                    }
+                }
+
                 employeeEntity.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
                 employeeEntity.UpdatedAt = DateOnly.FromDateTime(DateTime.Now);
 
@@ -154,7 +149,8 @@ namespace hrconnectbackend.Repositories
                     EmailVerified = false,
                     SMSVerified = false,
                     UserName = userName,
-                    Password = password
+                    Password = password,
+                    Email = employee.Email
                 });
 
                 await _aboutEmployeeService.AddAsync(new AboutEmployee
@@ -185,6 +181,8 @@ namespace hrconnectbackend.Repositories
                     GPA = 0.0
                 });
 
+
+
                 // Commit the transaction
                 await transaction.CommitAsync();
 
@@ -204,21 +202,29 @@ namespace hrconnectbackend.Repositories
             }
         }
 
-        public async Task<List<Employee>> GetEmployeesPagination(int page, int pageSize)
+        public List<Employee> GetEmployeesPagination(List<Employee> employees, int? pageIndex, int? pageSize)
         {
-            if (page <= 0)
+            // Ensure that pageIndex and pageSize have valid values
+            if (pageIndex.HasValue && pageIndex.Value <= 0)
                 throw new ArgumentOutOfRangeException("Page number must be greater than zero.");
-            if (pageSize <= 0)
+
+            if (pageSize.HasValue && pageSize.Value <= 0)
                 throw new ArgumentOutOfRangeException("Quantity must be greater than zero.");
 
-            // Fetch the employees with pagination
-            var employees = await _context.Employees
-                                          .Skip((page - 1) * pageSize) // Skip the records for previous pages
-                                          .Take(pageSize) // Take the required number of records for the current page
-                                          .ToListAsync();
+            // If neither pageIndex nor pageSize is provided (both are null), return all employees
+            if (!pageIndex.HasValue || !pageSize.HasValue)
+            {
+                return employees;
+            }
 
-            return employees;
+            // Fetch the employees with pagination
+            var paginationEmployees = employees.Skip((pageIndex.Value - 1) * pageSize.Value)
+                                               .Take(pageSize.Value)
+                                               .ToList();
+
+            return paginationEmployees;
         }
+
 
     }
 
