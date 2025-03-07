@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/v{version:apiVersion}/payroll")]
+    [ApiVersion("1.0")]
     public class PayrollController : ControllerBase
     {
         private readonly IPayrollServices _payrollService;

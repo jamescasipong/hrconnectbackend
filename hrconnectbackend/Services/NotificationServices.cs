@@ -15,16 +15,31 @@ public class NotificationServices : GenericRepository<Notifications>, INotificat
 
     }
 
-    public async Task<List<Notifications>> GetNotificationsByEmployeeId(int id, int? pageIndex, int? pageSize)
+    public async Task<List<UserNotification>> GetNotificationsByEmployeeId(int id, int? pageIndex, int? pageSize)
     {
-        var notifications = await _context.Notifications.Where(e => e.EmployeeId == id).ToListAsync();
+        List<UserNotification> notifications = await _context.UserNotifications
+            .Include(x => x.Notification)
+            .Where(x => x.EmployeeId == id)
+            .ToListAsync();
 
-        var notificationPaginations = NotifcationPagination(notifications, pageIndex, pageSize); 
+        var notificationPaginations = UserNotificationsPagination(notifications, pageIndex, pageSize); 
 
         return notificationPaginations;
     }
 
-    public List<Notifications> NotifcationPagination(List<Notifications> notifications, int? pageIndex, int? pageSize)
+    public async Task<UserNotification> RetrieveNotification(int id)
+    {
+        var notification = await _context.UserNotifications.Include(x => x.Notification).FirstOrDefaultAsync(x => x.NotificationId == id);
+
+        if (notification == null)
+        {
+            throw new KeyNotFoundException($"No notification found with an id {id}");
+        }
+
+        return notification;
+    }
+
+    public List<UserNotification> UserNotificationsPagination(List<UserNotification> notifications, int? pageIndex, int? pageSize)
     {
         if (pageIndex.HasValue && pageIndex.Value <= 0)
         {
@@ -41,6 +56,23 @@ public class NotificationServices : GenericRepository<Notifications>, INotificat
             return notifications;
         }
 
+        return notifications.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
+    }
+
+    public List<Notifications> NotificationPagination(List<Notifications> notifications, int? pageIndex, int? pageSize)
+    {
+        if (pageIndex.HasValue && pageIndex.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException($"Page index must be higher than 0");
+        }
+        if (pageSize.HasValue && pageSize.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException($"Page size must be higher than 0");
+        }
+        if (!pageIndex.HasValue || !pageSize.HasValue)
+        {
+            return notifications;
+        }
         return notifications.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
     }
 }

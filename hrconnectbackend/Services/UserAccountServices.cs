@@ -3,18 +3,18 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace hrconnectbackend.Repositories
 {
     public class UserAccountServices : GenericRepository<UserAccount>, IUserAccountServices
     {
 
+        private readonly DataContext _context;
+
         public UserAccountServices(DataContext context) : base(context)
         {
-
+            _context = context;
         }
-
 
         public async Task<UserAccount> GetUserAccountByEmail(string email)
         {

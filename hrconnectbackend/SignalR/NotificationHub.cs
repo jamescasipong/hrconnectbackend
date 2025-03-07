@@ -1,4 +1,5 @@
-﻿using hrconnectbackend.Interface.Services;
+﻿using hrconnectbackend.Data;
+using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.SignalR;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -14,10 +15,14 @@ namespace hrconnectbackend.SignalR
         private readonly INotificationServices _notificationServices;
         private static Dictionary<int, string> _userConnections = new Dictionary<int, string>();
         private static Dictionary<string, List<int>> _groupConnections = new Dictionary<string, List<int>>();
-        public NotificationHub(INotificationServices notificationServices, IEmployeeServices employeeServices)
+        private readonly IUserNotificationServices _userNotificationServices;
+        private readonly DataContext _context;
+        public NotificationHub(INotificationServices notificationServices, IEmployeeServices employeeServices, IUserNotificationServices userNotificationServices, DataContext context)
         {
             _notificationServices = notificationServices;
             _employeeServices = employeeServices;
+            _userNotificationServices = userNotificationServices;
+            _context = context;
         }
 
         public async Task RegisterUser(int userId)
@@ -96,6 +101,7 @@ namespace hrconnectbackend.SignalR
         public async Task SendNotificationToUser(int userId, CreateNotificationHubDTO notificationDTO)
         {
             var employee = await _employeeServices.GetByIdAsync(userId);
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
@@ -108,13 +114,21 @@ namespace hrconnectbackend.SignalR
                 {
                     var notification = new Notifications
                     {
-                        EmployeeId = notificationDTO.EmployeeId,
                         Title = notificationDTO.Title,
                         Message = notificationDTO.Message,
-                        Date = DateTime.Now,
                     };
 
                     await _notificationServices.AddAsync(notification);
+
+                    var userNotification = new UserNotification
+                    {
+                        EmployeeId = userId,
+                        NotificationId = notification.Id
+                    };
+
+                    await _userNotificationServices.AddAsync(userNotification);
+
+                    await transaction.CommitAsync();
 
                     await Clients.Client(connectionId).ReceiveNotification(notificationDTO);
                 }
@@ -130,21 +144,29 @@ namespace hrconnectbackend.SignalR
         }
 
 
-        public async Task SendNotificationByGroup(int groupName, CreateNotificationHubDTO notificationDTO)
-        {
+        //public async Task SendNotificationByGroup(int groupName, CreateNotificationHubDTO notificationDTO)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
 
-            var notification = new Notifications
-            {
-                EmployeeId = notificationDTO.EmployeeId,
-                Title = notificationDTO.Title,
-                Message = notificationDTO.Message,
-                Date = DateTime.Now,
-            };
+        //    try
+        //    {
+        //        var notification = new Notifications
+        //        {
+        //            Title = notificationDTO.Title,
+        //            Message = notificationDTO.Message,
+        //        };
 
-            await _notificationServices.AddAsync(notification);
+        //        await _notificationServices.AddAsync(notification);
 
-            await Clients.Group(groupName.ToString()).ReceiveNotification(notificationDTO);
-        }
+
+
+        //        await Clients.Group(groupName.ToString()).ReceiveNotification(notificationDTO);
+        //    }
+        //    catch (Exception)
+        //    {
+
+        //    }
+        //}
 
         // Method to send notifications to all connected clients
         public async Task SendNotification(CreateNotificationHubDTO notificationDTO)

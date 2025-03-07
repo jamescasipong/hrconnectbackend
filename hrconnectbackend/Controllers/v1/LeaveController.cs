@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
@@ -7,27 +8,31 @@ using hrconnectbackend.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace hrconnectbackend.Controllers;
+namespace hrconnectbackend.Controllers.v1;
 
 [Authorize]
 [ApiController]
-[Route("api/leave")]
+[Route("api/v{version:apiVersion}/leave")]
+[ApiVersion("1.0")]
 public class LeaveController : ControllerBase
 {
     private readonly ILeaveApplicationServices _leaveServices;
     private readonly ILogger<LeaveController> _logger;
     private readonly IMapper _mapper;
     private readonly ILeaveBalanceServices _leaveBalanceServices;
+    private readonly AuthenticationServices _authenticationServices;
 
-    public LeaveController(ILeaveApplicationServices leaveServices, ILogger<LeaveController> logger, ILeaveBalanceServices leaveBalanceServices, IMapper mapper)
+
+    public LeaveController(ILeaveApplicationServices leaveServices, ILogger<LeaveController> logger, ILeaveBalanceServices leaveBalanceServices, AuthenticationServices authenticationServices, IMapper mapper)
     {
         _leaveServices = leaveServices;
         _logger = logger;
         _mapper = mapper;
         _leaveBalanceServices = leaveBalanceServices;
+        _authenticationServices = authenticationServices;
     }
 
-
+    [Authorize]
     [HttpPost("applications")]
     public async Task<IActionResult> CreateLeave([FromBody] CreateLeaveApplicationDTO leaveRequest)
     {
@@ -38,6 +43,12 @@ public class LeaveController : ControllerBase
 
         try
         {
+            var validateUser = _authenticationServices.ValidateUser(User, leaveRequest.EmployeeId);
+
+            if (validateUser != null){
+                return validateUser;
+            }
+
             var newLeaveApplication = new LeaveApplication
             {
                 EmployeeId = leaveRequest.EmployeeId,
@@ -52,6 +63,9 @@ public class LeaveController : ControllerBase
 
             return Ok(new ApiResponse(true, $"Leave application created successfully!"));
         }
+        catch (ArgumentNullException ex){
+            return BadRequest(new ApiResponse(false, ex.Message));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new ApiResponse(false, ex.Message));
@@ -63,9 +77,14 @@ public class LeaveController : ControllerBase
         }
     }
 
+    [Authorize(Roles ="Admin,HR")]
     [HttpGet("applications")]
     public async Task<IActionResult> GetAllLeaves([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
+        // var currentUser = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // if (currentUser == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+
         var leaves = new List<LeaveApplication>();
 
         try
@@ -106,16 +125,27 @@ public class LeaveController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-
+    [Authorize]
     [HttpGet("applications/{id:int}")]
     public async Task<IActionResult> GetLeaveById(int id)
     {
         try
         {
+            var admins = new string[] {
+                "Admin", "HR"
+            };
+
             var leave = await _leaveServices.GetByIdAsync(id);
 
             if (leave == null)
                 return NotFound(new ApiResponse(false, $"Leave application with ID: {id} not found."));
+
+            var validateUser = _authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
+
+            if (validateUser != null){
+                return validateUser;
+            }
+
 
             var leaveDTO = _mapper.Map<ReadLeaveApplicationDTO>(leave);
 
@@ -128,10 +158,14 @@ public class LeaveController : ControllerBase
         }
     }
 
-
+    [Authorize]
     [HttpPut("applications/{id:int}")]
     public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDTO leaveRequest)
     {
+        var admins = new string[]{
+            "Admin", "HR"
+        };
+
         if (leaveRequest == null)
             return BadRequest("Body request not found.");
 
@@ -142,6 +176,12 @@ public class LeaveController : ControllerBase
             if (leaveApplication == null)
             {
                 return NotFound(new ApiResponse(false, $"Leave application with ID: {id} not found."));
+            }
+
+            var validateUser = _authenticationServices.ValidateUser(User, leaveApplication.EmployeeId, admins);
+
+            if (validateUser != null){
+                return validateUser;
             }
 
             leaveApplication.Type = leaveRequest.Type;
@@ -160,9 +200,13 @@ public class LeaveController : ControllerBase
         }
     }    
 
+    [Authorize]
     [HttpDelete("applications/{id:int}")]
     public async Task<IActionResult> DeleteLeave(int id)
     {
+        var admins = new []{
+            "Admin", "HR"
+        };
         try
         {
             var leave = await _leaveServices.GetByIdAsync(id);
@@ -170,6 +214,12 @@ public class LeaveController : ControllerBase
             if (leave == null)
             {
                 return NotFound(new ApiResponse(false, $"Leave application with ID: {id} not found."));
+            }
+
+            var validateUser = _authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
+
+            if (validateUser != null){
+                return validateUser;
             }
 
             await _leaveServices.DeleteAsync(leave);
@@ -182,11 +232,22 @@ public class LeaveController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-
+    [Authorize]
     [HttpGet("applications/employee/{employeeId:int}")]
     public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
+        
+
         var employeeLeaveApplication = new List<LeaveApplication>();
+        var admins = new string []{
+            "Admin", "HR"
+        };
+        
+        var validateUser = _authenticationServices.ValidateUser(User, employeeId, admins);
+
+        if (validateUser != null){
+            return validateUser;
+        }
 
         try
         {
@@ -210,6 +271,7 @@ public class LeaveController : ControllerBase
                 employeeLeaveApplication = await _leaveServices.GetLeaveByEmployee(employeeId);
                 employeeLeaveApplication = employeeLeaveApplication.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
             }
+            
 
             var employeeLeaveApplicationDTO = _mapper.Map<List<ReadLeaveApplicationDTO>>(employeeLeaveApplication);
 
@@ -226,7 +288,7 @@ public class LeaveController : ControllerBase
         }
     }
     
-
+    [Authorize(Roles ="HR,Admin")]
     [HttpPut("applications/approve/{id:int}")]
     public async Task<IActionResult> ApproveLeave(int id)
     {
@@ -246,7 +308,7 @@ public class LeaveController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-
+    [Authorize(Roles ="HR,Admin")]
     [HttpPut("applications/reject/{id:int}")]
     public async Task<IActionResult> RejectLeave(int id)
     {
@@ -267,7 +329,7 @@ public class LeaveController : ControllerBase
         }
     }
 
-    // Get all leave balances
+    [Authorize("Admin,HR")]
     [HttpGet("balances")]
     public async Task<IActionResult> GetAllLeaveBalances([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
@@ -299,10 +361,20 @@ public class LeaveController : ControllerBase
         }
     }
 
-    // Get leave balance by employee ID
+    [Authorize]
     [HttpGet("balances/{employeeId}")]
-    public async Task<ActionResult<LeaveBalance>> GetLeaveBalanceByEmployeeId(int employeeId)
+    public async Task<IActionResult> GetLeaveBalanceByEmployeeId(int employeeId)
     {
+        var admins = new string []{
+            "Admin", "HR"
+        };
+        
+        var validateUser = _authenticationServices.ValidateUser(User, employeeId, admins);
+
+        if (validateUser != null){
+            return validateUser;
+        }
+
         try
         {
             var balances = await _leaveBalanceServices.GetLeaveBalanceByEmployeeId(employeeId);
@@ -322,7 +394,7 @@ public class LeaveController : ControllerBase
         }
     }
 
-    // Add or update leave balance
+    [Authorize]
     [HttpPost("balances")]
     public async Task<ActionResult<LeaveBalance>> AddOrUpdateLeaveBalance([FromBody] LeaveBalance leaveBalance)
     {

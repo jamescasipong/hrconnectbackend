@@ -16,6 +16,8 @@ namespace hrconnectbackend.Models
         public string Reason { get; set; }
         public string Status { get; set; } = RequestStatus.Pending.ToString();
         public Employee? Employee { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } = null;
 
     }
 

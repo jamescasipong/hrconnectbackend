@@ -69,19 +69,6 @@ namespace hrconnectbackend.Data
                 .HasForeignKey(e => e.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Notifications
-            modelBuilder.Entity<Notifications>()
-                .HasOne(n => n.Employee)
-                .WithMany(e => e.Notifications)
-                .HasForeignKey(n => n.EmployeeId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Employee>()
-            .HasMany(e => e.Notifications)
-            .WithOne(e => e.Employee)
-            .HasForeignKey(e => e.EmployeeId)
-            .OnDelete(DeleteBehavior.Cascade);
-
             // Supervisor
             modelBuilder.Entity<Supervisor>().HasKey(s => s.Id);
             modelBuilder.Entity<Supervisor>()

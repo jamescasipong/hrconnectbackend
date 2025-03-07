@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Helper.CustomExceptions;
 using hrconnectbackend.Interface.Services;
@@ -10,11 +11,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
-    [Authorize]
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/v{version:apiVersion}/attendance")]
+    [ApiVersion("1.0")]
     public class AttendanceController : Controller
     {
         private readonly IMapper _mapper;
@@ -41,7 +42,7 @@ namespace hrconnectbackend.Controllers
         //{
 
         //}
-
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -64,7 +65,7 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
+        [Authorize]
         [HttpGet("{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -85,7 +86,7 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
+        [Authorize]
         [HttpPut("{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -122,6 +123,8 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+
+        [Authorize]
         [HttpDelete("{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -146,14 +149,31 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
+        [Authorize]
         [HttpGet("employee/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId, int? pageIndex, int? pageSize)
+        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId, int? pageIndex = 1, int? pageSize = 5)
         {
             try
             {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+                if (currentUserId == null)
+                {
+                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                }
+
+                bool isAdmin = userRoles.Contains("Admin");
+                // // Convert user ID to int
+                // if (!int.TryParse(currentUserId, out int employeeId))
+                // {
+                //     return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                // }
+                
+                
+
                 var attendances = await _attendanceServices.GetAttendanceByEmployeeId(employeeId, pageIndex, pageSize);
 
                 var mappedAttendance = _mapper.Map<List<ReadAttendanceDTO>>(attendances);
@@ -162,25 +182,46 @@ namespace hrconnectbackend.Controllers
 
                 return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving attendance for employee with an ID: {id}", employeeId);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpPost("clock-in/{employeeId:int}")]
+        [Authorize] // Ensures the user is authenticated
+        [HttpPost("clock-in")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> ClockIn(int employeeId)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ClockIn()
         {
             try
             {
-                await _attendanceServices.ClockIn(employeeId);
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                // var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
+                if (currentUserId == null)
+                {
+                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                }
+
+                // Convert user ID to int
+                if (!int.TryParse(currentUserId, out int employeeId))
+                {
+                    return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                }
+                // // Allow only the user themselves to clock in, unless they are an admin
+                // bool isAdmin = userRoles.Contains("Admin");
+                // if (!isAdmin && User.FindFirstValue(ClaimTypes.NameIdentifier) != currentUserId)
+                // {
+                //     return Forbid(); // 403 Forbidden
+                // }
+
+                await _attendanceServices.ClockIn(employeeId);
                 return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
             }
             catch (InvalidOperationException ex)
@@ -197,44 +238,79 @@ namespace hrconnectbackend.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing clock-in for employee {EmployeeId}", employeeId);
+                _logger.LogError(ex, "Error processing clock-in for employee");
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
 
-        [HttpGet("clocked-in/{employeeId:int}")]
+        [Authorize]
+        [HttpGet("clocked-in")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> HasClockedIn(int employeeId)
+        public async Task<IActionResult> HasClockedIn()
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int employeeId))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+            bool isAdmin = userRoles.Contains("Admin");
+
+            if (!isAdmin && currentUserId != employeeId.ToString())
+            {
+                return Forbid(); // 403 Forbidden
+            }
+
             try
             {
-                var clockedOut =await _attendanceServices.HasClockedOut(employeeId);
+
+                var clockedOut = await _attendanceServices.HasClockedOut(employeeId);
 
                 return Ok(new ApiResponse<bool>(true, $"Has already clocked in.", clockedOut));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking's employee attendance {EmployeeId}", employeeId);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
-        [HttpPost("clock-out/{employeeId:int}")]
+        [Authorize]
+        [HttpPost("clock-out")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ClockOut(int employeeId)
+        public async Task<IActionResult> ClockOut()
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int employeeId))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
             try
             {
+
                 await _attendanceServices.ClockOut(employeeId);
 
                 return Ok(new ApiResponse(true, $"Clock-out recorded for employee {employeeId} successfully"));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse(false,ex.Message));
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
@@ -242,12 +318,27 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
+        [Authorize]
         [HttpGet("clocked-out/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedOut(int employeeId)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            bool isAdmin = userRoles.Contains("Admin");
+
+            if (!isAdmin && currentUserId != employeeId.ToString())
+            {
+                return Forbid(); // 403 Forbidden
+            }
+
             try
             {
                 bool clockedOut = await _attendanceServices.HasClockedOut(employeeId);
@@ -261,7 +352,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-
+        [Authorize]
         [HttpGet("daily/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -269,37 +360,80 @@ namespace hrconnectbackend.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance(int employeeId)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+            _logger.LogError("User not authenticated.");
+            Console.WriteLine("User not authenticated.");
+            return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int currentUserIdInt))
+            {
+                Console.WriteLine("User not authenticated.");
+            _logger.LogError("Invalid user identifier.");
+            return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+            bool isAdmin = userRoles.Contains("Admin");
+            if (!isAdmin && currentUserIdInt != employeeId)
+            {
+                return Forbid(); // 403 Forbidden
+            }
+            
             try
             {
-                var attendanceToday = await _attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+            var attendanceToday = await _attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
 
-                return Ok(attendanceToday);
+            return Ok(attendanceToday);
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse(false, $"Daily attendance for employee {employeeId} not found."));
+            return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new ApiResponse(false, ex.Message));
+            return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
-                return StatusCode(500, new { error = "An internal error occurred" });
+            _logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
+            return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
 
-
+        [Authorize]
         [HttpGet("range/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, int? pageIndex, int? pageSize)
+        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, int? pageIndex = 1, int? pageSize = 5)
         {
             try
             {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+                if (currentUserId == null)
+                {
+                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                }
+
+                if (!int.TryParse(currentUserId, out int currentUserIdInt))
+                {
+                    return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                }
+
+                bool isAdmin = userRoles.Contains("Admin");
+
+                if (!isAdmin && currentUserIdInt != employeeId)
+                {
+                    return Forbid(); // 403 Forbidden
+                }
+
                 var attendanceRecords = await _attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end), pageIndex, pageSize);
                 return Ok(new ApiResponse<List<Attendance>>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
             }
@@ -317,16 +451,36 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
-
+        [Authorize]
         [HttpGet("monthly/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMonthlyAttendance(int id, int? pageIndex, int? pageSize)
+        public async Task<IActionResult> GetMonthlyAttendance(int id, int? pageIndex = 1, int? pageSize = 5)
         {
             try
             {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+                if (currentUserId == null)
+                {
+                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                }
+
+                if (!int.TryParse(currentUserId, out int currentUserIdInt))
+                {
+                    return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                }
+
+                bool isAdmin = userRoles.Contains("Admin");
+
+                if (!isAdmin && currentUserIdInt != id)
+                {
+                    return Forbid(); // 403 Forbidden
+                }
+
                 var attendanceRecords = await _attendanceServices.GetMonthlyAttendanceByEmployeeId(id, pageIndex, pageSize);
                 return Ok(new ApiResponse<List<Attendance>>(true, "Monthly attendance retrieved successfully!", attendanceRecords));
             }
@@ -336,7 +490,7 @@ namespace hrconnectbackend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse(false, $"Monthly attendance with ID {id} not found"));
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
@@ -345,6 +499,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("department/{departmentId:int}/attendance-stats/today")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -353,7 +508,6 @@ namespace hrconnectbackend.Controllers
         {
             try
             {
-
                 var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, null);
 
                 return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
@@ -365,6 +519,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("department/{departmentId:int}/attendance-stats")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -373,7 +528,6 @@ namespace hrconnectbackend.Controllers
         {
             try
             {
-
                 var employeeAttendanceStats = await _attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, DateTime.Parse(specificDate));
 
                 return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
@@ -385,6 +539,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("attendance-stats/today")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -403,6 +558,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("attendance-stats")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -413,15 +569,26 @@ namespace hrconnectbackend.Controllers
             return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("certification")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCOA(CreateAttendanceCertificationDTO attendanceDTO)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(currentUserId, out int employeeId))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+            if (attendanceDTO.EmployeeId != employeeId)
+            {
+                return Unauthorized(new ApiResponse(false, "You are not authorized to create a certification for another employee."));
+            }
 
             var supervisor = await _supervisorServices.GetByIdAsync(attendanceDTO.SupervisorId);
-
 
             if (!ModelState.IsValid)
             {
@@ -445,6 +612,7 @@ namespace hrconnectbackend.Controllers
             return Ok(new ApiResponse(true, $"Attendance certifications created sucessfully!"));
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("certification")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -455,6 +623,7 @@ namespace hrconnectbackend.Controllers
             return Ok(new ApiResponse<List<AttendanceCertification>>(true, $"Attendance certifications retrieved sucessfully!", certifications));
         }
 
+        [Authorize]
         [HttpGet("certification/{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -462,6 +631,26 @@ namespace hrconnectbackend.Controllers
         public async Task<IActionResult> GetAttendanceCertification(int id)
         {
             var certification = await _attendanceCertificationServices.GetByIdAsync(id);
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int currentUserIdInt))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+            bool isAdmin = userRoles.Contains("Admin");
+
+            if (!isAdmin && currentUserIdInt != certification.EmployeeId)
+            {
+                return Forbid(); // 403 Forbidden
+            }
 
             try
             {
@@ -491,6 +680,22 @@ namespace hrconnectbackend.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDTO attendanceDTO)
         {
+            var certification = await _attendanceCertificationServices.GetByIdAsync(id);
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int currentUserIdInt))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponse(false, ModelState.IsValid.ToJson().ToString()));
@@ -527,6 +732,26 @@ namespace hrconnectbackend.Controllers
         {
             var certification = await _attendanceCertificationServices.GetByIdAsync(id);
 
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
+            {
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
+            }
+
+            if (!int.TryParse(currentUserId, out int currentUserIdInt))
+            {
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+            }
+
+            bool isAdmin = userRoles.Contains("Admin");
+
+            if (!isAdmin && currentUserIdInt != certification.EmployeeId)
+            {
+                return Forbid(); // 403 Forbidden
+            }
+
             try
             {
                 if (certification == null)
@@ -548,7 +773,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("certification/approve/{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -567,14 +792,14 @@ namespace hrconnectbackend.Controllers
             {
                 return NotFound(new ApiResponse(false, ex.Message));
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error approving a certification with ID {id}", id);
                 return StatusCode(500, "An internal server error occurred.");
             }
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("certification/reject/{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -598,5 +823,6 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, "An internal server error occurred.");
             }
         }
+        
     }
 }

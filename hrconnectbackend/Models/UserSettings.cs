@@ -29,11 +29,10 @@ public class UserSettings
     // New 2FA Fields
     public bool IsTwoFactorEnabled { get; set; } = false;  // Whether 2FA is enabled for the user
     [StringLength(20)]
-    public string? TwoFactorMethod { get; set; }  // Type of 2FA method (e.g., "SMS", "Email", "Authenticator")
-    public string? TwoFactorSecret { get; set; }  // Secret key for authenticator app (if using 2FA via app)
-
+    public string TwoFactorMethod { get; set; }  = "email";  // Method of 2FA (email, sms, app)
+    public string? TwoFactorSecret { get; set; } = null;  // Secret key for 2FA
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  // Timestamp of when the settings were created
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;  // Timestamp of when the settings were last updated
+    public DateTime? UpdatedAt { get; set; } = null;  // Timestamp of when the settings were last updated
 
     public virtual Employee? Employee { get; set; }
 }

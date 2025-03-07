@@ -7,24 +7,28 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/v{version:apiVersion}/shift")]
+    [ApiVersion("1.0")]
     public class ShiftController : ControllerBase
     {
         private readonly IShiftServices _shiftServices;
         private readonly IMapper _mapper;
+        private readonly AuthenticationServices _authenticationServices;
 
-        public ShiftController(IShiftServices shiftServices, IMapper mapper)
+        public ShiftController(IShiftServices shiftServices, IMapper mapper, AuthenticationServices authenticationServices)
         {
             _shiftServices = shiftServices;
             _mapper = mapper;
+            _authenticationServices = authenticationServices;
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetShiftById(int id)
         {
@@ -38,7 +42,7 @@ namespace hrconnectbackend.Controllers
                 return NotFound(new { message = ex.Message });
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllShifts()
         {
@@ -46,7 +50,7 @@ namespace hrconnectbackend.Controllers
 
             return Ok(shifts);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateShift(ShiftDTO shiftDTO)
         {
@@ -69,7 +73,7 @@ namespace hrconnectbackend.Controllers
                 var createdShift = await _shiftServices.AddAsync(new Shift
                 {
                     EmployeeShiftId = shiftDTO.EmployeeShiftId,
-                    DaysOfWorked = shiftDTO.DaysOfWorked,
+                    DaysOfWorked = BodyRequestCorrection.CapitalLowerCaseName(shiftDTO.DaysOfWorked),
                     TimeIn = TimeSpan.Parse(shiftDTO.TimeIn),
                     TimeOut = TimeSpan.Parse(shiftDTO.TimeOut)
                 });
@@ -81,7 +85,7 @@ namespace hrconnectbackend.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateShift(int id, [FromBody] Shift shift)
         {
@@ -111,7 +115,7 @@ namespace hrconnectbackend.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteShift(int id)
         {
@@ -136,30 +140,69 @@ namespace hrconnectbackend.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
-        [HttpGet("employee-shift/{employeeId}")]
-        public async Task<IActionResult> GetEmployeeShift(int employeeId)
+        [Authorize]
+        [HttpGet("my-shift")]
+        public async Task<IActionResult> GetMyShift()
         {
+            var employeeId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             try
             {
                 var shifts = await _shiftServices.GetEmployeeShifts(employeeId);
 
-                return Ok(shifts);
+                var mappedShift = _mapper.Map<List<ShiftDTO>>(shifts);
+
+                return Ok(new ApiResponse<List<ShiftDTO>>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");  // Handle unexpected errors
+                return StatusCode(500, new ApiResponse(false, ex.Message));  // Handle unexpected errors
             }
         }
 
+        [Authorize]
+        [HttpGet("employee-shift/{employeeId}")]
+        public async Task<IActionResult> GetEmployeeShift(int employeeId)
+        {
 
+            string[] admins = {
+                "Admin", "HR"
+            };
+
+            try
+            {
+                var validateUser = _authenticationServices.ValidateUser(User, employeeId, admins);
+
+                if (validateUser != null){
+                    return validateUser;
+                }
+
+                var shifts = await _shiftServices.GetEmployeeShifts(employeeId);
+
+                var mappedShift = _mapper.Map<List<ShiftDTO>>(shifts);
+
+                return Ok(new ApiResponse<List<ShiftDTO>>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse(false, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse(false, ex.Message));  // Handle unexpected errors
+            }
+        }
+
+        [Authorize(Roles ="Admin,HR")]
         [HttpGet("shift-today/{employeeId}")]
         public async Task<IActionResult> HasShiftToday(int employeeId)
         {
+            
+
             try
             {
                 var hasShift = await _shiftServices.HasShiftToday(employeeId);
@@ -188,7 +231,7 @@ namespace hrconnectbackend.Controllers
             "Sunday"
         };
 
-            return daysOfWorked.Any(a => a.Contains(name));
+            return daysOfWorked.Any(a => a.ToLower() == name.ToLower());
         }
     }
     

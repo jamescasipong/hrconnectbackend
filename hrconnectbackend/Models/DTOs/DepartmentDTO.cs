@@ -14,7 +14,5 @@ namespace hrconnectbackend.Models.DTOs
         public int DepartmentId { get; set; }
         public int ManagerId { get; set; }
         public string DeptName { get; set; }
-        public ReadDepartmentDTO Supervisor { get; set; }
-        public List<ReadEmployeeDTO> Employees { get; set; }
     }
 }

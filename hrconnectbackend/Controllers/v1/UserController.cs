@@ -1,48 +1,55 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿
 using System.Security.Claims;
-using System.Text;
 using AutoMapper;
+using hrconnectbackend.CustomAttributeAnnotation;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
-using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.GenericDTOs;
-using hrconnectbackend.Repositories;
-using hrconnectbackend.Services;
-using hrconnectbackend.SignalR;
+using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.IdentityModel.Tokens;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Pqc.Crypto.Lms;
+using Microsoft.AspNetCore.RateLimiting;
 
-namespace hrconnectbackend.Controllers
+
+namespace hrconnectbackend.Controllers.v1
 {
     [ApiController]
-    [Route("[controller]")]
-    public class UserController : Controller
+    [Route("api/v{version:apiVersion}/user")]
+    [ApiVersion("1.0")]
+    public class UserController
+    (IUserAccountServices _userAccountServices, ILogger<UserController> _logger, IMapper _mapper, IEmployeeServices _employeeServices, IConfiguration _configuration, 
+    IUserSettingsServices _userSettingsServices, INotificationServices _notificationServices) : Controller
     {
-        private readonly IUserAccountServices _userAccountServices;
-        private readonly IUserSettingsServices _userSettingsServices;
-        private readonly INotificationServices _notificationServices;
-        private readonly IEmployeeServices _employeeServices;
-        private readonly IMapper _mapper;
-        private readonly ILogger<UserController> _logger;
-        private readonly IConfiguration _configuration;
-        public UserController(IUserAccountServices userAccountServices, ILogger<UserController> logger, IMapper mapper, IEmployeeServices employeeServices, IConfiguration configuration, IUserSettingsServices userSettingsServices, INotificationServices notificationServices)
-        {
-            _userAccountServices = userAccountServices;
-            _userSettingsServices = userSettingsServices;
-            _mapper = mapper;
-            _employeeServices = employeeServices;
-            _configuration = configuration;
-            _logger = logger;
-            _notificationServices = notificationServices;
+
+        [Authorize]
+        [HttpGet("account/profile")]
+        public async Task<IActionResult> GetProfile(){
+            
+            var User = HttpContext.User;
+
+            var NameIdentifier = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userName = User.FindFirstValue(ClaimTypes.Name);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            
+            if (NameIdentifier == null)
+            {
+                return NotFound(new ApiResponse(false, "User not found."));
+            }
+
+            var employee = await _employeeServices.GetByIdAsync(int.Parse(NameIdentifier));
+
+            if (employee == null)
+            {
+                return NotFound(new ApiResponse(false, $"Employee with ID: {NameIdentifier} not found."));
+            }
+
+            return Ok(new ApiResponse<dynamic>(true, "Profile retrqieved successfully!", new { Id = NameIdentifier, userName, role, isAdmin = employee.IsAdmin }));
         }
 
         [HttpPost("account/login")]
+        [EnableRateLimiting("fixed")]
         public async Task<IActionResult> Login([FromBody] LoginDTO loginDTO)
         {
             if (!ModelState.IsValid)
@@ -69,23 +76,15 @@ namespace hrconnectbackend.Controllers
                 if (!BCrypt.Net.BCrypt.Verify(loginDTO.Password, employeePassword))
                 {
                     _logger.LogWarning($"Invalid password; try again");
-                    return Unauthorized(new ApiResponse(false, $"Invalid password; try again.s"));
+                    return Unauthorized(new ApiResponse(false, $"Invalid password; try again."));
                 }
-
-                //if (!await _userAccountServices.IsVerified(loginDTO.Email))
-                //{
-                //    return Ok(new ApiResponse(true, $"User Account not verified."));
-                //}
-
-                var employeeDTO = _mapper.Map<ReadEmployeeDTO>(employee);
-                byte[] key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-
 
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.Name, userName),
                     new Claim(ClaimTypes.Role, employee.IsAdmin ? "Admin" : "User"),
+                    new Claim("Role", employee.IsAdmin ? "Admin" : "User"),
+                    new Claim(ClaimTypes.NameIdentifier, employee.Id.ToString())
                 };
 
                 if (employee.Department != null)
@@ -93,53 +92,114 @@ namespace hrconnectbackend.Controllers
                     claims.Append(new Claim("Department", employee.Department.DeptName));
                 }
 
-                var tokenDescriptor = new SecurityTokenDescriptor
+                var key = _configuration.GetValue<string>("JWT:Key")!;
+                var audience = _configuration.GetValue<string>("JWT:Audience")!;
+                var issuer = _configuration.GetValue<string>("JWT:Issuer")!;
+                var jwtService = new JwtService(key, audience, issuer);
+
+                var jwtToken = jwtService.GenerateToken(claims);
+
+                string sessionId = Guid.NewGuid().ToString();
+
+                HttpContext.Session.SetString("sessionId", sessionId);
+                
+                Response.Cookies.Append("token", jwtToken, new CookieOptions
                 {
-                    Subject = new ClaimsIdentity(claims),
-                    Expires = DateTime.UtcNow.AddHours(1),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                };
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var jwtToken = tokenHandler.WriteToken(token);  
-
-                //Response.Cookies.Append("token", jwtToken, new CookieOptions
-                //{
-                //    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                //    SameSite = SameSiteMode.Lax, // Prevent CSRF attacks
-                //    Secure = false,
-                //    Domain = "localhost",
-                //    Expires = DateTime.UtcNow.AddHours(1), // Cookie expires in 1 hour
-                //    Path = "/"
-                //});
-
-
+                    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
+                    SameSite = SameSiteMode.None, // Prevent CSRF attacks
+                    Secure = true,
+                    Path="/",
+                    Expires = DateTime.UtcNow.AddHours(1), // Cookie expires in 1 hour
+                });
+                
                 _logger.LogWarning("$A user has authenticated successfully!");
-                return Ok(new ApiResponse<string>(success: true, message: $"A user has authenticated successfully!", data: jwtToken));
+                employee.Status = "Online";
+                await _employeeServices.UpdateAsync(employee);
+                return Ok(new ApiResponse(success: true, message: $"A user has authenticated successfully!"));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new ApiResponse(false, ex.Message));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+                _logger.LogWarning(ex.Message);
+                return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
             }
         }
 
-        //[HttpPost("logout")]
-        //public IActionResult Logout()
-        //{
-        //    // Remove the JWT cookie by setting it with an expired date
-        //    Response.Cookies.Append("token", "", new CookieOptions
-        //    {
-        //        HttpOnly = true,
-        //        SameSite = SameSiteMode.Lax,
-        //        Expires = DateTime.UtcNow.AddDays(-1),// Expire immediately
-        //        Path = "/"
-        //    });
+        
+        // private async Task<string> CreateSessionForUser(ApplicationUser user, string deviceId, string deviceName, string deviceIp, string userAgent)
+        // {
+        //     var sessionId = Guid.NewGuid().ToString(); // Create a new session ID
 
-        //    return Ok(new { message = "Logged out successfully" });
-        //}
+        //     var activeSession = new ActiveSession
+        //     {
+        //         SessionId = sessionId,
+        //         UserId = user.Id,
+        //         DeviceId = deviceId,
+        //         DeviceName = deviceName,
+        //         DeviceIp = deviceIp,
+        //         UserAgent = userAgent,
+        //         CreatedAt = DateTime.UtcNow,
+        //         LastAccessed = DateTime.UtcNow
+        //     };
+
+        //     // Save the session in the database
+        //     _dbContext.ActiveSessions.Add(activeSession);
+        //     await _dbContext.SaveChangesAsync();
+
+        //     return sessionId;
+        // }
+        [HttpGet("profile-session")]
+        public async Task<IActionResult> GetMyProfile(){
+            var userSession = HttpContext.Session.GetString("sessionId");
+
+            if (userSession == null)
+            {
+                return NotFound(new ApiResponse(false, "User not found."));
+            }
+
+            var employee = await _employeeServices.GetByIdAsync(int.Parse(userSession));
+
+            if (employee == null)
+            {
+                return NotFound(new ApiResponse(false, $"Employee with ID: {userSession} not found."));
+            }
+
+            return Ok(new ApiResponse<dynamic>(true, "Profile retrqieved successfully!", new { Id = userSession, userName = employee.FirstName, role = employee.IsAdmin ? "Admin" : "User", isAdmin = employee.IsAdmin }));
+        }
+
+        [Authorize]
+        [HttpPost("account/logout")]
+        public async Task<IActionResult> Logout(){
+            var user = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (user == null)
+            {
+                return NotFound(new ApiResponse(false, "User not found."));
+            }
+
+            var employee = await _employeeServices.GetByIdAsync(int.Parse(user));
+
+            if (employee == null)
+            {
+                return NotFound(new ApiResponse(false, "Employee not found."));
+            }
+
+            if (employee.Status == "Offline")
+            {
+                return BadRequest(new ApiResponse(false, "User is already logged out."));
+            }
+
+            employee.Status = "Offline";
+
+            await _employeeServices.UpdateAsync(employee);
+
+            Response.Cookies.Delete("token");
+
+            return Ok(new ApiResponse(true, "User logged out successfully."));
+        }
 
 
         [Authorize]
@@ -305,63 +365,27 @@ namespace hrconnectbackend.Controllers
 
         [Authorize]
         [HttpGet("notifications")]
-        public async Task<IActionResult> RetrieveNotification(int userId)
+        public async Task<IActionResult> RetrieveNotification(int userId, int? pageIndex, int? pageSize)
         {
             try
             {
-                var notifications = await _notificationServices.GetAllAsync();
+                var employee = await _employeeServices.GetByIdAsync(userId);
 
-                var notification = notifications.Where(n => n.EmployeeId == userId);
-
-                if (notification == null)
+                if (employee == null)
                 {
-                    return NotFound(new ApiResponse(false, "No notifications found."));
+                    return NotFound(new ApiResponse(false, "Employee not found."));
                 }
 
-                var notificationDTO = notification.Select(n => new CreateNotificationHubDTO
-                {
-                    EmployeeId = n.EmployeeId,
-                    Title = n.Title,
-                    Message = n.Message
-                }).ToList();
+                var userNotifications = await _notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageIndex);
 
-                return Ok(new ApiResponse<List<CreateNotificationHubDTO>>(true, "Notifications retrieved successfully!", notificationDTO));
+                var mappedUserNotification = _mapper.Map<List<ReadUserNotificationDTO>>(userNotifications);
+
+                return Ok(new ApiResponse<List<ReadUserNotificationDTO>>(true, "Notifications retrieved successfully!", mappedUserNotification));
             }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }
-
-        [Authorize]
-        [HttpDelete("notifications")]
-        public async Task<IActionResult> DeleteNotification(int userId, int? pageIndex, int? pageSize)
-        {
-            try
-            {
-                var notification = await _notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageSize);
-
-                if (notification == null)
-                {
-                    return NotFound(new ApiResponse(false, "No notifications found."));
-                }
-
-                foreach (var n in notification)
-                {
-                    if (n != null)
-                    {
-                        await _notificationServices.DeleteAsync(n); // Await each deletion sequentially
-                    }
-                }
-
-                return Ok(new ApiResponse(true, "Notification deleted successfully!"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
-
-        
     }
 }

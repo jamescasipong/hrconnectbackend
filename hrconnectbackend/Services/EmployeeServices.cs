@@ -94,16 +94,23 @@ namespace hrconnectbackend.Repositories
                 }
 
                 // Check if the status is valid
-                if (employee.Status != "Online" && employee.Status != "Offline")
-                {
-                    _logger.LogWarning("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.", employee.Status);
-                    throw new ArgumentException("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.");
-                }
+                //if (employee.Status != "Online" && employee.Status != "Offline")
+                //{
+                //    _logger.LogWarning("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.", employee.Status);
+                //    throw new ArgumentException("Invalid status provided: {Status}. Expected 'Online' or 'Offline'.");
+                //}
+
+                
 
                 string password = "";
 
                 if (employee.Password != null)
                 {
+                    if (BodyRequestCorrection.IsValidPassword(employee.Password) == false)
+                    {
+                        throw new ArgumentException("Invalid password format", nameof(employee.Password));
+                    }
+
                     password = BCrypt.Net.BCrypt.HashPassword(employee.Password);
                 }
                 else
@@ -111,35 +118,38 @@ namespace hrconnectbackend.Repositories
                     password = PasswordGenerator.GeneratePassword(12, true);
                 }
 
+                if (BodyRequestCorrection.IsValidEmail(employee.Email) == false)
+                {
+                    throw new ArgumentException("Invalid email format", nameof(employee.Email));
+                }
                 // Create the employee entity
                 var employeeEntity = new Employee
                 {
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
+                    FirstName = BodyRequestCorrection.CapitalLowerCaseName(employee.FirstName),
+                    LastName = BodyRequestCorrection.CapitalLowerCaseName(employee.LastName),
                     Email = employee.Email,
                     IsAdmin = employee.IsAdmin,
-                    Status = employee.Status,
+                    Status = "offline",
                 };
 
-                bool departmentHasValue = employee.DepartmentId != null && employee.DepartmentId.HasValue;
+                //bool departmentHasValue = employee.DepartmentId != null && employee.DepartmentId.HasValue;
 
-                if (departmentHasValue)
-                {
-                    var department = await _departmentServices.GetByIdAsync(employee.DepartmentId.Value);
+                //if (departmentHasValue)
+                //{
+                //    var department = await _departmentServices.GetByIdAsync(employee.DepartmentId.Value);
 
-                    if (department != null)
-                    {
-                        employeeEntity.DepartmentId = employee.DepartmentId ?? null;
-                    }
-                }
+                //    if (department != null)
+                //    {
+                //        employeeEntity.DepartmentId = null;
+                //    }
+                //}
 
-                employeeEntity.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
-                employeeEntity.UpdatedAt = DateOnly.FromDateTime(DateTime.Now);
-
+                employeeEntity.CreatedAt = DateTime.Now;
+                employeeEntity.UpdatedAt = null;
                 // Add the employee entity to the database
                 await AddAsync(employeeEntity);
 
-                string userName = $"{employeeEntity.FirstName[0].ToString().ToUpper()}"+$"{employeeEntity.LastName.ToLower()}";
+                string userName = $"{employeeEntity.FirstName[0].ToString().ToUpper()}" + $"{employeeEntity.LastName.ToLower()}";
 
                 // Create associated records
                 await _userAccountService.AddAsync(new UserAccount
@@ -189,16 +199,37 @@ namespace hrconnectbackend.Repositories
                 // Log success and return a success message
                 _logger.LogInformation("Employee created successfully: {EmployeeId}", employeeEntity.Id);
             }
+            catch (ArgumentNullException ex)
+            {
+                // Rollback the transaction on error
+                await transaction.RollbackAsync();
+
+                // Log the exception
+                ThrowErrorType<ArgumentNullException>($"Error occurred while creating employee: {ex.Message}", log => _logger.LogError(ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                // Rollback the transaction on error
+                await transaction.RollbackAsync();
+
+                // Log the exception
+                ThrowErrorType<ArgumentException>($"Error occurred while creating employee: {ex.Message}", log => _logger.LogError(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Rollback the transaction on error
+                await transaction.RollbackAsync();
+
+                // Log the exception
+                ThrowErrorType<InvalidOperationException>($"Error occurred while creating employee: {ex.Message}", log => _logger.LogError(ex.Message));
+            }
             catch (Exception ex)
             {
                 // Rollback the transaction on error
                 await transaction.RollbackAsync();
 
                 // Log the exception
-                _logger.LogError(ex, "Error occurred while creating employee.");
-
-                // Throw the error after logging
-                throw new InvalidOperationException("An error occurred while processing your request.", ex);
+                ThrowErrorType<Exception>($"Error occurred while creating employee: {ex.Message}", log => _logger.LogError(ex.Message));
             }
         }
 
@@ -226,8 +257,25 @@ namespace hrconnectbackend.Repositories
         }
 
 
+        private static void ThrowErrorType<T>(string message, Action<string>? log) where T : Exception
+        {
+            log?.Invoke(message);
+            var errorType = Activator.CreateInstance(typeof(T), message);
+            
+            throw (T)errorType;
+        }
+
+        public async Task<Employee> GetEmployeeById(int id)
+        {
+            var employee = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee.EducationBackground).Include(d => d.Department).FirstOrDefaultAsync(e => e.Id == id);
+
+            if (employee == null)
+            {
+                throw new KeyNotFoundException($"No employee found with an id {id}");
+            }
+
+            return employee;
+        }
     }
-
-
 
 }

@@ -8,12 +8,10 @@
 
     public class ReadNotificationsDTO
     {
-        public int Id { get; set; }
-        public int EmployeeId { get; set; }
         public string Title { get; set; }
         public string Message { get; set; }
-        public DateTime Date { get; set; }
-        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
 
     }
 
@@ -22,5 +20,15 @@
         public int EmployeeId { get; set; }
         public string Title { get; set; }
         public string Message { get; set; }
+    }
+
+
+    public class ReadUserNotificationDTO 
+    {
+        public int EmployeeId { get; set; }
+        public int NotificationId { get; set; }
+        public bool IsRead { get; set; }
+        public string Status { get; set; }
+        public ReadNotificationsDTO Notification { get; set; }
     }
 }

@@ -73,7 +73,7 @@ namespace hrconnectbackend.Services
                 attendance.CalculateWorkingHours();
                 totalHoursWorked += attendance.WorkingHours;
 
-                var overtime = await _context.OTApplications.FirstOrDefaultAsync(a => a.StartDate == DateOnly.FromDateTime(attendance.DateToday));
+                var overtime = await _context.OTApplications.FirstOrDefaultAsync(a => DateOnly.FromDateTime(a.Date) == DateOnly.FromDateTime(attendance.DateToday));
 
                 if (overtime != null)
                 {

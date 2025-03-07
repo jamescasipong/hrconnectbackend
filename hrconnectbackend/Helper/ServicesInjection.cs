@@ -22,6 +22,7 @@ namespace hrconnectbackend.Helper
 
         public static void IRepositories(IServiceCollection services)
         {
+            // Interface Based Injections
             services.AddScoped<IEmployeeServices, EmployeeServices>();
             services.AddScoped<IAttendanceServices, AttendanceServices>();
             services.AddScoped<IDepartmentServices, DepartmentServices>();
@@ -37,10 +38,10 @@ namespace hrconnectbackend.Helper
             services.AddScoped<IPayrollServices, PayrollServices>();
             services.AddScoped<ILeaveBalanceServices, LeaveBalanceServices>();
             services.AddScoped<IOTApplicationServices, OTApplicationServices>();
+            services.AddScoped<IUserNotificationServices, UserNotificationServices>();
 
-            services.AddScoped<DepartmentServices>();
-            services.AddScoped<UserAccountServices>();
-            services.AddScoped<SupervisorServices>();
+            // Class Based Object Injections
+            services.AddScoped<AuthenticationServices>();
         }
 
 

@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
@@ -6,20 +7,46 @@ using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    [Route("api/v{version:apiVersion}/notification")]
+    [ApiVersion("1.0")]
     public class NotificationController : ControllerBase
     {
+        // private IDistributedCache _distributedCache;
+
+    
         private readonly INotificationServices _notificationServices;
+        private readonly IUserNotificationServices _userNotificationServices;
         private readonly IMapper _mapper;
-        public NotificationController(INotificationServices notificationServices, IMapper mapper)
+        public NotificationController(INotificationServices notificationServices,  IMapper mapper, IUserNotificationServices userNotificationServices)
         {
             _notificationServices = notificationServices;
             _mapper = mapper;
+            _userNotificationServices = userNotificationServices;
+        }
+
+        [Authorize]
+        [HttpGet("my-notifications")]
+        public async Task<IActionResult> RetrieveMyNotifications()
+        {
+            try
+            {
+                var employeeId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+                var notifications = await _userNotificationServices.GetNotificationByUserId(employeeId);
+
+                return Ok(new ApiResponse<List<ReadUserNotificationDTO>>(true, $"Notifications retrieved successfully.", _mapper.Map<List<ReadUserNotificationDTO>>(notifications)));
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+            }
         }
 
 
@@ -47,7 +74,7 @@ namespace hrconnectbackend.Controllers
             {
                 var notifications = await _notificationServices.GetAllAsync();
 
-                var paginationaNotifications = _notificationServices.NotifcationPagination(notifications, pageIndex, pageSize);
+                var paginationaNotifications = _notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
 
                 return Ok(new ApiResponse<List<ReadNotificationsDTO>>(true, $"Notifications retrieved successfully.", _mapper.Map<List<ReadNotificationsDTO>>(paginationaNotifications)));
             }
@@ -80,7 +107,7 @@ namespace hrconnectbackend.Controllers
         [HttpGet("employee/{employeeId:int}")]
         public async Task<IActionResult> RetrieveNotificationByEmployee(int employeeId, int? pageIndex, int? pageSize)
         {
-            var employeeNotifications = await _notificationServices.GetNotificationsByEmployeeId(employeeId, pageIndex, pageSize);
+            List<UserNotification> employeeNotifications = await _notificationServices.GetNotificationsByEmployeeId(employeeId, pageIndex, pageSize);
 
             var mappedNotifications = _mapper.Map<List<ReadNotificationsDTO>>(employeeNotifications);
 

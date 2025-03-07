@@ -17,6 +17,13 @@ namespace hrconnectbackend.Helper
             CreateAttendanceCertification();
             CreateLeaveApplicationMappings();
             CreateOTApplication();
+            Shift();
+
+        }
+
+        private void Shift(){
+            CreateMap<Shift, ShiftDTO>();
+            CreateMap<ShiftDTO, Shift>();
         }
 
         private void PayrollMappings()
@@ -55,6 +62,9 @@ namespace hrconnectbackend.Helper
 
             CreateMap<Notifications, ReadNotificationsDTO>();
             CreateMap<ReadNotificationsDTO, Notifications>();
+
+            CreateMap<UserNotification, ReadUserNotificationDTO>();
+            CreateMap<ReadUserNotificationDTO, UserNotification>();
         }
 
         private void CreateAttendanceCertification()
@@ -90,6 +100,9 @@ namespace hrconnectbackend.Helper
 
             CreateMap<AboutEmployee, CreateAboutEmployeeDTO>();
             CreateMap<CreateAboutEmployeeDTO, AboutEmployee>();
+
+            CreateMap<AboutEmployee, ReadAboutEmployeeDTO>();
+            CreateMap<ReadAboutEmployeeDTO, AboutEmployee>();
 
             CreateMap<Employee, ReadEmployeeDTO>();
             CreateMap<ReadEmployeeDTO, Employee>();

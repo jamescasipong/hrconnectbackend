@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
@@ -9,11 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Client;
 using MongoDB.Bson;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
     [Authorize]
-    [Route("api/[controller]")]
-    [ApiController]
+    [Route("api/v{version:apiVersion}/department")]
+    [ApiVersion("1.0")]
     public class DepartmentController : ControllerBase
     {
 
@@ -26,6 +27,45 @@ namespace hrconnectbackend.Controllers
             _employeeServices = employeeServices;
         }
 
+        [Authorize]
+        [HttpGet("my-department")]
+        public async Task<IActionResult> GetDepartment(){
+            try
+            {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (currentUserId == null){
+                    return Unauthorized(new ApiResponse(false, $"User not authenticated."));
+                }
+
+                var employee = await _employeeServices.GetByIdAsync(int.Parse(currentUserId));
+
+
+                if (employee == null){
+                    return NotFound(new ApiResponse(false, $"Employee not found."));
+                }
+
+                if (employee.DepartmentId == null){
+                    return Ok(new ApiResponse<dynamic>(false, $"Employee not assigned to any department.", null));
+                }
+
+                var department = await _departmentServices.GetByIdAsync(employee.DepartmentId.Value);
+
+                if (department == null){
+                    return NotFound(new ApiResponse<ReadDepartmentDTO>(false, $"Department not found.", null));
+                }
+
+                var mappedDepartment = _mapper.Map<ReadDepartmentDTO>(department);
+
+                return Ok(new ApiResponse<ReadDepartmentDTO>(true, $"Department retrieved successfully!", mappedDepartment));
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateDepartment(CreateDepartmentDTO departmentDTO)
         {
@@ -44,7 +84,7 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> RetrieveDepartments(int? pageIndex, int? pageSize)
         {
@@ -64,12 +104,26 @@ namespace hrconnectbackend.Controllers
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
             }
         }
-
+        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("{departmentId:int}")]
         public async Task<IActionResult> RetrieveDepartment(int departmentId)
         {
             try
             {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userRoles = User.FindAll(ClaimTypes.Role).Select(a => a.Value).ToList();
+
+                if (currentUserId == null){
+                    return Unauthorized(new ApiResponse(false, $"User not authenticated."));
+                }
+
+                bool isAdmin = userRoles.Contains("Admin");
+
+                if (!isAdmin && currentUserId == null){
+                    return Forbid();
+                }
+
                 var department = await _departmentServices.GetByIdAsync(departmentId);
 
                 if (department == null)
@@ -85,6 +139,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("department-name")]
         public async Task<IActionResult> GetDepartmentByName(string name)
         {
@@ -109,6 +164,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{departmentId:int}")]
         public async Task<IActionResult> UpdateDepartment(int departmentId, CreateDepartmentDTO departmentDTO)
         {
@@ -131,6 +187,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{departmentId:int}")]
         public async Task<IActionResult> DeleteDepartment(int departmentId)
         {
@@ -153,7 +210,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("{departmentId:int}/supervisor")]
         public async Task<IActionResult> UpdateSupervisor(int departmentId, int employeeId)
         {
@@ -189,6 +246,7 @@ namespace hrconnectbackend.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{departmentId:int}/employee")]
         public async Task<IActionResult> UpdateEmployeeDepartment(int departmentId, int employeeId)
         {

@@ -8,7 +8,7 @@ namespace hrconnectbackend.Models.DTOs
         [Required(ErrorMessage = "EmployeeId is required")]
         public int EmployeeId { get; set; }
         [Required(ErrorMessage = "StartDate is required")]
-        public DateOnly StartDate { get; set; }
+        public DateTime Date { get; set; }
         public int? SupervisorId { get; set; }
         [Required(ErrorMessage = "EndTime is required")]
         public TimeOnly EndTime { get; set; }
@@ -19,7 +19,7 @@ namespace hrconnectbackend.Models.DTOs
     public class ReadOTApplicationDTO
     {
         public int EmployeeId { get; set; }
-        public DateOnly StartDate { get; set; }
+        public DateTime StartDate { get; set; }
         public int? SupervisorId { get; set; }
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }
@@ -30,7 +30,7 @@ namespace hrconnectbackend.Models.DTOs
     public class UpdateOTApplicationDTO
     {
         [Required(ErrorMessage = "StartDate is required")]
-        public DateOnly StartDate { get; set; }
+        public DateTime Date { get; set; }
         [Required(ErrorMessage = "StartTime is required")]
         public TimeOnly StartTime { get; set; }
         [Required(ErrorMessage = "EndTime is required")]

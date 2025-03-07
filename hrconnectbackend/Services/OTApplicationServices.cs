@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using hrconnectbackend.Models;
+﻿using hrconnectbackend.Models;
 using hrconnectbackend.Data;
 using hrconnectbackend.Repository;
 using hrconnectbackend.Interface.Services;
@@ -46,7 +45,7 @@ public class OTApplicationServices : GenericRepository<OTApplication>, IOTApplic
     {
 
         var otApplications = await _context.OTApplications
-            .Where(a => a.StartDate >= startDate && a.StartDate <= endDate)
+            .Where(a => DateOnly.FromDateTime(a.Date) >= startDate && DateOnly.FromDateTime(a.Date) <= endDate)
             .ToListAsync();
 
         if (!otApplications.Any())

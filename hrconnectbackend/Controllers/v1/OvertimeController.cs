@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace hrconnectbackend.Controllers
+namespace hrconnectbackend.Controllers.v1
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/v{version:apiVersion}/overtime")]
+    [ApiVersion("1.0")]
     public class OvertimeController : ControllerBase
     {
         private readonly IOTApplicationServices _oTApplicationServices;
@@ -58,8 +59,7 @@ namespace hrconnectbackend.Controllers
                 {
                     EmployeeId = dtoApplication.EmployeeId,
                     SupervisorId = supervisor.SupervisorId ?? null,
-                    StartDate = dtoApplication.StartDate,
-                    AppliedDate = DateOnly.FromDateTime(DateTime.Now),
+                    Date = dtoApplication.Date,
                     StartTime = TimeOnly.FromTimeSpan(attendanceExist.ClockOut.Value).AddMinutes(1),
                     EndTime = dtoApplication.EndTime,
                     Reasons = dtoApplication.Reasons,
@@ -139,7 +139,7 @@ namespace hrconnectbackend.Controllers
                     return NotFound(new ApiResponse(false, $"OT Application with {oTApplicationId} not found."));
                 }
 
-                overtime.StartDate = otApplicationDTO.StartDate;
+                overtime.Date = otApplicationDTO.Date;
                 overtime.Status = otApplicationDTO.Status;
                 overtime.StartTime = otApplicationDTO.StartTime;
                 overtime.EndTime = otApplicationDTO.EndTime;

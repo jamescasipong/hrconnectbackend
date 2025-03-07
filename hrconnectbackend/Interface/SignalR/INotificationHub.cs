@@ -7,7 +7,7 @@ namespace hrconnectbackend.Interface.SignalR {
         Task RegisterUser(int userId);
         Task AddGroup(int groupId);
         Task SendNotificationToUser(int userId, CreateNotificationHubDTO notificationDTO);
-        Task SendNotificationByGroup(int groupName, CreateNotificationHubDTO notificationDTO);
+        //Task SendNotificationByGroup(int groupName, CreateNotificationHubDTO notificationDTO);
         Task SendNotification(CreateNotificationHubDTO notificationDTO);
     }
 }

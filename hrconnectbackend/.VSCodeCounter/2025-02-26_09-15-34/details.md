@@ -1,0 +1,129 @@
+# Details
+
+Date : 2025-02-26 09:15:34
+
+Directory c:\\Users\\IT\\Documents\\GitHub\\hrconnectbackend\\hrconnectbackend
+
+Total : 114 files,  11324 codes, 302 comments, 2726 blanks, all 14352 lines
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
+
+## Files
+| filename | language | code | comment | blank | total |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| [hrconnectbackend/Controllers/v1/AdminController.cs](/hrconnectbackend/Controllers/v1/AdminController.cs) | C# | 37 | 1 | 9 | 47 |
+| [hrconnectbackend/Controllers/v1/AttendanceController.cs](/hrconnectbackend/Controllers/v1/AttendanceController.cs) | C# | 692 | 17 | 120 | 829 |
+| [hrconnectbackend/Controllers/v1/DepartmentController.cs](/hrconnectbackend/Controllers/v1/DepartmentController.cs) | C# | 202 | 0 | 42 | 244 |
+| [hrconnectbackend/Controllers/v1/EmployeeController.cs](/hrconnectbackend/Controllers/v1/EmployeeController.cs) | C# | 241 | 3 | 43 | 287 |
+| [hrconnectbackend/Controllers/v1/LeaveController.cs](/hrconnectbackend/Controllers/v1/LeaveController.cs) | C# | 323 | 0 | 70 | 393 |
+| [hrconnectbackend/Controllers/v1/NotificationController.cs](/hrconnectbackend/Controllers/v1/NotificationController.cs) | C# | 109 | 0 | 19 | 128 |
+| [hrconnectbackend/Controllers/v1/OvertimeController.cs](/hrconnectbackend/Controllers/v1/OvertimeController.cs) | C# | 237 | 0 | 41 | 278 |
+| [hrconnectbackend/Controllers/v1/PayrollController.cs](/hrconnectbackend/Controllers/v1/PayrollController.cs) | C# | 63 | 4 | 12 | 79 |
+| [hrconnectbackend/Controllers/v1/ShiftController.cs](/hrconnectbackend/Controllers/v1/ShiftController.cs) | C# | 188 | 0 | 26 | 214 |
+| [hrconnectbackend/Controllers/v1/SupervisorController.cs](/hrconnectbackend/Controllers/v1/SupervisorController.cs) | C# | 141 | 0 | 24 | 165 |
+| [hrconnectbackend/Controllers/v1/UserController.cs](/hrconnectbackend/Controllers/v1/UserController.cs) | C# | 276 | 51 | 64 | 391 |
+| [hrconnectbackend/Controllers/v2/AdminController.cs](/hrconnectbackend/Controllers/v2/AdminController.cs) | C# | 37 | 1 | 9 | 47 |
+| [hrconnectbackend/Controllers/v2/AttendanceController.cs](/hrconnectbackend/Controllers/v2/AttendanceController.cs) | C# | 693 | 17 | 120 | 830 |
+| [hrconnectbackend/Controllers/v2/DepartmentController.cs](/hrconnectbackend/Controllers/v2/DepartmentController.cs) | C# | 203 | 0 | 42 | 245 |
+| [hrconnectbackend/Controllers/v2/EmployeeController.cs](/hrconnectbackend/Controllers/v2/EmployeeController.cs) | C# | 241 | 3 | 43 | 287 |
+| [hrconnectbackend/Controllers/v2/LeaveController.cs](/hrconnectbackend/Controllers/v2/LeaveController.cs) | C# | 278 | 3 | 53 | 334 |
+| [hrconnectbackend/Controllers/v2/NotificationController.cs](/hrconnectbackend/Controllers/v2/NotificationController.cs) | C# | 108 | 0 | 19 | 127 |
+| [hrconnectbackend/Controllers/v2/OvertimeController.cs](/hrconnectbackend/Controllers/v2/OvertimeController.cs) | C# | 237 | 0 | 41 | 278 |
+| [hrconnectbackend/Controllers/v2/PayrollController.cs](/hrconnectbackend/Controllers/v2/PayrollController.cs) | C# | 63 | 4 | 12 | 79 |
+| [hrconnectbackend/Controllers/v2/ShiftController.cs](/hrconnectbackend/Controllers/v2/ShiftController.cs) | C# | 188 | 0 | 26 | 214 |
+| [hrconnectbackend/Controllers/v2/SupervisorController.cs](/hrconnectbackend/Controllers/v2/SupervisorController.cs) | C# | 141 | 0 | 24 | 165 |
+| [hrconnectbackend/Controllers/v2/UserController.cs](/hrconnectbackend/Controllers/v2/UserController.cs) | C# | 276 | 51 | 64 | 391 |
+| [hrconnectbackend/Data/DataContext.cs](/hrconnectbackend/Data/DataContext.cs) | C# | 121 | 11 | 22 | 154 |
+| [hrconnectbackend/Helper/ApiResponse.cs](/hrconnectbackend/Helper/ApiResponse.cs) | C# | 25 | 0 | 4 | 29 |
+| [hrconnectbackend/Helper/AuthorizeMiddleware.cs](/hrconnectbackend/Helper/AuthorizeMiddleware.cs) | C# | 23 | 2 | 8 | 33 |
+| [hrconnectbackend/Helper/BodyRequestCorrection.cs](/hrconnectbackend/Helper/BodyRequestCorrection.cs) | C# | 53 | 0 | 10 | 63 |
+| [hrconnectbackend/Helper/CustomExceptions/ConflictException.cs](/hrconnectbackend/Helper/CustomExceptions/ConflictException.cs) | C# | 7 | 0 | 2 | 9 |
+| [hrconnectbackend/Helper/DateOnlyConverter.cs](/hrconnectbackend/Helper/DateOnlyConverter.cs) | C# | 13 | 0 | 3 | 16 |
+| [hrconnectbackend/Helper/EmailService.cs](/hrconnectbackend/Helper/EmailService.cs) | C# | 16 | 0 | 4 | 20 |
+| [hrconnectbackend/Helper/MappingProfile.cs](/hrconnectbackend/Helper/MappingProfile.cs) | C# | 90 | 0 | 26 | 116 |
+| [hrconnectbackend/Helper/PasswordGenerator.cs](/hrconnectbackend/Helper/PasswordGenerator.cs) | C# | 32 | 4 | 7 | 43 |
+| [hrconnectbackend/Helper/ServicesInjection.cs](/hrconnectbackend/Helper/ServicesInjection.cs) | C# | 55 | 0 | 8 | 63 |
+| [hrconnectbackend/Helper/Services/EmailServices.cs](/hrconnectbackend/Helper/Services/EmailServices.cs) | C# | 18 | 1 | 2 | 21 |
+| [hrconnectbackend/Interface/Repositories/IGenericRepository.cs](/hrconnectbackend/Interface/Repositories/IGenericRepository.cs) | C# | 11 | 0 | 2 | 13 |
+| [hrconnectbackend/Interface/Services/IAboutEmployeeServices.cs](/hrconnectbackend/Interface/Services/IAboutEmployeeServices.cs) | C# | 11 | 0 | 3 | 14 |
+| [hrconnectbackend/Interface/Services/IAttendanceCertificationServices.cs](/hrconnectbackend/Interface/Services/IAttendanceCertificationServices.cs) | C# | 10 | 0 | 2 | 12 |
+| [hrconnectbackend/Interface/Services/IAttendanceServices.cs](/hrconnectbackend/Interface/Services/IAttendanceServices.cs) | C# | 19 | 0 | 2 | 21 |
+| [hrconnectbackend/Interface/Services/IDepartmentServices.cs](/hrconnectbackend/Interface/Services/IDepartmentServices.cs) | C# | 11 | 0 | 2 | 13 |
+| [hrconnectbackend/Interface/Services/IEmployeeServices.cs](/hrconnectbackend/Interface/Services/IEmployeeServices.cs) | C# | 14 | 0 | 2 | 16 |
+| [hrconnectbackend/Interface/Services/ILeaveApplicationServices.cs](/hrconnectbackend/Interface/Services/ILeaveApplicationServices.cs) | C# | 12 | 0 | 2 | 14 |
+| [hrconnectbackend/Interface/Services/ILeaveBalanceServices.cs](/hrconnectbackend/Interface/Services/ILeaveBalanceServices.cs) | C# | 10 | 0 | 2 | 12 |
+| [hrconnectbackend/Interface/Services/INotificationServices.cs](/hrconnectbackend/Interface/Services/INotificationServices.cs) | C# | 9 | 0 | 2 | 11 |
+| [hrconnectbackend/Interface/Services/IOTApplicationServices.cs](/hrconnectbackend/Interface/Services/IOTApplicationServices.cs) | C# | 14 | 0 | 2 | 16 |
+| [hrconnectbackend/Interface/Services/IPayrollServices.cs](/hrconnectbackend/Interface/Services/IPayrollServices.cs) | C# | 12 | 1 | 2 | 15 |
+| [hrconnectbackend/Interface/Services/IShiftServices.cs](/hrconnectbackend/Interface/Services/IShiftServices.cs) | C# | 9 | 0 | 2 | 11 |
+| [hrconnectbackend/Interface/Services/ISupervisorServices.cs](/hrconnectbackend/Interface/Services/ISupervisorServices.cs) | C# | 8 | 0 | 3 | 11 |
+| [hrconnectbackend/Interface/Services/IUserAccountServices.cs](/hrconnectbackend/Interface/Services/IUserAccountServices.cs) | C# | 13 | 0 | 2 | 15 |
+| [hrconnectbackend/Interface/Services/IUserNotificationServices.cs](/hrconnectbackend/Interface/Services/IUserNotificationServices.cs) | C# | 8 | 0 | 2 | 10 |
+| [hrconnectbackend/Interface/Services/IUserSettingsServices.cs](/hrconnectbackend/Interface/Services/IUserSettingsServices.cs) | C# | 10 | 0 | 2 | 12 |
+| [hrconnectbackend/Interface/SignalR/IMessageHub.cs](/hrconnectbackend/Interface/SignalR/IMessageHub.cs) | C# | 13 | 0 | 1 | 14 |
+| [hrconnectbackend/Interface/SignalR/IMessageHubClient.cs](/hrconnectbackend/Interface/SignalR/IMessageHubClient.cs) | C# | 11 | 9 | 1 | 21 |
+| [hrconnectbackend/Interface/SignalR/INotificationHub.cs](/hrconnectbackend/Interface/SignalR/INotificationHub.cs) | C# | 9 | 1 | 3 | 13 |
+| [hrconnectbackend/Interface/SignalR/INotificationHubClient.cs](/hrconnectbackend/Interface/SignalR/INotificationHubClient.cs) | C# | 9 | 0 | 3 | 12 |
+| [hrconnectbackend/Migrations/20250211014551\_InitialCreate02112025.Designer.cs](/hrconnectbackend/Migrations/20250211014551_InitialCreate02112025.Designer.cs) | C# | 620 | 2 | 241 | 863 |
+| [hrconnectbackend/Migrations/20250211014551\_InitialCreate02112025.cs](/hrconnectbackend/Migrations/20250211014551_InitialCreate02112025.cs) | C# | 509 | 3 | 56 | 568 |
+| [hrconnectbackend/Migrations/20250222073609\_SecondBitches.Designer.cs](/hrconnectbackend/Migrations/20250222073609_SecondBitches.Designer.cs) | C# | 620 | 2 | 242 | 864 |
+| [hrconnectbackend/Migrations/20250222073609\_SecondBitches.cs](/hrconnectbackend/Migrations/20250222073609_SecondBitches.cs) | C# | 188 | 3 | 36 | 227 |
+| [hrconnectbackend/Migrations/20250222143022\_UpdateMdodels.Designer.cs](/hrconnectbackend/Migrations/20250222143022_UpdateMdodels.Designer.cs) | C# | 620 | 2 | 242 | 864 |
+| [hrconnectbackend/Migrations/20250222143022\_UpdateMdodels.cs](/hrconnectbackend/Migrations/20250222143022_UpdateMdodels.cs) | C# | 45 | 3 | 6 | 54 |
+| [hrconnectbackend/Migrations/DataContextModelSnapshot.cs](/hrconnectbackend/Migrations/DataContextModelSnapshot.cs) | C# | 618 | 1 | 242 | 861 |
+| [hrconnectbackend/Models/Attendance.cs](/hrconnectbackend/Models/Attendance.cs) | C# | 29 | 3 | 5 | 37 |
+| [hrconnectbackend/Models/AttendanceCertification.cs](/hrconnectbackend/Models/AttendanceCertification.cs) | C# | 17 | 0 | 1 | 18 |
+| [hrconnectbackend/Models/DTOs/AboutEmployeeDTO.cs](/hrconnectbackend/Models/DTOs/AboutEmployeeDTO.cs) | C# | 13 | 0 | 5 | 18 |
+| [hrconnectbackend/Models/DTOs/AttendanceCertificationDTO.cs](/hrconnectbackend/Models/DTOs/AttendanceCertificationDTO.cs) | C# | 24 | 0 | 4 | 28 |
+| [hrconnectbackend/Models/DTOs/AttendanceDTO.cs](/hrconnectbackend/Models/DTOs/AttendanceDTO.cs) | C# | 26 | 0 | 3 | 29 |
+| [hrconnectbackend/Models/DTOs/AuthDTOs/LoginDTO.cs](/hrconnectbackend/Models/DTOs/AuthDTOs/LoginDTO.cs) | C# | 8 | 0 | 2 | 10 |
+| [hrconnectbackend/Models/DTOs/AuthDTOs/UserAccountDTO.cs](/hrconnectbackend/Models/DTOs/AuthDTOs/UserAccountDTO.cs) | C# | 15 | 0 | 1 | 16 |
+| [hrconnectbackend/Models/DTOs/DepartmentDTO.cs](/hrconnectbackend/Models/DTOs/DepartmentDTO.cs) | C# | 18 | 0 | 3 | 21 |
+| [hrconnectbackend/Models/DTOs/EducationalBackgroundDTO.cs](/hrconnectbackend/Models/DTOs/EducationalBackgroundDTO.cs) | C# | 14 | 0 | 1 | 15 |
+| [hrconnectbackend/Models/DTOs/EmployeeDTO.cs](/hrconnectbackend/Models/DTOs/EmployeeDTO.cs) | C# | 34 | 0 | 6 | 40 |
+| [hrconnectbackend/Models/DTOs/GenericDTOs/DateRangeDTO.cs](/hrconnectbackend/Models/DTOs/GenericDTOs/DateRangeDTO.cs) | C# | 6 | 0 | 1 | 7 |
+| [hrconnectbackend/Models/DTOs/GenericDTOs/UserSettingsDTO.cs](/hrconnectbackend/Models/DTOs/GenericDTOs/UserSettingsDTO.cs) | C# | 28 | 1 | 12 | 41 |
+| [hrconnectbackend/Models/DTOs/LeaveApplicationDTO.cs](/hrconnectbackend/Models/DTOs/LeaveApplicationDTO.cs) | C# | 34 | 0 | 6 | 40 |
+| [hrconnectbackend/Models/DTOs/NotificationDTO.cs](/hrconnectbackend/Models/DTOs/NotificationDTO.cs) | C# | 32 | 0 | 6 | 38 |
+| [hrconnectbackend/Models/DTOs/OTApplicationDTO.cs](/hrconnectbackend/Models/DTOs/OTApplicationDTO.cs) | C# | 40 | 0 | 4 | 44 |
+| [hrconnectbackend/Models/DTOs/ShiftDTO.cs](/hrconnectbackend/Models/DTOs/ShiftDTO.cs) | C# | 10 | 0 | 2 | 12 |
+| [hrconnectbackend/Models/DTOs/SupervisorDTO.cs](/hrconnectbackend/Models/DTOs/SupervisorDTO.cs) | C# | 13 | 0 | 2 | 15 |
+| [hrconnectbackend/Models/Department.cs](/hrconnectbackend/Models/Department.cs) | C# | 12 | 0 | 1 | 13 |
+| [hrconnectbackend/Models/Employee/AboutEmployee.cs](/hrconnectbackend/Models/Employee/AboutEmployee.cs) | C# | 33 | 0 | 1 | 34 |
+| [hrconnectbackend/Models/Employee/Employee.cs](/hrconnectbackend/Models/Employee/Employee.cs) | C# | 44 | 2 | 5 | 51 |
+| [hrconnectbackend/Models/Employee/Supervisor.cs](/hrconnectbackend/Models/Employee/Supervisor.cs) | C# | 14 | 0 | 2 | 16 |
+| [hrconnectbackend/Models/EnumData.cs](/hrconnectbackend/Models/EnumData.cs) | C# | 25 | 0 | 5 | 30 |
+| [hrconnectbackend/Models/LeaveBalance.cs](/hrconnectbackend/Models/LeaveBalance.cs) | C# | 21 | 0 | 8 | 29 |
+| [hrconnectbackend/Models/Leaves.cs](/hrconnectbackend/Models/Leaves.cs) | C# | 12 | 0 | 2 | 14 |
+| [hrconnectbackend/Models/Notifications.cs](/hrconnectbackend/Models/Notifications.cs) | C# | 15 | 0 | 3 | 18 |
+| [hrconnectbackend/Models/Payroll.cs](/hrconnectbackend/Models/Payroll.cs) | C# | 38 | 0 | 13 | 51 |
+| [hrconnectbackend/Models/Requests/LeaveApplication.cs](/hrconnectbackend/Models/Requests/LeaveApplication.cs) | C# | 20 | 0 | 5 | 25 |
+| [hrconnectbackend/Models/Requests/OTApplication.cs](/hrconnectbackend/Models/Requests/OTApplication.cs) | C# | 19 | 0 | 3 | 22 |
+| [hrconnectbackend/Models/Shift.cs](/hrconnectbackend/Models/Shift.cs) | C# | 14 | 0 | 2 | 16 |
+| [hrconnectbackend/Models/UserAccount.cs](/hrconnectbackend/Models/UserAccount.cs) | C# | 15 | 0 | 1 | 16 |
+| [hrconnectbackend/Models/UserNotification.cs](/hrconnectbackend/Models/UserNotification.cs) | C# | 12 | 0 | 1 | 13 |
+| [hrconnectbackend/Models/UserSettings.cs](/hrconnectbackend/Models/UserSettings.cs) | C# | 27 | 1 | 11 | 39 |
+| [hrconnectbackend/Program.cs](/hrconnectbackend/Program.cs) | C# | 120 | 5 | 26 | 151 |
+| [hrconnectbackend/Properties/launchSettings.json](/hrconnectbackend/Properties/launchSettings.json) | JSON | 41 | 0 | 1 | 42 |
+| [hrconnectbackend/Repository/GenericRepository.cs](/hrconnectbackend/Repository/GenericRepository.cs) | C# | 52 | 6 | 13 | 71 |
+| [hrconnectbackend/Services/AboutEmployeeServices.cs](/hrconnectbackend/Services/AboutEmployeeServices.cs) | C# | 28 | 0 | 14 | 42 |
+| [hrconnectbackend/Services/AttendanceCertificationServices.cs](/hrconnectbackend/Services/AttendanceCertificationServices.cs) | C# | 74 | 0 | 17 | 91 |
+| [hrconnectbackend/Services/AttendanceServices.cs](/hrconnectbackend/Services/AttendanceServices.cs) | C# | 284 | 12 | 81 | 377 |
+| [hrconnectbackend/Services/DepartmentServices.cs](/hrconnectbackend/Services/DepartmentServices.cs) | C# | 66 | 0 | 29 | 95 |
+| [hrconnectbackend/Services/EmployeeServices.cs](/hrconnectbackend/Services/EmployeeServices.cs) | C# | 183 | 34 | 53 | 270 |
+| [hrconnectbackend/Services/LeaveApplicationServices.cs](/hrconnectbackend/Services/LeaveApplicationServices.cs) | C# | 122 | 0 | 31 | 153 |
+| [hrconnectbackend/Services/LeaveBalanceServices.cs](/hrconnectbackend/Services/LeaveBalanceServices.cs) | C# | 40 | 0 | 11 | 51 |
+| [hrconnectbackend/Services/NotificationServices.cs](/hrconnectbackend/Services/NotificationServices.cs) | C# | 64 | 0 | 14 | 78 |
+| [hrconnectbackend/Services/OTApplicationServices.cs](/hrconnectbackend/Services/OTApplicationServices.cs) | C# | 91 | 0 | 25 | 116 |
+| [hrconnectbackend/Services/PayrollServices.cs](/hrconnectbackend/Services/PayrollServices.cs) | C# | 92 | 4 | 21 | 117 |
+| [hrconnectbackend/Services/ShiftServices.cs](/hrconnectbackend/Services/ShiftServices.cs) | C# | 40 | 0 | 15 | 55 |
+| [hrconnectbackend/Services/SupervisorServices.cs](/hrconnectbackend/Services/SupervisorServices.cs) | C# | 35 | 0 | 12 | 47 |
+| [hrconnectbackend/Services/UserAccountServices.cs](/hrconnectbackend/Services/UserAccountServices.cs) | C# | 81 | 0 | 32 | 113 |
+| [hrconnectbackend/Services/UserNotificationServices.cs](/hrconnectbackend/Services/UserNotificationServices.cs) | C# | 13 | 0 | 3 | 16 |
+| [hrconnectbackend/Services/UserSettingServices.cs](/hrconnectbackend/Services/UserSettingServices.cs) | C# | 74 | 3 | 13 | 90 |
+| [hrconnectbackend/SignalR/MessageHub.cs](/hrconnectbackend/SignalR/MessageHub.cs) | C# | 97 | 0 | 19 | 116 |
+| [hrconnectbackend/SignalR/NotificationHub.cs](/hrconnectbackend/SignalR/NotificationHub.cs) | C# | 119 | 31 | 38 | 188 |
+| [hrconnectbackend/appsettings.json](/hrconnectbackend/appsettings.json) | JSON | 19 | 0 | 1 | 20 |
+| [hrconnectbackend/hrconnectbackend.csproj](/hrconnectbackend/hrconnectbackend.csproj) | XML | 37 | 0 | 4 | 41 |
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

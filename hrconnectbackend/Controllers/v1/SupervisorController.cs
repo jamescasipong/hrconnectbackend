@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Data;
 using hrconnectbackend.Helper;
@@ -7,16 +8,18 @@ using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace hrconnectbackend.Controllers;
+namespace hrconnectbackend.Controllers.v1;
 
 [Authorize]
 [ApiController]
-[Route("[controller]")]
+[Route("api/v{version:apiVersion}/supervisor")]
+[ApiVersion("1.0")]
 public class SupervisorController : Controller
 {
     private readonly ISupervisorServices _supervisorServices;
     private readonly ILeaveApplicationServices _leaveApplicationServices;
     private readonly INotificationServices _notificationServices;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IEmployeeServices _employeeServices;
     private readonly IMapper _mapper;
 
@@ -28,7 +31,7 @@ public class SupervisorController : Controller
         _employeeServices = employeeServices;
         _mapper = mapper;
     }
-
+    [Authorize(Roles ="Admin,HR")]
     [HttpPost("create-supervisor/{id}")]
     public async Task<IActionResult> CreateSupervisor(int id)
     {
@@ -49,7 +52,7 @@ public class SupervisorController : Controller
 
         return Ok(newSupervisor);
     }
-
+    [Authorize(Roles ="Admin,HR")]
     [HttpGet]
     public async Task<IActionResult> GetAllSupervisors()
     {
@@ -71,12 +74,14 @@ public class SupervisorController : Controller
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
     }
-
+    [Authorize]
     [HttpGet("{supervisorId:int}")]
     public async Task<IActionResult> GetSupervisor(int supervisorId)
     {
         try
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var supervisor = await _supervisorServices.GetByIdAsync(supervisorId);
 
             if (supervisor == null)
@@ -93,7 +98,7 @@ public class SupervisorController : Controller
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
     }
-
+    [Authorize(Roles ="Admin,HR")]
     [HttpDelete("{supervisorId:int}")]
     public async Task<IActionResult> DeleteSupervisor(int supervisorId)
     {
@@ -110,7 +115,7 @@ public class SupervisorController : Controller
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
     }
-
+    [Authorize]
     [HttpGet("{supervisorId:int}/employee")]
     public async Task<IActionResult> RetrieveEmployeesBySupervisor(int supervisorId)
     {
@@ -131,7 +136,7 @@ public class SupervisorController : Controller
             return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse(false, "Internal Server Error"));
         }
     }
-
+    [Authorize]
     [HttpGet("employee/{employeeId:int}")]
     public async Task<IActionResult> RetrieveEmployeeSupervisor(int employeeId)
     {

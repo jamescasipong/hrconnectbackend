@@ -8,11 +8,12 @@ using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace hrconnectbackend.Controllers;
+namespace hrconnectbackend.Controllers.v1;
 
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/v{version:apiVersion}/admin")]
+[ApiVersion("1.0")]
 public class AdminController : Controller
 {
     private readonly IMapper _mapper;
