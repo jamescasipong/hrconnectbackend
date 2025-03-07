@@ -106,7 +106,7 @@ builder.Services.AddSignalR();
 
 // Add distributed memory cache
 builder.Services.AddDistributedMemoryCache();
-
+builder.Services.AddMemoryCache();
 // Add session services
 builder.Services.AddSession(options =>
         {

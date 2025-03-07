@@ -111,7 +111,7 @@ namespace hrconnectbackend.Controllers.v1
                     Path="/",
                     Expires = DateTime.UtcNow.AddHours(1), // Cookie expires in 1 hour
                 });
-                
+
                 _logger.LogWarning("$A user has authenticated successfully!");
                 employee.Status = "Online";
                 await _employeeServices.UpdateAsync(employee);
@@ -126,6 +126,30 @@ namespace hrconnectbackend.Controllers.v1
                 _logger.LogWarning(ex.Message);
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
             }
+        }
+
+        [HttpPost("send-email")]
+        public async Task<IActionResult> SendEmail(string email, string subject, string body){
+            try {
+                var sourceEmail = _configuration.GetValue<string>("EmailSettings:Username")!;
+                var password = _configuration.GetValue<string>("EmailSettings:Password")!;
+
+
+                var emailService = new EmailServices("smtp.gmail.com", 587, sourceEmail, password);
+
+                var envEmail = _configuration["EmailPassword"];
+                
+
+                await emailService.SendEmailAsync(email, subject, body);
+
+                return Ok(new ApiResponse<dynamic>(true, "Email sent successfully!", new {
+                    envEmail
+                }));
+            }
+            catch(Exception ex) {
+                return StatusCode(500, new ApiResponse(false, ex.Message));
+            }
+
         }
 
         
@@ -154,13 +178,14 @@ namespace hrconnectbackend.Controllers.v1
         [HttpGet("profile-session")]
         public async Task<IActionResult> GetMyProfile(){
             var userSession = HttpContext.Session.GetString("sessionId");
+            var user = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
             if (userSession == null)
             {
                 return NotFound(new ApiResponse(false, "User not found."));
             }
 
-            var employee = await _employeeServices.GetByIdAsync(int.Parse(userSession));
+            var employee = await _employeeServices.GetByIdAsync(int.Parse(user));
 
             if (employee == null)
             {

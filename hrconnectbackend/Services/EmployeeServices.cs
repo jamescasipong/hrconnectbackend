@@ -80,11 +80,11 @@ namespace hrconnectbackend.Repositories
                 var existingEmployee = (await GetAllAsync())
                                        .FirstOrDefault(e => e.Email == employee.Email);
 
-                if (!EmailServices.IsValidEmail(employee.Email))
-                {
-                    _logger.LogWarning("Invalid email format provided: {Email}", employee.Email);
-                    throw new ArgumentException("Invalid email format", nameof(employee.Email));
-                }
+                // if (!EmailServices.IsValidEmail(employee.Email))
+                // {
+                //     _logger.LogWarning("Invalid email format provided: {Email}", employee.Email);
+                //     throw new ArgumentException("Invalid email format", nameof(employee.Email));
+                // }
 
                 // If an employee with the same email exists, throw an exception
                 if (existingEmployee != null)

@@ -1,6 +1,6 @@
 namespace hrconnectbackend.Helper;
 
-public class EmailServices
+public class EmailServicesz
 {
     public static bool IsValidEmail(string email)
     {

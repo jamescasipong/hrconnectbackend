@@ -70,3 +70,9 @@ node_modules/
 *.msi
 *.msm
 *.msp
+
+
+# Ignore launchSettings.json (actual settings, not template)
+Properties/launchSettings.json
+
+
