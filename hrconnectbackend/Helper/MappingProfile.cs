@@ -65,6 +65,10 @@ namespace hrconnectbackend.Helper
 
             CreateMap<UserNotification, ReadUserNotificationDTO>();
             CreateMap<ReadUserNotificationDTO, UserNotification>();
+
+
+            CreateMap<UserNotification, CreateUserNotificationDTO>();
+            CreateMap<CreateUserNotificationDTO, UserNotification>();
         }
 
         private void CreateAttendanceCertification()
