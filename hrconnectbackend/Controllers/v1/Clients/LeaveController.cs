@@ -3,6 +3,7 @@ using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,7 +23,7 @@ public class LeaveController(
 {
     [Authorize]
     [HttpPost("applications")]
-    public async Task<IActionResult> CreateLeave([FromBody] CreateLeaveApplicationDTO leaveRequest)
+    public async Task<IActionResult> CreateLeave([FromBody] CreateLeaveApplicationDto leaveRequest)
     {
         if (!ModelState.IsValid)
         {
@@ -69,21 +70,19 @@ public class LeaveController(
     [HttpGet("applications")]
     public async Task<IActionResult> GetAllLeaves([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
-        // var currentUser = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        // if (currentUser == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
-
-        var leaves = new List<LeaveApplication>();
-
         try
         {
+            List<LeaveApplication> leaves;
 
-            if (pageIndex == null & pageIndex == null)
+            // Check if pagination parameters are provided
+            if (pageIndex == null || pageSize == null)
             {
+                // If no pagination parameters, fetch all leaves
                 leaves = await leaveServices.GetAllAsync();
             }
             else
             {
+                // Validate pageIndex and pageSize
                 if (pageIndex <= 0)
                 {
                     return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
@@ -94,25 +93,34 @@ public class LeaveController(
                     return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
                 }
 
-
+                // Fetch all leaves and apply pagination
                 leaves = await leaveServices.GetAllAsync();
                 leaves = leaves.Skip((pageIndex.Value - 1) * pageSize.Value)
-                                         .Take(pageSize.Value)
-                                         .ToList();
+                    .Take(pageSize.Value)
+                    .ToList();
             }
 
-            var leaveDTO = mapper.Map<List<ReadLeaveApplicationDTO>>(leaves);
+            // If no leaves are found, return an empty list
+            if (!leaves.Any())
+            {
+                return Ok(new ApiResponse<List<LeaveApplication>>(true, "No leave applications found.", new List<LeaveApplication>()));
+            }
 
-            if (!leaves.Any()) return Ok(new ApiResponse<List<LeaveApplication>>(true, $"Leave application not found.", leaves));
+            // Map the leave data to DTOs
+            var leaveDTO = mapper.Map<List<ReadLeaveApplicationDto>>(leaves);
 
-            return Ok(new ApiResponse<List<ReadLeaveApplicationDTO>>(true, $"Leave application created successfully!", leaveDTO));
+            // Return the leave data in the response
+            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>>(true, "Leave applications retrieved successfully!", leaveDTO));
         }
         catch (Exception ex)
         {
+            // Log the error and return internal server error
             logger.LogError(ex, "Error retrieving leave applications.");
             return StatusCode(500, "Internal server error");
         }
     }
+
+    
     [Authorize]
     [HttpGet("applications/{id:int}")]
     public async Task<IActionResult> GetLeaveById(int id)
@@ -135,9 +143,9 @@ public class LeaveController(
             }
 
 
-            var leaveDTO = mapper.Map<ReadLeaveApplicationDTO>(leave);
+            var leaveDTO = mapper.Map<ReadLeaveApplicationDto>(leave);
 
-            return Ok(new ApiResponse<ReadLeaveApplicationDTO>(true, $"Leave application with ID: {id} retrieved successfully!", leaveDTO));
+            return Ok(new ApiResponse<ReadLeaveApplicationDto>(true, $"Leave application with ID: {id} retrieved successfully!", leaveDTO));
         }
         catch (Exception ex)
         {
@@ -148,7 +156,7 @@ public class LeaveController(
 
     [Authorize]
     [HttpPut("applications/{id:int}")]
-    public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDTO leaveRequest)
+    public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDto leaveRequest)
     {
         var admins = new string[]{
             "Admin", "HR"
@@ -224,27 +232,24 @@ public class LeaveController(
     [HttpGet("applications/employee/{employeeId:int}")]
     public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
+        var admins = new string[] { "Admin", "HR" };
         
-
-        var employeeLeaveApplication = new List<LeaveApplication>();
-        var admins = new string []{
-            "Admin", "HR"
-        };
+        // Validate the user's permissions
+        authenticationServices.ValidateUser(User, employeeId, admins);
         
-        var validateUser = authenticationServices.ValidateUser(User, employeeId, admins);
-
-        if (validateUser != null){
-            return validateUser;
-        }
 
         try
         {
-            if (pageIndex == null && pageSize == null)
+            List<LeaveApplication> employeeLeaveApplication;
+
+            if (pageIndex == null || pageSize == null)
             {
+                // Fetch all leave applications for the employee if pagination is not provided
                 employeeLeaveApplication = await leaveServices.GetLeaveByEmployee(employeeId);
             }
             else
             {
+                // Validate pageIndex and pageSize
                 if (pageIndex <= 0)
                 {
                     return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
@@ -255,26 +260,37 @@ public class LeaveController(
                     return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
                 }
 
-
+                // Fetch leave applications with pagination
                 employeeLeaveApplication = await leaveServices.GetLeaveByEmployee(employeeId);
-                employeeLeaveApplication = employeeLeaveApplication.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
+                employeeLeaveApplication = employeeLeaveApplication
+                                            .Skip((pageIndex.Value - 1) * pageSize.Value)
+                                            .Take(pageSize.Value)
+                                            .ToList();
             }
-            
 
-            var employeeLeaveApplicationDTO = mapper.Map<List<ReadLeaveApplicationDTO>>(employeeLeaveApplication);
+            if (!employeeLeaveApplication.Any())
+            {
+                return NotFound(new ApiResponse(false, "No leave applications found for this employee."));
+            }
 
-            return Ok(new ApiResponse<List<ReadLeaveApplicationDTO>>(true, $"Leave application by employee with ID: {employeeId} retrieved successfully!", employeeLeaveApplicationDTO));
+            // Map the data to the DTO
+            var employeeLeaveApplicationDto = mapper.Map<List<ReadLeaveApplicationDto>>(employeeLeaveApplication);
+
+            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>>(true, $"Leave application by employee with ID: {employeeId} retrieved successfully!", employeeLeaveApplicationDto));
         }
         catch (KeyNotFoundException ex)
         {
-            return Ok(new ApiResponse(false, ex.Message));
+            // Handle case where the leave application is not found
+            return NotFound(new ApiResponse(false, ex.Message));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting a leave application with ID: {id}", employeeId);
+            // Log and handle unexpected errors
+            logger.LogError(ex, "Error retrieving leave applications for employee with ID: {employeeId}", employeeId);
             return StatusCode(500, "Internal server error");
         }
     }
+
     
     [Authorize(Roles ="HR,Admin")]
     [HttpPut("applications/approve/{id:int}")]
@@ -323,24 +339,25 @@ public class LeaveController(
     {
         try
         {
-            var leaves = new List<LeaveBalance>();
+            // Fetch all leave balances
+            var leaves = await leaveBalanceServices.GetAllAsync();
 
-            if (pageIndex == null && pageSize == null)
+            // If pagination is requested, apply pagination logic
+            if (pageIndex.HasValue && pageSize.HasValue && pageIndex.Value > 0 && pageSize.Value > 0)
             {
-                leaves = await leaveBalanceServices.GetAllAsync();
-            }
-            else
-            {
-                leaves = await leaveBalanceServices.GetAllAsync();
-                leaves = leaves.Skip((pageIndex.Value - 1)  * pageSize.Value).Take(pageSize.Value).ToList();
+                leaves = leaves.Skip((pageIndex.Value - 1) * pageSize.Value)
+                    .Take(pageSize.Value)
+                    .ToList();
             }
 
+            // If no leave balances are found
             if (!leaves.Any())
             {
-                return Ok(new ApiResponse<List<LeaveBalance>>(true, $"Leave balances not found.", leaves));
+                return Ok(new ApiResponse<List<LeaveBalance>>(true, "No leave balances found.", new List<LeaveBalance>()));
             }
 
-            return Ok(new ApiResponse<List<LeaveBalance>>(success: true, message: $"Leave balances retrieved successfully!", data: leaves));
+            // Return the leave balances
+            return Ok(new ApiResponse<List<LeaveBalance>>(success: true, message: "Leave balances retrieved successfully!", data: leaves));
         }
         catch (Exception ex)
         {
@@ -348,6 +365,7 @@ public class LeaveController(
             return StatusCode(500, "Internal server error");
         }
     }
+
 
     [Authorize]
     [HttpGet("balances/{employeeId}")]

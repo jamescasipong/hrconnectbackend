@@ -29,5 +29,16 @@
         /// Common SMTP ports are 25, 587, or 465, depending on the encryption (TLS/SSL) and the server's configuration.
         /// </summary>
         public int SmtpPort { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SmtpSettings"/> class with required parameters.
+        /// </summary>
+        public SmtpSettings(string username, string password, string server, int smtpPort)
+        {
+            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Password = password ?? throw new ArgumentNullException(nameof(password));
+            Server = server ?? throw new ArgumentNullException(nameof(server));
+            SmtpPort = smtpPort;
+        }
     }
 }

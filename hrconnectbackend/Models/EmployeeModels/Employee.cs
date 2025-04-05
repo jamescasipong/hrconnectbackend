@@ -30,7 +30,7 @@ namespace hrconnectbackend.Models.EmployeeModels
         {
             return new AboutEmployee
             {
-                EmployeeInfoId = Id,
+                EmployeeInfoId = this.Id,
                 FirstName = firstName ?? "N/A",
                 LastName = lastName ?? "N/A",
                 BirthDate = null,

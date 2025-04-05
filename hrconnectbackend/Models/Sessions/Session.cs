@@ -6,7 +6,7 @@ public class Session
 {
     [Key]
     [Required]
-    public string SessionId { get; set; }
+    public required string SessionId { get; set; }
     [Required]
     public DateTime ExpiresAt { get; set; }
 }

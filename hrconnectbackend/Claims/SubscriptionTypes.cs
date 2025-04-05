@@ -1,4 +1,4 @@
-﻿namespace hrconnectbackend.Models.CustomClaims;
+﻿namespace hrconnectbackend.Claims;
 
 public static class SubscriptionTypes
 {

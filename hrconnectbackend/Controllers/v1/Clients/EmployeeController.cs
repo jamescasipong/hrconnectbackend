@@ -7,6 +7,7 @@ using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.EmployeeModels;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,7 +40,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         // [Authorize(Roles = "Admin,HR")]
         [HttpPost]
-        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDTO employee, bool? createAccount)
+        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto employee, bool? createAccount)
         {
             if (employee == null)
             {
@@ -78,15 +79,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin,HR")]
         [HttpPost("generate-employees")]
-        public async Task<IActionResult> GenerateEmployees([FromBody] List<GenerateEmployeeDTO> employees)
+        public async Task<IActionResult> GenerateEmployees([FromBody] List<GenerateEmployeeDto> employees)
         {
             try
             {
                 var emp = await employeeService.GenerateEmployeesWithEmail(employees);
 
-                var empDto = mapper.Map<List<ReadEmployeeDTO>>(emp);
+                var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDTO>>(true, "Employees generated successfully", empDto));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, "Employees generated successfully", empDto));
             }
             catch (Exception ex)
             {
@@ -130,9 +131,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"No employees exist"));
                 }
 
-                var employeesDTO = mapper.Map<List<ReadEmployeeDTO>>(employees);
+                var employeesDTO = mapper.Map<List<ReadEmployeeDto>>(employees);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDTO>>(true, $"Employees retrieved successfully!", employeesDTO));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, $"Employees retrieved successfully!", employeesDTO));
             }
             catch (Exception ex)
             {
@@ -184,12 +185,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             // var aboutEmployeeDTO = _mapper.Map<ReadAboutEmployeeDTO>(employee.AboutEmployee);
 
-            var employeeDTO = mapper.Map<ReadEmployeeDTO>(employee);
+            var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
             // employeeDTO.AboutEmployee = aboutEmployeeDTO;
 
 
-            return Ok(new ApiResponse<ReadEmployeeDTO>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
         [Authorize]
         [HttpGet("education/me")]
@@ -201,10 +202,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var employee = await aboutEmployeeServices.GetEmployeeEducationBackgroundAsync(int.Parse(userId));
 
 
-            var employeeDTO = mapper.Map<List<EducationBackgroundDTO>>(employee);
+            var employeeDTO = mapper.Map<List<EducationBackgroundDto>>(employee);
         
 
-            return Ok(new ApiResponse<List<EducationBackgroundDTO>>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<List<EducationBackgroundDto>>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -222,9 +223,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return NotFound(new ApiResponse(false, $"Employee with an ID: {userId} not found."));
             }
 
-            var employeeDTO = mapper.Map<CreateAboutEmployeeDTO>(employee);
+            var employeeDTO = mapper.Map<CreateAboutEmployeeDto>(employee);
 
-            return Ok(new ApiResponse<CreateAboutEmployeeDTO>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<CreateAboutEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -251,9 +252,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
                 }
 
-                var employeeDTO = mapper.Map<ReadEmployeeDTO>(employee);
+                var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-                return Ok(new ApiResponse<ReadEmployeeDTO>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+                return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
             }
             catch (Exception ex)
             {
@@ -264,7 +265,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles ="Admin,HR")]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDTO employeeDTO)
+        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDto employeeDTO)
         {
             var employee = await employeeService.GetByIdAsync(id);
 
@@ -326,9 +327,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var employeesByDept = await employeeService.GetEmployeeByDepartment(deptId, pageIndex, pageSize);
 
-                var employeesMapped = mapper.Map<List<ReadEmployeeDTO>>(employeesByDept);
+                var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
                 
-                return Ok(new ApiResponse<List<ReadEmployeeDTO>>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
             }
             catch (KeyNotFoundException ex)
             {

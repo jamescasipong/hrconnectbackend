@@ -11,19 +11,19 @@
         /// This key is used to make secure server-side requests to the Stripe API, such as creating charges or processing payments.
         /// Keep this key secure and do not expose it to the client side.
         /// </summary>
-        public string SecretKey { get; set; }
+        public string SecretKey { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the Stripe publishable key, which is used on the client side.
         /// This key is safe to be exposed in your frontend code and is used to create tokens for handling payments on the client side.
         /// </summary>
-        public string PublishableKey { get; set; }
+        public string PublishableKey { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the secret key used to validate Stripe webhook events.
         /// This key ensures that incoming webhook requests are from Stripe and have not been tampered with.
         /// Use this to verify the authenticity of webhook events sent by Stripe to your application.
         /// </summary>
-        public string WebhookSecret { get; set; }
+        public string WebhookSecret { get; set; } = string.Empty;
     }
 }

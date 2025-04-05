@@ -1,7 +1,10 @@
 using hrconnectbackend.Config;
+using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.RequestModel;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -90,10 +93,32 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpPost("signup")]
-        public Task<IActionResult> Signup([FromBody] Signup signup, string token)
+        public async Task<IActionResult> Signup(CreateUser user)
         {
+            var userAccount = await authService.SignUp(user);
             
-            return Task.FromResult<IActionResult>(Ok());
+            if (userAccount == null) return BadRequest();
+            
+            return Ok();
+        }
+
+        
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)
+        {
+            var userAccount = await authService.ChangePassword(user.email, user.password);
+            
+            if (!userAccount) return BadRequest();
+            
+            return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUsersAccountByOrg(int orgId)
+        {
+            var users = await authService.GetUsers(orgId);
+            // var org = HttpContext.Items["orgId"];
+            return Ok(users);
         }
 
         [HttpPost("refresh-token")]
@@ -176,4 +201,5 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
     }
 }
+public record ChangePasswordRequest(string email, string password);
 

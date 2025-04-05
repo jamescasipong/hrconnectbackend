@@ -4,6 +4,7 @@ using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +27,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin")]
         [HttpPost("{employeeId:int}")]
-        public async Task<IActionResult> CreateNotification(int employeeId, CreateNotificationDTO notificationDTO)
+        public async Task<IActionResult> CreateNotification(int employeeId, CreateNotificationDto notificationDTO)
         {
             try
             {
@@ -34,7 +35,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var newNotification = await notificationServices.AddAsync(notification);
 
-                var createUserNotificationDTO = new CreateUserNotificationDTO
+                var createUserNotificationDTO = new CreateUserNotificationDto
                 {
                     EmployeeId = employeeId,
                     NotificationId = newNotification.Id,
@@ -46,7 +47,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 
                 var userNotifications = await userNotificationServices.AddAsync(usernotification);
 
-                return Ok(new ApiResponse<ReadNotificationsDTO>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDTO>(newNotification)));
+                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(newNotification)));
             }
             catch (Exception ex)
             {
@@ -57,7 +58,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin")]
         [HttpPost("assing-notification/{employeeId:int}")]
-        public async Task<IActionResult> CreateNotification(int employeeId, int notificationId, CreateNotificationDTO notificationDTO)
+        public async Task<IActionResult> CreateNotification(int employeeId, int notificationId, CreateNotificationDto notificationDTO)
         {
             try
             {
@@ -65,7 +66,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 await notificationServices.AddAsync(notification);
 
-                var createUserNotificationDTO = new CreateUserNotificationDTO
+                var createUserNotificationDTO = new CreateUserNotificationDto
                 {
                     EmployeeId = employeeId,
                     NotificationId = notification.Id,
@@ -77,7 +78,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 
                 var userNotifications = await userNotificationServices.AddAsync(usernotification);
 
-                return Ok(new ApiResponse<ReadNotificationsDTO>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDTO>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -95,7 +96,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var notifications = await userNotificationServices.GetNotificationByUserId(employeeId);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDTO>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDTO>>(notifications)));
+                return Ok(new ApiResponse<List<ReadUserNotificationDto>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
             }
             catch (Exception)
             {
@@ -133,7 +134,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (notification == null) return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
 
-                return Ok(new ApiResponse<ReadNotificationsDTO>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDTO>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -150,7 +151,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var paginationaNotifications = notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
 
-                return Ok(new ApiResponse<List<ReadNotificationsDTO>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDTO>>(paginationaNotifications)));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
             }
             catch (Exception)
             {
@@ -159,7 +160,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpPut("{notificationId:int}")]
-        public async Task<IActionResult> UpdateNotification(int notificationId, CreateNotificationDTO notificationDTO)
+        public async Task<IActionResult> UpdateNotification(int notificationId, CreateNotificationDto notificationDTO)
         {
             try
             {
@@ -170,7 +171,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
                 }
 
-                return Ok(new ApiResponse<ReadNotificationsDTO>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDTO>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -183,15 +184,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             List<UserNotification> employeeNotifications = await notificationServices.GetNotificationsByEmployeeId(employeeId, pageIndex, pageSize);
 
-            var mappedNotifications = mapper.Map<List<ReadNotificationsDTO>>(employeeNotifications);
+            var mappedNotifications = mapper.Map<List<ReadNotificationsDto>>(employeeNotifications);
 
             try
             {
-                return Ok(new ApiResponse<List<ReadNotificationsDTO>>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
             }
             catch (ArgumentOutOfRangeException ex)
             {
-                return Ok(new ApiResponse<List<ReadNotificationsDTO>>(false, $"{ex.Message}. Thus, it returned the original", mappedNotifications));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>>(false, $"{ex.Message}. Thus, it returned the original", mappedNotifications));
             }
             catch (Exception)
             {

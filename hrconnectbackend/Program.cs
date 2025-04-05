@@ -2,8 +2,6 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using AspNetCoreRateLimit;
 using hrconnectbackend.Extensions;
-using hrconnectbackend.Helper;
-using hrconnectbackend.Services.Clients;
 using hrconnectbackend.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
@@ -19,7 +17,7 @@ builder.Services.AddServices();
 builder.Services.AddProfileMapper();
 builder.Services.AddCustomConfigSettings();
 builder.Services.AddDbContext(builder.Configuration);
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
     
     
 

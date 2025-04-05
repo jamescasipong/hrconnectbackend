@@ -5,6 +5,7 @@ using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Requests;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,12 +19,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         IOTApplicationServices oTApplicationServices,
         IAttendanceServices attendanceServices,
         ISupervisorServices supervisorServices,
-        IEmployeeServices employeeServices,
         IMapper mapper)
         : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> CreateOTApplication(CreateOTApplicationDTO dtoApplication)
+        public async Task<IActionResult> CreateOtApplication(CreateOtApplicationDto dtoApplication)
         {
             try
             {
@@ -80,11 +80,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var otApplication = await oTApplicationServices.GetAllAsync();
 
-                var mappedOTApplication = mapper.Map<List<ReadOTApplicationDTO>>(otApplication);
+                var mappedOTApplication = mapper.Map<List<ReadOtApplicationDto>>(otApplication);
 
                 if (!mappedOTApplication.Any())
                 {
-                    return Ok(new ApiResponse<List<ReadOTApplicationDTO>>(false, $"OT Application not found.", mappedOTApplication));
+                    return Ok(new ApiResponse<List<ReadOtApplicationDto>>(false, $"OT Application not found.", mappedOTApplication));
                 }
 
                 if (pageIndex != null && pageSize != null)
@@ -92,7 +92,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     otApplication = oTApplicationServices.GetOTPagination(otApplication, pageIndex.Value, pageSize.Value);
                 }
 
-                return Ok(new ApiResponse<List<ReadOTApplicationDTO>>(false, $"OT Application retrieved successfully!", mappedOTApplication));
+                return Ok(new ApiResponse<List<ReadOtApplicationDto>>(false, $"OT Application retrieved successfully!", mappedOTApplication));
             }
             catch (Exception)
             {
@@ -112,9 +112,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"OT Application with id: {oTApplicationId} not found."));
                 }
 
-                var mappedOTApplication = mapper.Map<ReadOTApplicationDTO>(otApplication);
+                var mappedOTApplication = mapper.Map<ReadOtApplicationDto>(otApplication);
 
-                return Ok(new ApiResponse<ReadOTApplicationDTO>(false, $"OT Application with id: {otApplication} retrieved successfully!", mappedOTApplication));
+                return Ok(new ApiResponse<ReadOtApplicationDto>(false, $"OT Application with id: {otApplication} retrieved successfully!", mappedOTApplication));
             }
             catch (Exception)
             {
@@ -123,7 +123,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpPut("{oTApplicationId:int}")]
-        public async Task<IActionResult> UpdateOTApplication(int oTApplicationId, UpdateOTApplicationDTO otApplicationDTO)
+        public async Task<IActionResult> UpdateOTApplication(int oTApplicationId, UpdateOtApplicationDto otApplicationDTO)
         {
             try
             {

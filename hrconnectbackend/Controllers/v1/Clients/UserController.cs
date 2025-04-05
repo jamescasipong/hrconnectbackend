@@ -1,13 +1,15 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Claims;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
-using hrconnectbackend.Models.CustomClaims;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.DTOs.GenericDTOs;
 using hrconnectbackend.Models.RequestModel;
+using hrconnectbackend.Models.Response;
 using hrconnectbackend.Models.Sessions;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
@@ -554,9 +556,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!ModelState.IsValid) return BadRequest(new ApiResponse(success: false, message: ModelState.IsValid.ToString()));
 
-            var authDTO = mapper.Map<UserAccountDTO>(auth);
+            var authDTO = mapper.Map<UserAccountDto>(auth);
 
-            return Ok(new ApiResponse<UserAccountDTO>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDTO));
+            return Ok(new ApiResponse<UserAccountDto>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDTO));
         }
 
         
@@ -728,9 +730,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var userNotifications = await notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageIndex);
 
-                var mappedUserNotification = mapper.Map<List<ReadUserNotificationDTO>>(userNotifications);
+                var mappedUserNotification = mapper.Map<List<ReadUserNotificationDto>>(userNotifications);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDTO>>(true, "Notifications retrieved successfully!", mappedUserNotification));
+                return Ok(new ApiResponse<List<ReadUserNotificationDto>>(true, "Notifications retrieved successfully!", mappedUserNotification));
             }
             catch (Exception ex)
             {

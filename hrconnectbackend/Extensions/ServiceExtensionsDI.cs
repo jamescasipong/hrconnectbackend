@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
-using hrconnectbackend.Config.Authentication.Configuration;
+using hrconnectbackend.Attributes.Authorization.Requirements;
+using hrconnectbackend.Attributes.Authorization.Requirements.Handler;
+using hrconnectbackend.Config.Authentication;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Helper.Authorization;
 using hrconnectbackend.Interface.Services;
@@ -7,6 +9,7 @@ using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
 using hrconnectbackend.Services.Clients;
 using hrconnectbackend.Services.ExternalServices;
+using Microsoft.AspNetCore.Authorization;
 
 namespace hrconnectbackend.Extensions
 {
@@ -45,12 +48,19 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IEmailServices, EmailService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<AuthenticationConfiguration>();
+            services.AddScoped<IOrganizationServices, OrganizationServices>();
             // services.AddSingleton<IAuthorizationHandler, UserPermissionHandler>();
+            services.AddSingleton<IAuthorizationHandler, UserRolehandler>();
+            // services.AddSingleton<IAuthorizationRequirement, UserRoleAttribute>();
+            // services.AddSingleton<AuthorizeAttribute, UserRoleAttribute>();
+
+            services.AddSingleton<IAuthorizationPolicyProvider, UserRolePolicyProvider>();
 
             // Class Based Object Injections
             services.AddSingleton<SubscriptionAuthorizationHelper>();
             services.AddSingleton<AuthorizationPolicyConfigurator>();
             services.AddScoped<AuthenticationServices>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         }
         
         public static void AddCorsHandler(this IServiceCollection services)

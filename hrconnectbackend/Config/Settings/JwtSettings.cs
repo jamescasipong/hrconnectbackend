@@ -1,4 +1,4 @@
-﻿namespace hrconnectbackend.Config
+﻿namespace hrconnectbackend.Config.Settings
 {
     /// <summary>
     /// Represents the settings required for configuring JWT authentication.
@@ -11,19 +11,19 @@
         /// Gets or sets the secret key used to sign and validate JWT tokens.
         /// This key should be kept secret and secure, as it ensures the integrity of the token.
         /// </summary>
-        public string Key { get; set; }
+        public string Key { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the issuer of the JWT token (e.g., the identity provider).
         /// The issuer represents the entity that issued the token and is typically used for validation.
         /// </summary>
-        public string Issuer { get; set; }
+        public string Issuer { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the intended audience for the JWT token (e.g., the API that will consume the token).
         /// The audience is used to validate that the token was issued for the intended recipient.
         /// </summary>
-        public string Audience { get; set; }
+        public string Audience { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the expiration time (in minutes) for the access token.

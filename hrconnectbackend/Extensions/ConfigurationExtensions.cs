@@ -1,4 +1,5 @@
 ﻿using hrconnectbackend.Config;
+using hrconnectbackend.Config.Settings;
 
 namespace hrconnectbackend.Extensions;
 

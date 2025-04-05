@@ -1,42 +1,42 @@
 ﻿namespace hrconnectbackend.Models.DTOs
 {
-    public class CreateNotificationDTO
+    public class CreateNotificationDto
     {
-        public string Title { get; set; }
-        public string Message { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 
-    public class ReadNotificationsDTO
+    public class ReadNotificationsDto
     {
-        public string Title { get; set; }
-        public string Message { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
     }
 
-    public class CreateNotificationHubDTO
+    public class CreateNotificationHubDto
     {
         public int EmployeeId { get; set; }
-        public string Title { get; set; }
-        public string Message { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 
 
-    public class ReadUserNotificationDTO 
+    public class ReadUserNotificationDto 
     {
         public int EmployeeId { get; set; }
         public int NotificationId { get; set; }
         public bool IsRead { get; set; }
-        public string Status { get; set; }
-        public ReadNotificationsDTO Notification { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public ReadNotificationsDto? Notification { get; set; }
     }
 
-    public class CreateUserNotificationDTO
+    public class CreateUserNotificationDto
     {
         public int EmployeeId { get; set; }
         public int NotificationId { get; set; }
         public bool IsRead { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

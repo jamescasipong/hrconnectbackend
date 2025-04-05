@@ -26,7 +26,7 @@ namespace hrconnectbackend.Models
         {
             var newEduc = new EducationBackground
             {
-                EmployeeId = EmployeeInfoId,
+                EmployeeId = this.EmployeeInfoId,
                 InstitutionName = "No institution name",
                 Degree = "No degree",
                 FieldOfStudy = "No field of study",

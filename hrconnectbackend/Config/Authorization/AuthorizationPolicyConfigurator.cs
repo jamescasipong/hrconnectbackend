@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using hrconnectbackend.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging;
 
 namespace hrconnectbackend.Helper.Authorization
@@ -140,5 +141,19 @@ namespace hrconnectbackend.Helper.Authorization
         {
             options.AddPolicy("Manager", policy => policy.RequireAssertion(context => context.User.HasClaim("EmployeeRole", "Manager")));
         }
+
+        public void UserRoleBased(AuthorizationOptions options)
+        {
+            options.AddPolicy("Employee", policy => policy.RequireAssertion(context => context.User.HasClaim("Role", "Employee")));
+            options.AddPolicy("Admin", policy => policy.RequireAssertion(context => context.User.HasClaim("Role", "Admin")));
+        }
+
+        // public void RequiredPermissionPolicies(AuthorizationOptions options)
+        // {
+        //     var rPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme);
+        //     
+        //     rPolicy.AddRequirements(new P)
+        //     
+        // }
     }
 }

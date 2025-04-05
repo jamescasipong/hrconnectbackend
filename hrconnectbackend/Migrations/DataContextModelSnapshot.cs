@@ -226,6 +226,9 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("DepartmentId");
 
+                    b.HasIndex("DeptName")
+                        .IsUnique();
+
                     b.ToTable("Departments");
                 });
 
@@ -266,34 +269,6 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("EducationBackgrounds");
-                });
-
-            modelBuilder.Entity("hrconnectbackend.Models.EmailSigninSession", b =>
-                {
-                    b.Property<string>("SessionId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("SessionId");
-
-                    b.ToTable("EmailSigninSessions");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EmployeeDepartment", b =>
@@ -376,6 +351,9 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("EmployeeDepartmentId");
 
                     b.HasIndex("PositionId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Employees");
                 });
@@ -513,11 +491,13 @@ namespace hrconnectbackend.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ContactEmail")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -527,9 +507,13 @@ namespace hrconnectbackend.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContactEmail")
+                        .IsUnique();
 
                     b.ToTable("Organizations");
                 });
@@ -603,10 +587,14 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreateAt")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("Expires")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -663,6 +651,34 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("OtApplications");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Sessions.EmailSigninSession", b =>
+                {
+                    b.Property<string>("SessionId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("SessionId");
+
+                    b.ToTable("EmailSigninSessions");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Sessions.ResetPasswordSession", b =>
@@ -815,7 +831,10 @@ namespace hrconnectbackend.Migrations
             modelBuilder.Entity("hrconnectbackend.Models.UserAccount", b =>
                 {
                     b.Property<int>("UserId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserId"));
 
                     b.Property<bool>("ChangePassword")
                         .HasColumnType("boolean");
@@ -834,7 +853,7 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Role")
+                    b.Property<int?>("Role")
                         .HasColumnType("integer");
 
                     b.Property<bool>("SmsVerified")
@@ -843,9 +862,6 @@ namespace hrconnectbackend.Migrations
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("UserRole")
-                        .HasColumnType("integer");
 
                     b.HasKey("UserId");
 
@@ -964,9 +980,17 @@ namespace hrconnectbackend.Migrations
                         .WithMany("Employees")
                         .HasForeignKey("PositionId");
 
+                    b.HasOne("hrconnectbackend.Models.UserAccount", "UserAccount")
+                        .WithOne("Employee")
+                        .HasForeignKey("hrconnectbackend.Models.EmployeeModels.Employee", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("EmployeeDepartment");
 
                     b.Navigation("Position");
+
+                    b.Navigation("UserAccount");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
@@ -1073,14 +1097,6 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .IsRequired();
 
-                    b.HasOne("hrconnectbackend.Models.EmployeeModels.Employee", "Employee")
-                        .WithOne("UserAccount")
-                        .HasForeignKey("hrconnectbackend.Models.UserAccount", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
                     b.Navigation("Organization");
                 });
 
@@ -1131,8 +1147,6 @@ namespace hrconnectbackend.Migrations
 
                     b.Navigation("Shifts");
 
-                    b.Navigation("UserAccount");
-
                     b.Navigation("UserNotification");
                 });
 
@@ -1160,6 +1174,8 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.UserAccount", b =>
                 {
+                    b.Navigation("Employee");
+
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("UserPermission");

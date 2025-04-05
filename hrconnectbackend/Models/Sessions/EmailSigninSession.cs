@@ -1,20 +1,18 @@
-using System;
 using System.ComponentModel.DataAnnotations;
-using hrconnectbackend.Models.Sessions;
 
-namespace hrconnectbackend.Models
+namespace hrconnectbackend.Models.Sessions
 {
     public class EmailSigninSession: Session
     {
         [Required]
         [EmailAddress]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        public string UserAgent { get; set; }
+        public string UserAgent { get; set; } = string.Empty;
 
         [Required]
-        public string IpAddress { get; set; }
+        public string IpAddress { get; set; } = string.Empty;
 
         [Required]
         public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,12 +1,15 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers.v1.Clients
@@ -21,6 +24,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         : ControllerBase
     {
         [Authorize]
+        [UserRole("Employee")]
         [HttpGet("my-department")]
         public async Task<IActionResult> GetDepartment(){
             try
@@ -45,12 +49,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 var department = await departmentServices.GetByIdAsync(employee.EmployeeDepartmentId.Value);
 
                 if (department == null){
-                    return NotFound(new ApiResponse<ReadDepartmentDTO>(false, $"Department not found.", null));
+                    return NotFound(new ApiResponse<ReadDepartmentDto>(false, $"Department not found.", null));
                 }
 
-                var mappedDepartment = mapper.Map<ReadDepartmentDTO>(department);
+                var mappedDepartment = mapper.Map<ReadDepartmentDto>(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDTO>(true, $"Department retrieved successfully!", mappedDepartment));
+                return Ok(new ApiResponse<ReadDepartmentDto>(true, $"Department retrieved successfully!", mappedDepartment));
             }
             catch (Exception)
             {
@@ -58,23 +62,40 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize(Roles = "Admin")]
+        // [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> CreateDepartment(CreateDepartmentDTO departmentDTO)
+        public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentDto departmentDTO)
         {
+            var orgId = User.FindFirstValue("organizationId")!;
+
+            if (!int.TryParse(orgId, out var orgIdParse))
+            {
+                return Ok("Organization id is not a valid integer.");
+            }
+
             try
             {
-                if (!ModelState.IsValid) return BadRequest(new ApiResponse(false, ModelState.ToJson().ToString()));
+                var department = new Department
+                {
+                    DeptName = departmentDTO.DeptName,
+                    Description = departmentDTO.Description,
+                    TenantId = orgIdParse
+                };
 
-                var department = mapper.Map<Department>(departmentDTO);
+                if (!ModelState.IsValid) return BadRequest(new ApiResponse(false, ModelState.ToJson().ToString()));
 
                 await departmentServices.AddAsync(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDTO>(true, $"Department created successfully!", mapper.Map<ReadDepartmentDTO>(department)));
+                return Ok(new ApiResponse<ReadDepartmentDto>(true, $"Department created successfully!",
+                    mapper.Map<ReadDepartmentDto>(department)));
             }
-            catch (Exception)
+            catch (DbUpdateException ex)
             {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+                return BadRequest(new ApiResponse(false, "Department name should be unique"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500,"Internal Server Error");
             }
         }
         [Authorize(Roles = "Admin")]
@@ -137,14 +158,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var departmentByName = departments.Where(d => d.DeptName.Contains(name)).ToList();
 
-                var mappedDepartment = mapper.Map<List<ReadDepartmentDTO>>(departmentByName);
+                var mappedDepartment = mapper.Map<List<ReadDepartmentDto>>(departmentByName);
 
                 if (!departmentByName.Any())
                 {
-                    return Ok(new ApiResponse<List<ReadDepartmentDTO>>(true, $"Department containing {name} not found.", mappedDepartment));
+                    return Ok(new ApiResponse<List<ReadDepartmentDto>>(true, $"Department containing {name} not found.", mappedDepartment));
                 }
 
-                return Ok(new ApiResponse<List<ReadDepartmentDTO>>(true, $"Department containing {name} retrieved sucessfully!", mappedDepartment));
+                return Ok(new ApiResponse<List<ReadDepartmentDto>>(true, $"Department containing {name} retrieved sucessfully!", mappedDepartment));
             }
             catch (Exception)
             {
@@ -154,7 +175,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin")]
         [HttpPut("{departmentId:int}")]
-        public async Task<IActionResult> UpdateDepartment(int departmentId, CreateDepartmentDTO departmentDTO)
+        public async Task<IActionResult> UpdateDepartment(int departmentId, CreateDepartmentDto departmentDTO)
         {
             try
             {

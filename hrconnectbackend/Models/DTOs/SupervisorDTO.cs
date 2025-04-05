@@ -1,14 +1,13 @@
 ﻿namespace hrconnectbackend.Models.DTOs
 {
-    public class CreateSupervisorDTO
+    public class CreateSupervisorDto
     {
-        public int Id { get; set; }
         public int EmployeeId { get; set; }
-        public ReadEmployeeDTO Employee { get; set; }
+        public ReadEmployeeDto? Employee { get; set; }
     }
 
-    public class ReadSupervisorDTO
+    public class ReadSupervisorDto
     {
-        public ReadEmployeeDTO ReadEmployee { get; set; }
+        public ReadEmployeeDto? ReadEmployee { get; set; }
     }
 }

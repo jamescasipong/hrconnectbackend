@@ -1,11 +1,13 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Helper.CustomExceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -44,11 +46,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var attendances = await attendanceServices.GetAllAsync();
 
-                var mappedAttendances = mapper.Map<List<ReadAttendanceDTO>>(attendances);
+                var mappedAttendances = mapper.Map<List<ReadAttendanceDto>>(attendances);
 
-                if (!attendances.Any()) Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances not found.", mappedAttendances));
+                if (!attendances.Any()) Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances not found.", mappedAttendances));
 
-                return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances retrived successfully!", mappedAttendances));
+                return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances retrived successfully!", mappedAttendances));
             }
             catch (Exception ex)
             {
@@ -69,7 +71,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (attendance == null) return NotFound(new ApiResponse(false, $"Attendance with an ID: {id} not found."));
 
-                return Ok(new ApiResponse<ReadAttendanceDTO>(false, $"Attendance with id: {id} retrieved successfully.", mapper.Map<ReadAttendanceDTO>(attendance)));
+                return Ok(new ApiResponse<ReadAttendanceDto>(false, $"Attendance with id: {id} retrieved successfully.", mapper.Map<ReadAttendanceDto>(attendance)));
             }
             catch (Exception ex)
             {
@@ -83,7 +85,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateAttendance(int id, UpdateAttendanceDTO updateAttendanceDTO)
+        public async Task<IActionResult> UpdateAttendance(int id, UpdateAttendanceDto updateAttendanceDTO)
         {
             try
             {
@@ -167,11 +169,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var attendances = await attendanceServices.GetAttendanceByEmployeeId(employeeId, pageIndex, pageSize);
 
-                var mappedAttendance = mapper.Map<List<ReadAttendanceDTO>>(attendances);
+                var mappedAttendance = mapper.Map<List<ReadAttendanceDto>>(attendances);
 
-                if (!attendances.Any()) return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances by employee {employeeId} not found.", mappedAttendance));
+                if (!attendances.Any()) return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances by employee {employeeId} not found.", mappedAttendance));
 
-                return Ok(new ApiResponse<List<ReadAttendanceDTO>>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
+                return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
             }
             catch (Exception ex)
             {
@@ -414,9 +416,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
                 logger.Log(LogLevel.Information, "Attendance retrieved successfully");
 
-                var attendanceMapped = mapper.Map<ReadAttendanceDTO>(attendanceToday);
+                var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
 
-                return Ok(new ApiResponse<ReadAttendanceDTO>(true, "Attendance retrieved successfully", attendanceMapped));
+                return Ok(new ApiResponse<ReadAttendanceDto>(true, "Attendance retrieved successfully", attendanceMapped));
             }
             catch (KeyNotFoundException ex)
             {
@@ -604,7 +606,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateCOA(CreateAttendanceCertificationDTO attendanceDTO)
+        public async Task<IActionResult> CreateCOA(CreateAttendanceCertificationDto attendanceDTO)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -708,7 +710,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDTO attendanceDTO)
+        public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDto attendanceDTO)
         {
             var certification = await attendanceCertificationServices.GetByIdAsync(id);
 

@@ -10,5 +10,5 @@ public class UserPermission
     public bool Delete { get; set; } = false;
     public bool Update { get; set; } = false;
 
-    public UserAccount User { get; set; }  // Navigation property for the user
+    public UserAccount? User { get; set; }  // Navigation property for the user
 }

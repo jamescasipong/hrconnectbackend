@@ -6,9 +6,9 @@ namespace hrconnectbackend.Models
     {
         public int DepartmentId { get; set; }
         public int TenantId { get; set; }
-        public string DeptName { get; set; }
-        public string? Description { get; set; } = "N/A";
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public required string DeptName { get; set; }
+        public string? Description { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = null;
         
     }

@@ -1,5 +1,4 @@
-﻿using hrconnectbackend.Config.Authentication.Configuration;
-using hrconnectbackend.Config.Authentication.Configuration;
+﻿using hrconnectbackend.Config.Authentication;
 using hrconnectbackend.Helper.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
@@ -21,6 +20,7 @@ public static class AuthExtensions
             authorizationPolicyConfigurator.SubscriptionPolicies(options);
             authorizationPolicyConfigurator.DepartmentPolicies(options);
             authorizationPolicyConfigurator.ManagerPolicies(options);
+            authorizationPolicyConfigurator.UserRoleBased(options);
         });
     }
      

@@ -53,7 +53,7 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<Employee> GetEmployeeByEmail(string email)
         {
-            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email.ToString().Trim() == email.ToString().Trim());
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email == email);
 
             if (employee == null)
             {
@@ -63,7 +63,7 @@ namespace hrconnectbackend.Services.Clients
             return employee;
         }
 
-        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDTO> employeesDTO)
+        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDTO)
         {
             var employeesCreated = new List<Employee>();
             try
@@ -139,7 +139,7 @@ namespace hrconnectbackend.Services.Clients
             }
         }
 
-        public async Task CreateEmployee(CreateEmployeeDTO employee)
+        public async Task CreateEmployee(CreateEmployeeDto employee)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
 

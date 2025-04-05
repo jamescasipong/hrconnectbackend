@@ -2,9 +2,9 @@
 
 namespace hrconnectbackend.Models.DTOs.AuthDTOs
 {
-    public class GenerateEmployeeDTO
+    public class GenerateEmployeeDto
     {
         [EmailAddress]
-        public string Email { get; set; }
+        public string Email { get; set; } = String.Empty;
     }
 }

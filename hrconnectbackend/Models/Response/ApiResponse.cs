@@ -1,28 +1,15 @@
-﻿namespace hrconnectbackend.Helper
+﻿namespace hrconnectbackend.Models.Response
 {
-    public class ApiResponse<T>
+    public class ApiResponse<T>(bool success, string message, T data = default)
     {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-        public T Data { get; set; }
-
-        public ApiResponse(bool success, string message, T data = default)
-        {
-            Success = success;
-            Message = message;
-            Data = data;
-        }
+        public bool Success { get; set; } = success;
+        public string Message { get; set; } = message;
+        public T Data { get; set; } = data;
     }
 
-    public class ApiResponse
+    public class ApiResponse(bool success, string message)
     {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-
-        public ApiResponse(bool success, string message)
-        {
-            Success = success;
-            Message = message;
-        }
+        public bool Success { get; set; } = success;
+        public string Message { get; set; } = message;
     }
 }

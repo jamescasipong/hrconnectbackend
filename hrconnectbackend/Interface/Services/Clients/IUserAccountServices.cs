@@ -2,7 +2,7 @@ using hrconnectbackend.Interface.Repositories;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.Sessions;
 
-namespace hrconnectbackend.Interface.Services;
+namespace hrconnectbackend.Interface.Services.Clients;
 
 public interface IUserAccountServices : IGenericRepository<UserAccount>
 {

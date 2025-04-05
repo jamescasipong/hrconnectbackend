@@ -41,6 +41,19 @@ namespace hrconnectbackend.Data
         // Configuring relationships between the entities using Fluent API
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Department>().HasIndex(a => a.DeptName).IsUnique();
+            
+            modelBuilder.Entity<RefreshToken>()
+                .Property(r => r.CreateAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP") // This can be changed depending on the logic you want
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<RefreshToken>()
+                .Property(r => r.Expires)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP") // Ensure Expires is UTC
+                .ValueGeneratedOnAdd();
+            
+
             // Configuring the relationship between Employee and EmployeePosition
             modelBuilder.Entity<Employee>()
                 .HasOne(a => a.Position)
@@ -77,6 +90,11 @@ namespace hrconnectbackend.Data
                 .HasOne(a => a.User)
                 .WithOne(a => a.UserPermission)
                 .HasForeignKey<UserPermission>(a => a.UserId);
+            
+            // Configure composite or unique indexes, relationships, etc.
+            modelBuilder.Entity<Organization>()
+                .HasIndex(o => o.ContactEmail)
+                .IsUnique();  // Ensure unique constraint for contact email
 
             // Configuring the relationship between UserAccount and Organization (with deletion behavior)
             modelBuilder.Entity<UserAccount>()
@@ -181,7 +199,7 @@ namespace hrconnectbackend.Data
             modelBuilder.Entity<UserAccount>()
                 .HasOne(a => a.Employee)
                 .WithOne(e => e.UserAccount)
-                .HasForeignKey<UserAccount>(a => a.UserId)
+                .HasForeignKey<Employee>(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configuring the relationship between Payroll and Employee (Cascade delete)

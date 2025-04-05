@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Helper.CustomExceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
@@ -184,11 +185,11 @@ namespace hrconnectbackend.Services.Clients
             int absent = 0, present = 0, hasNotClockedIn = 0, late = 0, offWork = 0;
             TimeSpan lateDuration = TimeSpan.Zero;
 
-            var absentsId = new List<ReadEmployeeDTO>();
-            var presentsId = new List<ReadEmployeeDTO>();
-            var hasNotClockedInId = new List<ReadEmployeeDTO>();
-            var latesId = new List<ReadEmployeeDTO>();
-            var offWorksId = new List<ReadEmployeeDTO>();
+            var absentsId = new List<ReadEmployeeDto>();
+            var presentsId = new List<ReadEmployeeDto>();
+            var hasNotClockedInId = new List<ReadEmployeeDto>();
+            var latesId = new List<ReadEmployeeDto>();
+            var offWorksId = new List<ReadEmployeeDto>();
 
 
             foreach (var employee in employees)
@@ -199,7 +200,7 @@ namespace hrconnectbackend.Services.Clients
                 if (employeeShift == null)
                 {
                     offWork++; // No assigned shift
-                    offWorksId.Add(mapper.Map<ReadEmployeeDTO>(employee));
+                    offWorksId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     continue;
                 }
 
@@ -212,12 +213,12 @@ namespace hrconnectbackend.Services.Clients
                     if ((currentTime - shiftStartTime).TotalHours <= 5)
                     {
                         hasNotClockedIn++;
-                        hasNotClockedInId.Add(mapper.Map<ReadEmployeeDTO>(employee));
+                        hasNotClockedInId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     }
                     else
                     {
                         absent++;
-                        absentsId.Add(mapper.Map<ReadEmployeeDTO>(employee));
+                        absentsId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     }
                 }
                 else
@@ -229,12 +230,12 @@ namespace hrconnectbackend.Services.Clients
                     {
                         late++;
                         lateDuration = clockInTime - shiftStartTime;
-                        latesId.Add(mapper.Map<ReadEmployeeDTO>(employee));
+                        latesId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     }
                     else
                     {
                         present++;
-                        presentsId.Add(mapper.Map<ReadEmployeeDTO>(employee));
+                        presentsId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     }
 
                 }

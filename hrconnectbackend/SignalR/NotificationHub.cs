@@ -6,6 +6,7 @@ using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using hrconnectbackend.Interface.Services.Clients;
 
 namespace hrconnectbackend.SignalR
 {
@@ -98,7 +99,7 @@ namespace hrconnectbackend.SignalR
             return base.OnDisconnectedAsync(exception);
         }
 
-        public async Task SendNotificationToUser(int userId, CreateNotificationHubDTO notificationDTO)
+        public async Task SendNotificationToUser(int userId, CreateNotificationHubDto notificationDTO)
         {
             var employee = await _employeeServices.GetByIdAsync(userId);
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -169,7 +170,7 @@ namespace hrconnectbackend.SignalR
         //}
 
         // Method to send notifications to all connected clients
-        public async Task SendNotification(CreateNotificationHubDTO notificationDTO)
+        public async Task SendNotification(CreateNotificationHubDto notificationDTO)
         {
             var notification = new Notifications
             {

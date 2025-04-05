@@ -1,10 +1,13 @@
 ﻿using System.Security.Claims;
 using System.Transactions;
 using hrconnectbackend.Config;
+using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.EmployeeModels;
+using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -26,22 +29,17 @@ public class AuthService(
 
     public async Task<AuthResponse> Signin(string email, string password, bool remember)
     {
-        var emp = context.Employees.Include(a => a.UserAccount).Where(a => a.Email == email);
+        var user = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
         
-        if (emp == null || !emp.Any()) return null;
+        if (user == null) return null;
 
-        var user = await emp.Select(a => a.UserAccount).FirstOrDefaultAsync();
 
         if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
             return null;
         }
-
-        var employee = await emp.FirstOrDefaultAsync();
         
-        if (employee == null) return null;
-
-        List<Claim> claims = await GetUserClaims(employee, user);
+        List<Claim> claims = await GetUserClaims(user);
 
         DateTime dateTime = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
         string accessToken = GenerateAcessToken(claims, dateTime);
@@ -52,25 +50,76 @@ public class AuthService(
         
         return new AuthResponse(encrypted, refreshToken);
     }
+    
+    private static Random _random = new Random();
 
-    private async Task<List<Claim>> GetUserClaims(Employee employee, UserAccount user)
+    // Generate a random number between min and max (inclusive)
+    public static int GenerateRandomNumber(int min, int max)
+    {
+        return _random.Next(min, max); // Generates a number between min and max-1
+    }
+
+    public async Task<UserAccount> SignUp(CreateUser user)
+    {
+        var employee = new UserAccount
+        {
+            // UserId = GenerateRandomNumber(0, int.MaxValue),
+            UserName = user.UserName,
+            Email = user.Email,
+            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
+            EmailVerified = false,
+            SmsVerified = false,
+            OrganizationId = user.OrganizationId,
+            ChangePassword = false,
+            Role = user.Role
+        };
+        
+        await context.UserAccounts.AddAsync(employee);
+        await context.SaveChangesAsync();
+
+        return employee;
+    }
+
+    public async Task<bool> ChangePassword(string email, string password)
+    {
+        var userAccount = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
+        
+        if (userAccount == null) return false;
+        
+        userAccount.Password = BCrypt.Net.BCrypt.HashPassword(password);
+        
+        // context.Entry(userAccount).State = EntityState.Modified;
+        context.UserAccounts.Update(userAccount);
+        await context.SaveChangesAsync();
+        
+        return true;
+    }
+
+    public async Task<IEnumerable<UserAccount>> GetUsers(int tenantId)
+    {
+        return await context.UserAccounts.Where(a => a.OrganizationId == tenantId).ToListAsync();
+    }
+
+    private async Task<List<Claim>> GetUserClaims(UserAccount user)
     {
         var claims = new List<Claim>
         {
+            new Claim("organizationId", user.UserId.ToString()),
+            new Claim(ClaimTypes.Role, user.GetRoleAsString()),
             // new Claim(ClaimTypes.Role, employee.IsAdmin ? "Admin" : "User"),
-            new Claim(ClaimTypes.Email, employee.Email!),
+            new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.UserName)
         };
 
-        var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
-            .Where(a => a.UserId == employee.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
-            .Select(a => a.Department).FirstOrDefaultAsync();
-
-        if (empDept != null)
-        {
-            claims.Add(new Claim("Department", empDept.DeptName));
-        }
+        // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
+        //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
+        //     .Select(a => a.Department).FirstOrDefaultAsync();
+        //
+        // if (empDept != null)
+        // {
+        //     claims.Add(new Claim("Department", empDept.DeptName));
+        // }
         
         return claims;
     }
@@ -88,14 +137,12 @@ public class AuthService(
             return string.Empty;
         }
         
-        var employeeByEmail = await employeeServices.GetEmployeeByEmail(user.Email!);
-
-        var claims = await GetUserClaims(employeeByEmail, user);
+        var claims = await GetUserClaims(user);
         
         
         logger.LogInformation($"claims", claims);
 
-        DateTime exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
+        DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
         // DateTime utcTime = DateTime.UtcNow.AddMinutes(15); // This gets the current time in UTC
         // TimeZoneInfo myTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time"); // For UTC+8
         // DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, myTimeZone);
@@ -136,8 +183,8 @@ public class AuthService(
                 CookieName = $"{Guid.NewGuid().ToString()}",
                 IsActive = true,
                 Expires = remember
-                    ? DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.RefreshExpirationRemember)
-                    : DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.RefreshExpiration)
+                    ? DateTime.UtcNow.AddMinutes(_jwtSettings.RefreshExpirationRemember)
+                    : DateTime.UtcNow.AddMinutes(_jwtSettings.RefreshExpiration)
             };
         
             await context.RefreshTokens.AddAsync(newRefreshToken);

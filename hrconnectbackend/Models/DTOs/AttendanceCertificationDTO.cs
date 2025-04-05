@@ -2,26 +2,26 @@
 
 namespace hrconnectbackend.Models.DTOs
 {
-    public class CreateAttendanceCertificationDTO
+    public class CreateAttendanceCertificationDto
     {
         [Required(ErrorMessage = "Employee Id is required")]
         public int EmployeeId { get; set; }
         public int SupervisorId { get; set; }
         [Required(ErrorMessage = "Date is required")]
-        public string Date { get; set; }
-        public string ClockIn { get; set; }
-        public string ClockOut { get; set; }
+        public string Date { get; set; } = string.Empty;
+        public string ClockIn { get; set; } = string.Empty;
+        public string ClockOut { get; set; } = string.Empty;
         public string? Reason { get; set; }
     }
 
 
-    public class UpdateAttendanceCertificationDTO
+    public class UpdateAttendanceCertificationDto
     {
-        public string Status { get; set; }
-        public string Date { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Date { get; set; } = string.Empty;
         public int? SupervisorId { get; set; }
-        public string ClockIn { get; set; }
-        public string ClockOut { get; set; }
-        public string Reason { get; set; }
+        public string ClockIn { get; set; } = string.Empty;
+        public string ClockOut { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
     }
 }

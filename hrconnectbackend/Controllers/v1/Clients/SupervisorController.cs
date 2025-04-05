@@ -5,6 +5,7 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +19,6 @@ public class SupervisorController(
     ISupervisorServices supervisorServices,
     ILeaveApplicationServices leaveApplicationServices,
     INotificationServices notificationServices,
-    IEmployeeServices employeeServices,
     IMapper mapper,
     IServiceProvider serviceProvider)
     : Controller
@@ -56,14 +56,14 @@ public class SupervisorController(
         {
             var supervisors = await supervisorServices.GetAllSupervisors();
 
-            var mappedSupervisors = mapper.Map<List<ReadSupervisorDTO>>(supervisors);
+            var mappedSupervisors = mapper.Map<List<ReadSupervisorDto>>(supervisors);
 
             if (!supervisors.Any())
             {
-                return Ok(new ApiResponse<List<ReadSupervisorDTO>>(false, $"Supervisors not found.", mappedSupervisors));
+                return Ok(new ApiResponse<List<ReadSupervisorDto>>(false, $"Supervisors not found.", mappedSupervisors));
             }
 
-            return Ok(new ApiResponse<List<ReadSupervisorDTO>>(true, $"Supervisors retreved successfully!", mappedSupervisors));
+            return Ok(new ApiResponse<List<ReadSupervisorDto>>(true, $"Supervisors retreved successfully!", mappedSupervisors));
         }
         catch (Exception)
         {
@@ -85,9 +85,9 @@ public class SupervisorController(
                 return NotFound(new ApiResponse(false, $"Supervisor with id: {supervisorId} not found."));
             }
 
-            var mapped = mapper.Map<ReadSupervisorDTO>(supervisor);
+            var mapped = mapper.Map<ReadSupervisorDto>(supervisor);
 
-            return Ok(new ApiResponse<ReadSupervisorDTO>(true, $"Supervisor with id: {supervisorId} retrieved successfully!", mapped));
+            return Ok(new ApiResponse<ReadSupervisorDto>(true, $"Supervisor with id: {supervisorId} retrieved successfully!", mapped));
         }
         catch (Exception)
         {
@@ -104,7 +104,7 @@ public class SupervisorController(
 
             if (supervisor == null) return NotFound(new ApiResponse(false, $"Supervisor with id: {supervisorId} not found."));
 
-            return Ok(new ApiResponse<ReadSupervisorDTO>(false, $"Supervisor with id: {supervisorId} retrieved successfully."));
+            return Ok(new ApiResponse<ReadSupervisorDto>(false, $"Supervisor with id: {supervisorId} retrieved successfully."));
         }
         catch (Exception ex)
         {
@@ -119,9 +119,9 @@ public class SupervisorController(
         {
             var employee = await supervisorServices.GetAllEmployeesByASupervisor(supervisorId);
 
-            var mapped = mapper.Map<List<ReadEmployeeDTO>>(employee);
+            var mapped = mapper.Map<List<ReadEmployeeDto>>(employee);
 
-            return Ok(new ApiResponse<List<ReadEmployeeDTO>>(false, $"Employees under a supervisor with id: {supervisorId} retrieved successfully.", mapped));
+            return Ok(new ApiResponse<List<ReadEmployeeDto>>(false, $"Employees under a supervisor with id: {supervisorId} retrieved successfully.", mapped));
         }
         catch (KeyNotFoundException ex)
         {
@@ -140,7 +140,7 @@ public class SupervisorController(
         {
             var employeeSupervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
 
-            return Ok(new ApiResponse<ReadSupervisorDTO>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDTO>(employeeSupervisor)));
+            return Ok(new ApiResponse<ReadSupervisorDto>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDto>(employeeSupervisor)));
         }
         catch (KeyNotFoundException ex)
         {

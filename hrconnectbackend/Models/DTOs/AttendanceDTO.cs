@@ -1,13 +1,13 @@
 ﻿namespace hrconnectbackend.Models.DTOs
 {
-    public class CreateAttendanceDTO
+    public class CreateAttendanceDto
     {
-        public string DateToday { get; set; }  // Store as string
-        public string ClockIn { get; set; }      // Store as string
-        public string ClockOut { get; set; }     // Store as string
+        public string DateToday { get; set; } = string.Empty;  // Store as string
+        public string ClockIn { get; set; } = string.Empty;     // Store as string
+        public string ClockOut { get; set; } = string.Empty; // Store as string
     }
 
-    public class ReadAttendanceDTO
+    public class ReadAttendanceDto
     {
         public int AttendanceId { get; set; }
         public int EmployeeId { get; set; }
@@ -19,10 +19,10 @@
         public TimeSpan? EarlyLeave { get; set; }
     }
 
-    public class UpdateAttendanceDTO
+    public class UpdateAttendanceDto
     {
-        public string DateToday { get; set; }  // Store as string
-        public string ClockIn { get; set; }      // Store as string
-        public string ClockOut { get; set; }     // Store as string
+        public string DateToday { get; set; } = string.Empty;  // Store as string
+        public string ClockIn { get; set; } = string.Empty;     // Store as string
+        public string ClockOut { get; set; } = string.Empty; // Store as string
     }
 }

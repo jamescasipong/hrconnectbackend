@@ -11,10 +11,10 @@ namespace hrconnectbackend.Models.Requests
         public DateTime Date { get; set; }
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }
-        public string Reasons { get; set; }
+        public string Reasons { get; set; } = string.Empty;
         public string Status { get; set; } = RequestStatus.Pending.ToString();
-        public Employee Employee { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public Employee? Employee { get; set; }
         public DateTime? UpdatedAt { get; set; } = null;
         
     }

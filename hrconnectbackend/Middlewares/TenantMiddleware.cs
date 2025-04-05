@@ -1,17 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 
 namespace hrconnectbackend.Middlewares;
-public class TenantMiddleware
+public class TenantMiddleware(RequestDelegate next, ILogger<TenantMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<TenantMiddleware> _logger;
-
-    public TenantMiddleware(RequestDelegate next, ILogger<TenantMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         // Extract the JWT token from the cookie
@@ -38,7 +29,7 @@ public class TenantMiddleware
         context.Items["TenantId"] = tenantId;
 
         // Continue processing the request
-        await _next(context);
+        await next(context);
     }
 
     private string ValidateJwtToken(string token)
@@ -55,7 +46,7 @@ public class TenantMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Token validation failed.");
+            logger.LogError(ex, "Token validation failed.");
             return null;
         }
     }

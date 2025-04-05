@@ -1,16 +1,14 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using hrconnectbackend.Config;
+using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
-using hrconnectbackend.Helper.Crypto;
-using hrconnectbackend.Interface.Services;
-using hrconnectbackend.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace hrconnectbackend.Config.Authentication.Configuration
+namespace hrconnectbackend.Config.Authentication
 {
     /// <summary>
     /// Configures JWT-based authentication settings, including token validation and refresh logic.

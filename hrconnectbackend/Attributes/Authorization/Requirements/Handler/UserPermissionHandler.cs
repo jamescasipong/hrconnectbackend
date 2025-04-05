@@ -2,24 +2,20 @@
 
 namespace hrconnectbackend.Attributes.Authorization.Requirements.Handler;
 
-public class UserPermissionHandler : AuthorizationHandler<UserPermissionAttribute>
+public class UserPermissionHandler(IHttpContextAccessor httpContextAccessor, ILogger<UserPermissionHandler> logger)
+    : AuthorizationHandler<UserPermissionAttribute>
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public UserPermissionHandler(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, UserPermissionAttribute requirement)
     {
+        logger.LogInformation("Handling user permission");
         
-        var user = _httpContextAccessor.HttpContext!.User;
+        var user = httpContextAccessor.HttpContext!.User;
 
         // Example: Check if the user has the required permission claim
         if (user.HasClaim(c => c.Type == "Permission" && c.Value == requirement.RequiredPermission))
         {
             context.Succeed(requirement);
+            
         }
         else
         {

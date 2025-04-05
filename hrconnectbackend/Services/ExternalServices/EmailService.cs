@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using hrconnectbackend.Config;
+using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Interface.Services.ExternalServices;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.Extensions.Options;

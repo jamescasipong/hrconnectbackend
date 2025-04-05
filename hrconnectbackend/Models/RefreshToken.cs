@@ -6,16 +6,17 @@ public class RefreshToken
 {
     [Key]
     [Required]
-    public string RefreshTokenId { get; set; }
+    public required string RefreshTokenId { get; set; }
     [Required]
     public int UserId { get; set; }
     [Required]
-    public string CookieName { get; set; }
+    public string CookieName { get; set; } = string.Empty;
     [Required]
-    public DateTime CreateAt { get; set; } = DateTime.Now;
+    public DateTime CreateAt { get; set; } = DateTime.UtcNow;
     [Required]
-    public DateTime Expires { get; set; }
+    public DateTime Expires { get; set; } = DateTime.UtcNow;
     [Required]
     public bool IsActive { get; set; } = false;
-    public UserAccount UserAccount { get; set; }
+    public UserAccount? UserAccount { get; set; }
+    
 }

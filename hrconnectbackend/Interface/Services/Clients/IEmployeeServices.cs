@@ -4,7 +4,7 @@ using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.EmployeeModels;
 
-namespace hrconnectbackend.Interface.Services
+namespace hrconnectbackend.Interface.Services.Clients
 {
     public interface IEmployeeServices: IGenericRepository<Employee>
     {
@@ -13,8 +13,8 @@ namespace hrconnectbackend.Interface.Services
         List<Employee> GetEmployeesPagination(List<Employee> employees, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetSubordinates(int id);
-        Task CreateEmployee(CreateEmployeeDTO employee);
+        Task CreateEmployee(CreateEmployeeDto employee);
         Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize);
-        Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDTO> employeesDTO);
+        Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDTO);
     }
 }

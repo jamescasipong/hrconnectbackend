@@ -7,11 +7,11 @@ namespace hrconnectbackend.Models.DTOs
         [Required]
         public int EmployeeShiftId { get; set; }
         [Required]
-        public string DaysOfWorked { get; set; }
+        public string DaysOfWorked { get; set; } = string.Empty;
         [Required]
-        public string TimeIn { get; set; }
+        public string TimeIn { get; set; } = string.Empty;
         [Required]
-        public string TimeOut { get; set; }
+        public string TimeOut { get; set; } = string.Empty;
         
     }
 }
