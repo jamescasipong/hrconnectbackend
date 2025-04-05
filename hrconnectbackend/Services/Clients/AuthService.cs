@@ -22,7 +22,7 @@ public class AuthService(
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
-    public async Task<AuthResponse> Signin(string email, string password, bool remember)
+    public async Task<AuthResponse?> Signin(string email, string password, bool remember)
     {
         var user = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
         

@@ -1,8 +1,7 @@
 using hrconnectbackend.Interface.Repositories;
 using hrconnectbackend.Models;
-using hrconnectbackend.Models.DTOs;
 
-namespace hrconnectbackend.Interface.Services
+namespace hrconnectbackend.Interface.Services.Clients
 {
     public interface IAboutEmployeeServices : IGenericRepository<AboutEmployee>
     {

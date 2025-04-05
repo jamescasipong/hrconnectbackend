@@ -272,7 +272,7 @@ namespace hrconnectbackend.Services.Clients
             return attendancePagination;
         }
 
-        public async Task<Attendance> GetDailyAttendanceByEmployeeId(int employeeId)
+        public async Task<Attendance?> GetDailyAttendanceByEmployeeId(int employeeId)
         {
             var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.Now));
 

@@ -66,12 +66,12 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Department> GetDepartmentByEmployee(int employeeId)
+    public async Task<Department?> GetDepartmentByEmployee(int employeeId)
     {
         return await _context.Employees.Include(a => a.EmployeeDepartment).Where(a => a.Id == employeeId).Select(a => a.EmployeeDepartment).Include(a => a.Department).Select(a => a.Department).SingleOrDefaultAsync();
     }
 
-    public async Task<EmployeeDepartment> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId)
+    public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId)
     {
         var department = await _context.EmployeeDepartments.FindAsync(departmentId);
         
@@ -90,12 +90,12 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         return department;
     }
 
-    public async Task<EmployeeDepartment> GetEmployeeDepartment(int departmentId)
+    public async Task<EmployeeDepartment?> GetEmployeeDepartment(int departmentId)
     {
         return await _context.EmployeeDepartments.FindAsync(departmentId);
     }
 
-    public async Task<EmployeeDepartment> GetDepartmentByManagerId(int managerId)
+    public async Task<EmployeeDepartment?> GetDepartmentByManagerId(int managerId)
     {
         var department = await _context.EmployeeDepartments.FirstOrDefaultAsync(x => x.SupervisorId == managerId);
 

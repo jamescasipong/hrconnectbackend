@@ -93,7 +93,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     logger.LogWarning($"User Agent: {userAgent}");
                     logger.LogWarning($"IPAddress: {ipAddress}");
                     DateTime expiry = DateTime.Now.AddMinutes(5);
-                    string twoFactorCode = await userAccountServices.GenerateOTP(employee.Id, expiry);
+                    string twoFactorCode = await userAccountServices.GenerateOtp(employee.Id, expiry);
                     await emailServices.SendAuthenticationCodeAsync(signinBody.Email, twoFactorCode, expiry);
 
                     try

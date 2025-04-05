@@ -1,6 +1,5 @@
 ﻿using hrconnectbackend.Data;
 using hrconnectbackend.Helper;
-using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -16,8 +15,8 @@ namespace hrconnectbackend.Services.Clients
         IAboutEmployeeServices aboutEmployeeService,
         IAttendanceServices attendanceService,
         IUserAccountServices userAccountService,
-        ILogger<EmployeeServices> logger,
-        IDepartmentServices departmentServices)
+        ILogger<EmployeeServices> logger
+        )
         : GenericRepository<Employee>(context), IEmployeeServices
     {
 
@@ -47,11 +46,11 @@ namespace hrconnectbackend.Services.Clients
                 .Include(a => a.EmployeeDepartment)
                 .Where(e => e.Id == employeeId)
                 .Select(a => a.EmployeeDepartment)
-                .SelectMany(a => a.Employees)
+                .SelectMany(a => a.Employees!)
                 .ToListAsync();
         }
 
-        public async Task<Employee> GetEmployeeByEmail(string email)
+        public async Task<Employee?> GetEmployeeByEmail(string email)
         {
             var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Email == email);
 
@@ -63,12 +62,12 @@ namespace hrconnectbackend.Services.Clients
             return employee;
         }
 
-        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDTO)
+        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto)
         {
             var employeesCreated = new List<Employee>();
             try
             {
-                foreach (var employee in employeesDTO)
+                foreach (var employee in employeesDto)
                 {
                     var existingEmployee = await _context.Employees.FirstOrDefaultAsync(e => e.Email.ToString().Trim() == employee.Email.Trim());
 
@@ -77,15 +76,23 @@ namespace hrconnectbackend.Services.Clients
                         logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
                         continue;
                     }
+                    
+                    string password = Generator.GeneratePassword(12, true);
+                    string username = Generator.GenerateUsername();
 
                     var userAccount = new UserAccount
                     {
+                        UserName = username,
+                        Password = password,
                         Email = employee.Email,
                         ChangePassword = true
                     };
-
+                    
+                    await userAccountService.AddAsync(userAccount);
+                    
                     var employeeEntity = new Employee
                     {
+                        UserId = userAccount.UserId,
                         Email = employee.Email,
                         TenantId = 1,
                         PositionId = 1,
@@ -95,23 +102,11 @@ namespace hrconnectbackend.Services.Clients
                     };
 
                     await AddAsync(employeeEntity);
-
-                    string password = Generator.GeneratePassword(12, true);
-                    string username = Generator.GenerateUsername();
+                    
 
                     AboutEmployee aboutEmployee = employeeEntity.CreateAboutEmployee(firstName:null, lastName:null);
                     
                     EducationBackground educationBackground = aboutEmployee.CreateEducationBackground();
-
-                    await userAccountService.AddAsync(new UserAccount
-                    {
-                        UserId = employeeEntity.Id,
-                        EmailVerified = false,
-                        SmsVerified = false,
-                        UserName = username,
-                        Password = password,
-                        Email = employee.Email
-                    });
 
                     await aboutEmployeeService.AddAsync(aboutEmployee);
 
@@ -127,6 +122,8 @@ namespace hrconnectbackend.Services.Clients
                     
 
                     employeesCreated.Add(employeeEntity);
+                    await _context.SaveChangesAsync();
+
 
                 }
 
@@ -135,7 +132,7 @@ namespace hrconnectbackend.Services.Clients
             }
             catch (Exception ex)
             {
-                throw new Exception(employeesDTO.Count + " employees could not be created. " + ex.Message);
+                throw new Exception(employeesDto.Count + " employees could not be created. " + ex.Message);
             }
         }
 
@@ -300,21 +297,21 @@ namespace hrconnectbackend.Services.Clients
             log?.Invoke(message);
             var errorType = Activator.CreateInstance(typeof(T), message);
             
-            throw (T)errorType;
+            throw ((T)errorType!)!;
         }
 
         public async Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize)
         {
-            var employees = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee.EducationBackground).Include(d => d.EmployeeDepartment).ToListAsync();
+            var employees = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee!.EducationBackground).Include(d => d.EmployeeDepartment).ToListAsync();
 
             var employeesPagination = GetEmployeesPagination(employees, pageIndex, pageSize);
 
             return employeesPagination;
         }
 
-        public async Task<Employee> GetEmployeeById(int id)
+        public async Task<Employee?> GetEmployeeById(int id)
         {
-            var employee = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee.EducationBackground).Include(d => d.EmployeeDepartment).FirstOrDefaultAsync(e => e.Id == id);
+            var employee = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee!.EducationBackground).Include(d => d.EmployeeDepartment).FirstOrDefaultAsync(e => e.Id == id);
 
             if (employee == null)
             {

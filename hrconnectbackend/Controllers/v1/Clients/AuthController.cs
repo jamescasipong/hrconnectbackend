@@ -103,7 +103,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)
         {
-            var userAccount = await authService.ChangePassword(user.email, user.password);
+            var userAccount = await authService.ChangePassword(user.Email, user.Password);
             
             if (!userAccount) return BadRequest();
             
@@ -198,5 +198,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
     }
 }
-public record ChangePasswordRequest(string email, string password);
+
+public record ChangePasswordRequest(string Email, string Password);
 

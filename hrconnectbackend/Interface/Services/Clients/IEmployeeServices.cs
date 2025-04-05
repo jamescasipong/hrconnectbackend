@@ -8,8 +8,8 @@ namespace hrconnectbackend.Interface.Services.Clients
 {
     public interface IEmployeeServices: IGenericRepository<Employee>
     {
-        Task<Employee> GetEmployeeByEmail(string email);
-        Task<Employee> GetEmployeeById(int id);
+        Task<Employee?> GetEmployeeByEmail(string email);
+        Task<Employee?> GetEmployeeById(int id);
         List<Employee> GetEmployeesPagination(List<Employee> employees, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetSubordinates(int id);

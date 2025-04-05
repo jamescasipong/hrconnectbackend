@@ -1,5 +1,6 @@
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;

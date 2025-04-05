@@ -1,7 +1,9 @@
 ﻿using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
+using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
 {
@@ -10,7 +12,7 @@ namespace hrconnectbackend.Services.Clients
     {
         public async Task ApproveCertification(int id)
         {
-            using var transaction = _context.Database.BeginTransaction();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
@@ -24,7 +26,7 @@ namespace hrconnectbackend.Services.Clients
                 certification.Status = "Approved";
                 await UpdateAsync(certification);
 
-                var attendance = _context.Attendances.Where(a => a.EmployeeId == certification.EmployeeId && a.DateToday == certification.Date).FirstOrDefault();
+                var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == certification.EmployeeId && a.DateToday == certification.Date);
 
                 if (attendance == null)
                 {
@@ -51,14 +53,14 @@ namespace hrconnectbackend.Services.Clients
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception("We have to roll back");
+                throw new Exception("We have to roll back", ex);
             }
             
         }
 
         public async Task RejectCertification(int id)
         {
-            using var transaction = _context.Database.BeginTransaction();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {

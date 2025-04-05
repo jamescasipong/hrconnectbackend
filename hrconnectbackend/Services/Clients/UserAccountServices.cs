@@ -12,36 +12,36 @@ namespace hrconnectbackend.Services.Clients
         : GenericRepository<UserAccount>(context), IUserAccountServices
     {
 
-        public Task<UserAccount> CreateUserAccount(UserAccount userAccount)
+        public Task<UserAccount?> CreateUserAccount(UserAccount userAccount)
         {
             throw new NotImplementedException();
         }
 
-        public Task<UserAccount> AutomateCreateUserAccount(UserAccount userAccount)
+        public Task<UserAccount?> AutomateCreateUserAccount(UserAccount userAccount)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<UserAccount> GetUserAccountByEmail(string email)
+        public async Task<UserAccount?> GetUserAccountByEmail(string email)
         {
             var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
 
             return userAccount;
         }
 
-        public async Task<UserAccount> GetUserAccountByRefreshToken(string refreshToken)
+        public async Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken)
         {
             var user = await _context.RefreshTokens
                 .Include(a => a.UserAccount)  // Include the UserAccount navigation property
                 .Where(a => a.RefreshTokenId == refreshToken)
-                .Include(a => a.UserAccount.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
+                .Include(a => a.UserAccount!.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
                 .Select(a => a.UserAccount)  // Now select UserAccount
                 .FirstOrDefaultAsync();
             
             return user;
         }
 
-        public async Task<string> GenerateOTP(int id, DateTime expiry)
+        public async Task<string> GenerateOtp(int id, DateTime expiry)
         {
             var auth = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
@@ -70,7 +70,7 @@ namespace hrconnectbackend.Services.Clients
             return false;
         }
 
-        public async Task VerifyOTP(int id, int code)
+        public async Task VerifyOtp(int id, int code)
         {
             var userAccount = await _context.Auths.FirstOrDefaultAsync(a => a.UserId == id);
 
@@ -130,7 +130,7 @@ namespace hrconnectbackend.Services.Clients
             throw new NotImplementedException();
         }
 
-        public async Task<ResetPasswordSession> GetResetPasswordSession(string token)
+        public async Task<ResetPasswordSession?> GetResetPasswordSession(string token)
         {
             var expiredSessions = await _context.ResetPasswordSessions.Where(a => a.ExpiresAt < DateTime.Now).ExecuteDeleteAsync();
 
@@ -144,6 +144,8 @@ namespace hrconnectbackend.Services.Clients
         public async Task DeleteResetPassword(string token)
         {
             var deletedCount = await _context.ResetPasswordSessions.FirstOrDefaultAsync(a => a.Token == token);
+            
+            if (deletedCount == null) throw new ArgumentNullException(nameof(deletedCount)); 
 
             _context.ResetPasswordSessions.Remove(deletedCount);
             await _context.SaveChangesAsync();

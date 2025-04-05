@@ -8,8 +8,7 @@ namespace hrconnectbackend.Services.Clients;
 
 public class LeaveApplicationServices(
     DataContext context,
-    ILogger<UserAccount> logger,
-    IAttendanceServices attendanceServices)
+    ILogger<UserAccount> logger)
     : GenericRepository<LeaveApplication>(context), ILeaveApplicationServices
 {
     private async Task<LeaveApplication> GetLeaveApplicationByIdAsync(int id)
@@ -48,7 +47,6 @@ public class LeaveApplicationServices(
     public async Task ApproveLeave(int id)
     {
         var leaveApplication = await GetLeaveApplicationByIdAsync(id);
-        using var transaction = await _context.Database.BeginTransactionAsync();
 
         if (leaveApplication == null)
         {
@@ -91,7 +89,7 @@ public class LeaveApplicationServices(
 
     public async Task<List<LeaveApplication>> GetLeavePagination(int page, int pageSize, int? employeeId)
     {
-        var leaveApplication = new List<LeaveApplication>();
+        List<LeaveApplication> leaveApplication;
 
         if (pageSize <= 0)
         {
@@ -113,9 +111,8 @@ public class LeaveApplicationServices(
         {
             leaveApplication = await _context.LeaveApplications.Where(l => l.EmployeeId == employeeId).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         }
-
-
-        if (leaveApplication.Count == 0)
+        
+        if (leaveApplication.Count == 0 || leaveApplication == null)
         {
             throw new ArgumentException("Leave application not found.");
         }
