@@ -1,31 +1,27 @@
-using System.Text;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using AspNetCoreRateLimit;
-using hrconnectbackend.Data;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
-using hrconnectbackend.middlewares;
+using hrconnectbackend.Services.Clients;
 using hrconnectbackend.SignalR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-ServicesInjection.CorsHandler(builder.Services);
-ServicesInjection.IRepositories(builder.Services);
-ServicesInjection.ProfileMapper(builder.Services);
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connectionString));
-
+builder.Services.AddLogging();
+builder.Services.AddCorsHandler();
+builder.Services.AddServices();
+builder.Services.AddProfileMapper();
+builder.Services.AddCustomConfigSettings();
+builder.Services.AddDbContext(builder.Configuration);
 builder.Services.AddControllers();
+    
+    
 
 var apiVersioningBuilder = builder.Services.AddApiVersioning(options =>
 {
@@ -34,30 +30,28 @@ var apiVersioningBuilder = builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
 
-apiVersioningBuilder.AddEndpointsApiExplorer();
+builder.Services.AddCustomJwtBearer();
 
-builder.Services.AddAuthentication()
-    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+bool IsSubscriptionValid(ClaimsPrincipal user, IEnumerable<string> allowedPlans)
+{
+    // Check if the user has a valid subscription claim
+    var subscriptionClaim = user.Claims.FirstOrDefault(claim => claim.Type == "Subscription");
+    if (subscriptionClaim == null || !allowedPlans.Contains(subscriptionClaim.Value))
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(
-            builder.Configuration.GetValue<string>("JWT:Key")!
-            )),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-        };
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = (context) =>
-            {
-                context.Token = context.Request.Cookies["token"]; // JWT from cookie
-                return Task.CompletedTask;
-            }
-        };
-    });
+        return false;
+    }
+
+    // Check if the user has an expiration date claim
+    var expirationClaim = user.FindFirst(claim => claim.Type == "ExpirationDate");
+    if (expirationClaim == null || !DateTime.TryParse(expirationClaim.Value, out DateTime expirationDate))
+    {
+        return false;
+    }
+
+    // Ensure that the expiration date is in the future
+    return expirationDate >= DateTime.Now;
+}
+
 
 builder.Services.AddAuthorization(options =>
 {
@@ -82,22 +76,24 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("HR Department");
     });
 });
+builder.Services.AddCustomAuthorization();
 
 builder.Services.AddSession(options =>
     {
         options.IdleTimeout = TimeSpan.FromMinutes(30); // Set your session timeout duration
         options.Cookie.HttpOnly = true; // Prevent client-side access to the session cookie
+        options.Cookie.SameSite = SameSiteMode.None; // Specify SameSite policy
     });
 
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("HRConnect", builder =>
     {
         builder.AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials()
-               .WithOrigins("http://localhost:3000", "https://hrconnect.vercel.app", "https://hr-management-system-vi10.onrender.com"); // Replace with your React app's URL
+               .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000"); // Replace with your React app's URL
     });
 });
 
@@ -108,12 +104,14 @@ builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddMemoryCache();
 // Add session services
-builder.Services.AddSession(options =>
-        {
-            options.IdleTimeout = TimeSpan.FromMinutes(30); // Set the session timeout
-            options.Cookie.HttpOnly = true; // Prevent client-side access to session cookie
-            options.Cookie.IsEssential = true; // Make session essential for app functionality
-        });
+// builder.Services.AddSession(options =>
+// {
+//     options.IdleTimeout = TimeSpan.FromMinutes(30); // Set the session timeout
+//     options.Cookie.HttpOnly = true; // Prevent client-side access to session cookie
+//     options.Cookie.IsEssential = true; // Make session essential for app functionality
+//     options.Cookie.SameSite = SameSiteMode.None; // Allow cross-site cookies
+//     options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Ensure the cookie is only sent over HTTPS
+// });
 
 // Future implementation of caching
 // Configure Redis distributed cache
@@ -139,6 +137,34 @@ builder.Services.AddInMemoryRateLimiting();
 
 // Swagger setup
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(opt => 
+{
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer"
+    });
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Id = "Bearer",
+                            Type = ReferenceType.SecurityScheme
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+});
+
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.CustomSchemaIds(type => type.FullName);
@@ -179,27 +205,107 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+    {
+        httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+    });
+});
 
 var app = builder.Build();
-
+// app.UseMiddleware<SensitiveDataFilterMiddleware>();
+// app.MapOpenApi();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseSwagger();
+    // app.UseSwagger(opt =>
+    // {
+    //     opt.RouteTemplate = "openapi/{documentName}.json";
+    // });
+    // app.MapScalarApiReference(opt =>
+    // {
+    //     opt.Title = "Scalar Example";
+    //     opt.Theme = ScalarTheme.Mars;
+    //     opt.DefaultHttpClient = new(ScalarTarget.Http, ScalarClient.Http11);
+    // });
+    
 }
 
-app.UseStatusCodePages();
 app.UseHttpsRedirection();
+app.UseHsts();
+app.UseStatusCodePages();
+app.UseRouting(); // Add UseRouting before UseCors
+app.UseCors("HRConnect"); // Place UseCors after UseRouting
 app.UseSession(); // Add session middleware
-app.UseIpRateLimiting();
-app.UseCors("AllowAll");
-app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+// app.Use(async (context, next) =>
+// {
+//     var dataContext = context.RequestServices.GetService<DataContext>()!;
+//     var skipPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "/scalar", "/swagger", "/api/v1/user/account/login", "/api/Subscription", "/api/v1/user/account/login/verify", "/api/v1/user/account",  "/api/auth" };
+//
+//     if (skipPaths.Any(path => context.Request.Path.StartsWithSegments(path)))
+//     {
+//         await next(context);
+//         return;
+//     }
+//     
+//     var subscription = context.User.HasClaim(claim => claim.Type == CustomClaimTypes.Subscription);
+//     var expiration = context.User.FindFirstValue(CustomClaimTypes.Expiration);
+//     var subscriptionId = context.User.FindFirstValue(CustomClaimTypes.SubscriptionId);
+//     
+//     
+//     if (int.TryParse(subscriptionId, out int subscriptionIdInt))
+//     {
+//         var userId = await dataContext.Subscriptions.OrderByDescending(a => a.EndDate).FirstOrDefaultAsync(x => x.Id == subscriptionIdInt);
+//     
+//         if (userId == null || userId.EndDate < DateTime.Now)
+//         {
+//             context.Response.StatusCode = 400;
+//             await context.Response.WriteAsync("Subscription ID is invalid.");
+//             return;
+//         }
+//     }
+//     
+//     if (expiration == null)
+//     {
+//         context.Response.StatusCode = 400;
+//         await context.Response.WriteAsync("Subscription expiration is invalid.");
+//         return;
+//     }
+//     else
+//     {
+//         if (DateTime.Parse(expiration) <= DateTime.Now.AddDays(5))
+//         {
+//             context.Response.StatusCode = 400;
+//             await context.Response.WriteAsJsonAsync(new
+//             {
+//                 message = $"{subscription} has expired"
+//             });
+//             return;
+//         }
+//     }
+//
+//     if (!subscription)
+//     {
+//         context.Response.StatusCode = 404;
+//         await context.Response.WriteAsJsonAsync(new
+//         {
+//             message = "Not authorized to access this resource."
+//         });
+//
+//         return;
+//     }
+//     // Call the next delegate/middleware in the pipeline.
+//     await next(context);
+// });
 
+app.UseWebSockets(); // Place UseWebSockets before MapControllers
 app.MapControllers();
-app.UseWebSockets();
+
 // Map SignalR hubs
 app.MapHub<NotificationHub>("/notificationHub");
 

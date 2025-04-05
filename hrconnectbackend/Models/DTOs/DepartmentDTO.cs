@@ -6,6 +6,7 @@ namespace hrconnectbackend.Models.DTOs
     {
         public int? ManagerId { get; set; }
         [Required(ErrorMessage = "Department name is required")]
+        public string Description { get; set; }
         public string DeptName { get; set; }
     }
 
@@ -13,6 +14,8 @@ namespace hrconnectbackend.Models.DTOs
     {
         public int DepartmentId { get; set; }
         public int ManagerId { get; set; }
+        public string Description { get; set; }
         public string DeptName { get; set; }
+        public List<ReadEmployeeDTO> Employees { get; set; }
     }
 }

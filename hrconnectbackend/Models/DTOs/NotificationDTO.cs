@@ -31,4 +31,12 @@
         public string Status { get; set; }
         public ReadNotificationsDTO Notification { get; set; }
     }
+
+    public class CreateUserNotificationDTO
+    {
+        public int EmployeeId { get; set; }
+        public int NotificationId { get; set; }
+        public bool IsRead { get; set; }
+        public string Status { get; set; }
+    }
 }

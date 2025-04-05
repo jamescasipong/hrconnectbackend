@@ -10,6 +10,7 @@ public class Notifications
     [Required]
     public string Title { get; set; }
     [Required]
+    public int TenantId { get; set; }
     public string Message { get; set; }
     public List<UserNotification> UserNotification { get; set; }
     [Required]

@@ -1,13 +1,9 @@
 ﻿namespace hrconnectbackend.Helper;
 
-public class Validator
+public static class Validator
 {
-    public Validator()
-    {
-        
-    }
     
-    public static bool IsValidEmail(string email)
+    public static bool IsValidEmail(this string email)
     {
         if (string.IsNullOrEmpty(email))
         {
@@ -26,7 +22,7 @@ public class Validator
         }
     }
 
-    public static bool IsValidPassword(string password)
+    public static bool IsValidPassword(this string password)
     {
         if (string.IsNullOrEmpty(password))
         {

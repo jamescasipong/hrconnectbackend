@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.EmployeeModels;
+using hrconnectbackend.Models.Requests;
 
 
 namespace hrconnectbackend.Helper
@@ -33,14 +35,14 @@ namespace hrconnectbackend.Helper
 
         private void CreateOTApplication()
         {
-            CreateMap<CreateOTApplicationDTO, OTApplication>();
-            CreateMap<OTApplication, CreateOTApplicationDTO>();
+            CreateMap<CreateOTApplicationDTO, OtApplication>();
+            CreateMap<OtApplication, CreateOTApplicationDTO>();
 
-            CreateMap<ReadOTApplicationDTO, OTApplication>();
-            CreateMap<OTApplication, ReadOTApplicationDTO>();
+            CreateMap<ReadOTApplicationDTO, OtApplication>();
+            CreateMap<OtApplication, ReadOTApplicationDTO>();
 
-            CreateMap<UpdateOTApplicationDTO, OTApplication>();
-            CreateMap<OTApplication, UpdateOTApplicationDTO>();
+            CreateMap<UpdateOTApplicationDTO, OtApplication>();
+            CreateMap<OtApplication, UpdateOTApplicationDTO>();
         }
 
         private void CreateLeaveApplicationMappings()

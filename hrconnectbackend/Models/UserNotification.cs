@@ -1,4 +1,6 @@
-﻿namespace hrconnectbackend.Models
+﻿using hrconnectbackend.Models.EmployeeModels;
+
+namespace hrconnectbackend.Models
 {
     public class UserNotification
     {
@@ -6,6 +8,7 @@
         public int NotificationId { get; set; }
         public bool IsRead { get; set; }
         public string Status { get; set; }
+        public int TenantId { get; set; }
         public Employee Employee { get; set; }
         public Notifications Notification { get; set; }
     }

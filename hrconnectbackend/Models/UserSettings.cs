@@ -1,17 +1,18 @@
 ﻿using hrconnectbackend.Models;
 using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Models.EmployeeModels;
 
 public class UserSettings
 {
     [Required]
-    public int EmployeeId { get; set; }
+    public int UserId { get; set; }
 
     [StringLength(10)]
     public string Language { get; set; } = "en";  // User's preferred language
 
     [StringLength(10)]
     public string Theme { get; set; } = "Light";
-
+    public int TenantId { get; set; }
     public bool NotificationsEnabled { get; set; } = true;  // Whether notifications are enabled or not
 
     [StringLength(50)]
@@ -33,6 +34,7 @@ public class UserSettings
     public string? TwoFactorSecret { get; set; } = null;  // Secret key for 2FA
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  // Timestamp of when the settings were created
     public DateTime? UpdatedAt { get; set; } = null;  // Timestamp of when the settings were last updated
-
-    public virtual Employee? Employee { get; set; }
+    public virtual UserAccount? User { get; set; }
 }
+
+

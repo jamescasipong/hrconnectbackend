@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Models.EmployeeModels;
 
 namespace hrconnectbackend.Models
 {
@@ -14,6 +15,7 @@ namespace hrconnectbackend.Models
 
         [Required]
         public string LeaveType { get; set; } = string.Empty; // e.g., Sick Leave, Vacation Leave
+        public int TenantId { get; set; }
 
         [Required]
         public int TotalLeaves { get; set; } // Total allocated leaves
