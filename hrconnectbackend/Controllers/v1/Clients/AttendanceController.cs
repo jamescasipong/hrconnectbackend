@@ -1,8 +1,6 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Exceptions;
-using hrconnectbackend.Helper;
-using hrconnectbackend.Helper.CustomExceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -20,15 +18,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
     public class AttendanceController(
         IAttendanceServices attendanceServices,
         IMapper mapper,
-        IEmployeeServices employeeServices,
-        IShiftServices shiftServices,
         IAttendanceCertificationServices attendanceCertificationServices,
         ISupervisorServices supervisorServices,
         ILogger<Attendance> logger)
         : Controller
     {
-        private readonly IShiftServices _shiftServices = shiftServices;
-        private readonly IEmployeeServices _employeeServices = employeeServices;
 
         //[HttpPost]
         //public async Task<IActionResult> CreateAttendance(CreateAttendanceDTO attendanceDTO)

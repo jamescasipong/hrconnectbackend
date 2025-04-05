@@ -19,7 +19,7 @@ namespace hrconnectbackend.Helper
             CreateNotificationMappings();
             CreateAttendanceCertification();
             CreateLeaveApplicationMappings();
-            CreateOTApplication();
+            CreateOtApplication();
             Shift();
 
         }
@@ -29,12 +29,7 @@ namespace hrconnectbackend.Helper
             CreateMap<ShiftDTO, Shift>();
         }
 
-        private void PayrollMappings()
-        {
-            
-        }
-
-        private void CreateOTApplication()
+        private void CreateOtApplication()
         {
             CreateMap<CreateOtApplicationDto, OtApplication>();
             CreateMap<OtApplication, CreateOtApplicationDto>();

@@ -26,7 +26,7 @@ public static class Validator
     {
         if (string.IsNullOrEmpty(password))
         {
-            throw new ArgumentNullException("Password cannot be null or empty");
+            throw new ArgumentNullException(nameof(password));
         }
 
         if (password.Length < 5)

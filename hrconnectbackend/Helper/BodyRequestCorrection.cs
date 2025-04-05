@@ -6,7 +6,7 @@ namespace hrconnectbackend.Helper
         {
             if (string.IsNullOrEmpty(name))
             {
-                throw new ArgumentNullException("Name cannot be null or empty");
+                throw new ArgumentNullException(nameof(name));
             }
 
             string copyName = name.Trim();

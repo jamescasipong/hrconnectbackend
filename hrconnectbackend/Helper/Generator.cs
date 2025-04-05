@@ -1,9 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
-public class Generator
+namespace hrconnectbackend.Helper;
+
+public static class Generator
 {
     private static readonly string UppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static readonly string LowercaseChars = "abcdefghijklmnopqrstuvwxyz";
@@ -11,6 +11,7 @@ public class Generator
     private static readonly string SpecialChars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
 
     // Function to generate a random password   
+    [Obsolete("Obsolete")]
     public static string GeneratePassword(int length = 12, bool includeSpecialChars = true)
     {
         // Validate length
