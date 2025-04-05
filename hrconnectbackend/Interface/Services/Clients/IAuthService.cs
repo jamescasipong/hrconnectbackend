@@ -11,9 +11,9 @@ public interface IAuthService
     Task<UserAccount> SignUp(CreateUser user);
     Task<bool> ChangePassword(string email, string password);
     Task<IEnumerable<UserAccount>> GetUsers(int tenantId);
-    Task<RefreshToken> GetRefreshToken(int userId);
+    Task<RefreshToken?> GetRefreshToken(int userId);
     Task<string> GenerateAccessToken(string refreshToken);
-    Task<RefreshToken> LogoutRefreshToken(string refreshToken);
-    Task<RefreshToken> GetRefreshToken(string refreshToken);
+    Task<RefreshToken?> LogoutRefreshToken(string refreshToken);
+    Task<RefreshToken?> GetRefreshToken(string refreshToken);
     Task UpdateRefreshToken(Func<DataContext, Task> update);
 }

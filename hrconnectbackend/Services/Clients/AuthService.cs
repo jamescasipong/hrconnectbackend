@@ -1,12 +1,10 @@
 ﻿using System.Security.Claims;
 using System.Transactions;
-using hrconnectbackend.Config;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
-using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +16,11 @@ public class AuthService(
     DataContext context,
     IConfiguration configuration,
     IOptions<JwtSettings> jwtSettings,
-    IEmployeeServices employeeServices,
-    ISubscriptionServices subscriptionServices,
     IUserAccountServices accountServices,
     ILogger<AuthService> logger)
     : IAuthService
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-    private readonly ISubscriptionServices _subscriptionServices = subscriptionServices;
 
     public async Task<AuthResponse> Signin(string email, string password, bool remember)
     {
@@ -51,12 +46,12 @@ public class AuthService(
         return new AuthResponse(encrypted, refreshToken);
     }
     
-    private static Random _random = new Random();
+    private static readonly Random Random = new Random();
 
     // Generate a random number between min and max (inclusive)
     public static int GenerateRandomNumber(int min, int max)
     {
-        return _random.Next(min, max); // Generates a number between min and max-1
+        return Random.Next(min, max); // Generates a number between min and max-1
     }
 
     public async Task<UserAccount> SignUp(CreateUser user)
@@ -100,7 +95,7 @@ public class AuthService(
         return await context.UserAccounts.Where(a => a.OrganizationId == tenantId).ToListAsync();
     }
 
-    private async Task<List<Claim>> GetUserClaims(UserAccount user)
+    private Task<List<Claim>> GetUserClaims(UserAccount user)
     {
         var claims = new List<Claim>
         {
@@ -121,7 +116,7 @@ public class AuthService(
         //     claims.Add(new Claim("Department", empDept.DeptName));
         // }
         
-        return claims;
+        return Task.FromResult(claims);
     }
 
     public async Task<string> GenerateAccessToken(string refreshToken)
@@ -140,7 +135,7 @@ public class AuthService(
         var claims = await GetUserClaims(user);
         
         
-        logger.LogInformation($"claims", claims);
+        logger.LogInformation("claims: {claims}", claims);
 
         DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
         // DateTime utcTime = DateTime.UtcNow.AddMinutes(15); // This gets the current time in UTC
@@ -202,14 +197,14 @@ public class AuthService(
         }
     }
 
-    public async Task<RefreshToken> GetRefreshToken(int userId)
+    public async Task<RefreshToken?> GetRefreshToken(int userId)
     {
         var refresh = await context.RefreshTokens.OrderByDescending(a => a.CreateAt).FirstOrDefaultAsync(a => a.UserId == userId);
         
         return refresh;
     }
 
-    public async Task<RefreshToken> LogoutRefreshToken(string refreshToken)
+    public async Task<RefreshToken?> LogoutRefreshToken(string refreshToken)
     {
         var refresh = await context.RefreshTokens.FirstOrDefaultAsync(a => a.RefreshTokenId == refreshToken);
         
@@ -222,7 +217,7 @@ public class AuthService(
         return refresh;
     }
 
-    public async Task<RefreshToken> GetRefreshToken(string refreshToken)
+    public async Task<RefreshToken?> GetRefreshToken(string refreshToken)
     {
         var existingToken = await context.RefreshTokens.FirstOrDefaultAsync(a => a.RefreshTokenId == refreshToken);
 
@@ -236,13 +231,8 @@ public class AuthService(
 
 }
 
-public class AuthResponse
+public class AuthResponse(string accessToken, string refreshToken)
 {
-    public string AccessToken { get; set; }
-    public string RefreshToken { get; set; }
-    public AuthResponse(string accessToken, string refreshToken)
-    {
-        AccessToken = accessToken;
-        RefreshToken = refreshToken;
-    }
+    public string AccessToken { get; set; } = accessToken;
+    public string RefreshToken { get; set; } = refreshToken;
 }

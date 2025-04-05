@@ -2,7 +2,6 @@ using System.Security.Claims;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 

@@ -5,15 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Repository;
 
-public class GenericRepository<T> : IGenericRepository<T> where T : class
+public class GenericRepository<T>(DataContext context) : IGenericRepository<T>
+    where T : class
 {
-    protected readonly DataContext _context;
+    protected readonly DataContext _context = context;
 
-    public GenericRepository(DataContext context)
-    {
-        _context = context;
-    }
-    public async Task<T> GetByIdAsync(int id)
+    public async Task<T?> GetByIdAsync(int id)
     {
         return await _context.Set<T>().FindAsync(id);
     }

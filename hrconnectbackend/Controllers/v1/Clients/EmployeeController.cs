@@ -1,9 +1,7 @@
 using System.Security.Claims;
 using AutoMapper;
-using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
-using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.EmployeeModels;

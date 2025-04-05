@@ -1,7 +1,6 @@
 ﻿using hrconnectbackend.Interface.Repositories;
-using hrconnectbackend.Models;
 
-namespace hrconnectbackend.Interface.Services
+namespace hrconnectbackend.Interface.Services.Clients
 {
     public interface IAttendanceServices : IGenericRepository<Attendance>
     {

@@ -7,9 +7,9 @@
         public T Data { get; set; } = data;
     }
 
-    public class ApiResponse(bool success, string message)
+    public class ApiResponse(bool success, string? message)
     {
         public bool Success { get; set; } = success;
-        public string Message { get; set; } = message;
+        public string? Message { get; set; } = message;
     }
 }

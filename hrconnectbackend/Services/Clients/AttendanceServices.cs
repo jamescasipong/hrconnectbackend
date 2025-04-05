@@ -1,9 +1,7 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
-using hrconnectbackend.Helper.CustomExceptions;
-using hrconnectbackend.Interface.Services;
-using hrconnectbackend.Models;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Repository;
@@ -138,14 +136,6 @@ namespace hrconnectbackend.Services.Clients
             await UpdateAsync(attendance);
         }
 
-        //Return Late and by Dept
-
-        //Return Present and by Dept
-
-        //Return NotClockedIn and by Dept
-
-        //Return Late and by Dept
-
         public async Task<dynamic> EmployeeAttendanceStatsByDeptSpecificOrToday(int departmentId, DateTime? specificDate)
         {
             var employees = await _context.Employees.Where(e => e.EmployeeDepartmentId == departmentId).ToListAsync();
@@ -156,7 +146,10 @@ namespace hrconnectbackend.Services.Clients
         public async Task<dynamic> EmployeeAttendanceStatsByShiftSpecificOrToday(int shiftId, DateTime? specificDate)
         {
             var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee).ToListAsync();
+            
+            if (employees == null || !employees.Any()) throw new KeyNotFoundException($"Employee with ID {shiftId} not found.");
 
+            
             return await EmployeeAttendanceStats(employees, specificDate);
         }
 
@@ -171,7 +164,7 @@ namespace hrconnectbackend.Services.Clients
         {
             var today = DateTime.Now.Date;
             var shifts = await _context.Shifts.ToListAsync();
-            var attendances = new List<Attendance>();
+            List<Attendance> attendances;
 
             if (specificDate != null)
             {
@@ -183,7 +176,6 @@ namespace hrconnectbackend.Services.Clients
             }
 
             int absent = 0, present = 0, hasNotClockedIn = 0, late = 0, offWork = 0;
-            TimeSpan lateDuration = TimeSpan.Zero;
 
             var absentsId = new List<ReadEmployeeDto>();
             var presentsId = new List<ReadEmployeeDto>();
@@ -229,7 +221,6 @@ namespace hrconnectbackend.Services.Clients
                     if (clockInTime > shiftStartTime)
                     {
                         late++;
-                        lateDuration = clockInTime - shiftStartTime;
                         latesId.Add(mapper.Map<ReadEmployeeDto>(employee));
                     }
                     else
