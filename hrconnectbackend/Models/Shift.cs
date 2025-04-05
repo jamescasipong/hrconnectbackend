@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Models.EmployeeModels;
 
 namespace hrconnectbackend.Models
 {
@@ -9,6 +10,7 @@ namespace hrconnectbackend.Models
         public int EmployeeShiftId { get; set; }
         public string DaysOfWorked { get; set; }
         public TimeSpan TimeIn { get; set; }
+        public int TenantId { get; set; }
         public TimeSpan TimeOut { get; set; }
         public Employee Employee { get; set; }
     }

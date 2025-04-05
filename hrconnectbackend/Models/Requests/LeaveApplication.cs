@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Models.Enums;
 
 namespace hrconnectbackend.Models

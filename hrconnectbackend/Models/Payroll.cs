@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using hrconnectbackend.Models.EmployeeModels;
 
 namespace hrconnectbackend.Models
 {
@@ -22,6 +23,7 @@ namespace hrconnectbackend.Models
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Deductions { get; set; } = decimal.Zero;
+        public int TenantId { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18, 2)")]

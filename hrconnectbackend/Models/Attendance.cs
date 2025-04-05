@@ -1,6 +1,7 @@
 ﻿using hrconnectbackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using hrconnectbackend.Models.EmployeeModels;
 
 public class Attendance
 {
@@ -11,7 +12,7 @@ public class Attendance
     public TimeSpan ClockIn { get; set; }
     public TimeSpan? ClockOut { get; set; }
     //public string Status { get; set; }
-
+    public int TenantId { get; set; }
     // This will store the total working hours, including overtime if applicable
     [Column(TypeName = "decimal(18, 2)")]
     public decimal WorkingHours { get; set; }

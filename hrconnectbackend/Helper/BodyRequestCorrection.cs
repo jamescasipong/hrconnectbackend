@@ -1,8 +1,8 @@
 namespace hrconnectbackend.Helper
 {
-    public class BodyRequestCorrection
+    public static class BodyRequestCorrection
     {
-        public static string CapitalLowerCaseName(string name)
+        public static string CapitalLowerCaseName(this string name)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -16,7 +16,5 @@ namespace hrconnectbackend.Helper
 
             return firstLetter + restOfName;
         }
-
-      
     }
 }
