@@ -45,7 +45,7 @@ namespace hrconnectbackend.Services.Clients
             return await _context.Employees
                 .Include(a => a.EmployeeDepartment)
                 .Where(e => e.Id == employeeId)
-                .Select(a => a.EmployeeDepartment)
+                .Select(a => a.EmployeeDepartment!)
                 .SelectMany(a => a.Employees!)
                 .ToListAsync();
         }
@@ -77,7 +77,7 @@ namespace hrconnectbackend.Services.Clients
                         continue;
                     }
                     
-                    string password = Generator.GeneratePassword(12, true);
+                    string password = Generator.GeneratePassword();
                     string username = Generator.GenerateUsername();
 
                     var userAccount = new UserAccount
@@ -166,11 +166,11 @@ namespace hrconnectbackend.Services.Clients
                     throw new InvalidOperationException("An employee with the same email already exists.");
                 }
 
-                string password = "";
+                string password;
 
-                if (employee.Password != null)
+                if (!string.IsNullOrEmpty(employee.Password))
                 {
-                    if (!Validator.IsValidPassword(employee.Password))
+                    if (!employee.Password.IsValidPassword())
                     {
                         throw new ArgumentException("Invalid password format", nameof(employee.Password));
                     }
@@ -179,10 +179,10 @@ namespace hrconnectbackend.Services.Clients
                 }
                 else
                 {
-                    password = Generator.GeneratePassword(12, true);
+                    password = Generator.GeneratePassword();
                 }
 
-                if (!Validator.IsValidEmail(employee.Email))
+                if (!employee.Email.IsValidEmail())
                 {
                     throw new ArgumentException("Invalid email format", nameof(employee.Email));
                 }
@@ -240,7 +240,7 @@ namespace hrconnectbackend.Services.Clients
                 await transaction.RollbackAsync();
 
                 // Log the exception
-                ThrowErrorType<ArgumentNullException>($"Error occurred while creating employee: {ex.Message}", log => logger.LogError(ex.Message));
+                ThrowErrorType<ArgumentNullException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
             }
             catch (ArgumentException ex)
             {
@@ -248,7 +248,7 @@ namespace hrconnectbackend.Services.Clients
                 await transaction.RollbackAsync();
 
                 // Log the exception
-                ThrowErrorType<ArgumentException>($"Error occurred while creating employee: {ex.Message}", log => logger.LogError(ex.Message));
+                ThrowErrorType<ArgumentException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
             }
             catch (InvalidOperationException ex)
             {
@@ -256,7 +256,7 @@ namespace hrconnectbackend.Services.Clients
                 await transaction.RollbackAsync();
 
                 // Log the exception
-                ThrowErrorType<InvalidOperationException>($"Error occurred while creating employee: {ex.Message}", log => logger.LogError(ex.Message));
+                ThrowErrorType<InvalidOperationException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
             }
             catch (Exception ex)
             {
@@ -264,7 +264,7 @@ namespace hrconnectbackend.Services.Clients
                 await transaction.RollbackAsync();
 
                 // Log the exception
-                ThrowErrorType<Exception>($"Error occurred while creating employee: {ex.Message}", log => logger.LogError(ex.Message));
+                ThrowErrorType<Exception>($"Error occurred while creating {nameof(employee)}: {ex.Message}", _ => logger.LogError(ex.Message));
             }
         }
 
@@ -297,7 +297,7 @@ namespace hrconnectbackend.Services.Clients
             log?.Invoke(message);
             var errorType = Activator.CreateInstance(typeof(T), message);
             
-            throw ((T)errorType!)!;
+            throw ((T)errorType!);
         }
 
         public async Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize)

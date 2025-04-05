@@ -11,7 +11,6 @@ public static class Generator
     private static readonly string SpecialChars = "!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?";
 
     // Function to generate a random password   
-    [Obsolete("Obsolete")]
     public static string GeneratePassword(int length = 12, bool includeSpecialChars = true)
     {
         // Validate length

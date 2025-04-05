@@ -85,7 +85,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, "Employees generated successfully", empDto));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, "Employees generated successfully", empDto));
             }
             catch (Exception ex)
             {
@@ -131,7 +131,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var employeesDTO = mapper.Map<List<ReadEmployeeDto>>(employees);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, $"Employees retrieved successfully!", employeesDTO));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, $"Employees retrieved successfully!", employeesDTO));
             }
             catch (Exception ex)
             {
@@ -188,7 +188,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // employeeDTO.AboutEmployee = aboutEmployeeDTO;
 
 
-            return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
         [Authorize]
         [HttpGet("education/me")]
@@ -203,7 +203,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var employeeDTO = mapper.Map<List<EducationBackgroundDto>>(employee);
         
 
-            return Ok(new ApiResponse<List<EducationBackgroundDto>>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<List<EducationBackgroundDto>?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -223,7 +223,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employeeDTO = mapper.Map<CreateAboutEmployeeDto>(employee);
 
-            return Ok(new ApiResponse<CreateAboutEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<CreateAboutEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -252,7 +252,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-                return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+                return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
             }
             catch (Exception ex)
             {
@@ -327,7 +327,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
                 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
             }
             catch (KeyNotFoundException ex)
             {

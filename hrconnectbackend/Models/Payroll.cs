@@ -46,8 +46,7 @@ namespace hrconnectbackend.Models
         [Required]
         public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid
 
-        [Required]
-        public string PayPeriod { get; set; } // New field for Pay Period (e.g., "6th-20th" or "21st-5th")
+        [Required] public string PayPeriod { get; set; } = string.Empty; // New field for Pay Period (e.g., "6th-20th" or "21st-5th")
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

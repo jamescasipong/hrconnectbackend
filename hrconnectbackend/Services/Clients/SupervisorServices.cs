@@ -1,23 +1,20 @@
 using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
-using hrconnectbackend.Models;
 using hrconnectbackend.Models.EmployeeModels;
-using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
 public class SupervisorServices(DataContext context): ISupervisorServices
 {
-    public async Task<List<Employee>> GetAllSupervisors()
+    public async Task<ICollection<Employee?>> GetAllSupervisors()
     {
-        var deparmentSups = await context.EmployeeDepartments.Include(a => a.Supervisor).Select(a => a.Supervisor).ToListAsync();
+        var departmentSupervisors = await context.EmployeeDepartments.Include(a => a.Supervisor).Select(a => a.Supervisor).ToListAsync();
 
-        return deparmentSups;
+        return departmentSupervisors;
     }
     
-    public async Task<Employee> GetEmployeeSupervisor(int employeeId)
+    public async Task<Employee?> GetEmployeeSupervisor(int employeeId)
     {
         var employeeDepartment = context.Employees.Where(a => a.Id == employeeId)
             .Include(a => a.EmployeeDepartment).Select(a => a.EmployeeDepartment!);
@@ -34,7 +31,7 @@ public class SupervisorServices(DataContext context): ISupervisorServices
         return employeeSupervisor;
     }
 
-    public async Task<Employee> GetSupervisor(int employeeId)
+    public async Task<Employee?> GetSupervisor(int employeeId)
     {
         var supervisor = await context.EmployeeDepartments.Include(a => a.Supervisor).Where(a => a.Id == employeeId).Select(a => a.Supervisor).FirstOrDefaultAsync();
         
@@ -43,9 +40,9 @@ public class SupervisorServices(DataContext context): ISupervisorServices
 
     public async Task<List<Employee>> GetAllEmployeesByASupervisor(int supervisorId)
     {
-        var deparmentSups = await context.EmployeeDepartments.Include(a => a.Employees).Where(a => a.SupervisorId == supervisorId).SelectMany(a => a.Employees).ToListAsync();
+        var departmentSupervisors = await context.EmployeeDepartments.Include(a => a.Employees).Where(a => a.SupervisorId == supervisorId).SelectMany(a => a.Employees!).ToListAsync();
 
-        return deparmentSups;
+        return departmentSupervisors;
     }
 
     public async Task<bool> IsSupervisor(int employeeId)

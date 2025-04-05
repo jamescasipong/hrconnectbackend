@@ -84,7 +84,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (!mappedOTApplication.Any())
                 {
-                    return Ok(new ApiResponse<List<ReadOtApplicationDto>>(false, $"OT Application not found.", mappedOTApplication));
+                    return Ok(new ApiResponse<List<ReadOtApplicationDto>?>(false, $"OT Application not found.", mappedOTApplication));
                 }
 
                 if (pageIndex != null && pageSize != null)
@@ -92,7 +92,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     otApplication = oTApplicationServices.GetOTPagination(otApplication, pageIndex.Value, pageSize.Value);
                 }
 
-                return Ok(new ApiResponse<List<ReadOtApplicationDto>>(false, $"OT Application retrieved successfully!", mappedOTApplication));
+                return Ok(new ApiResponse<List<ReadOtApplicationDto>?>(false, $"OT Application retrieved successfully!", mappedOTApplication));
             }
             catch (Exception)
             {
@@ -114,7 +114,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedOTApplication = mapper.Map<ReadOtApplicationDto>(otApplication);
 
-                return Ok(new ApiResponse<ReadOtApplicationDto>(false, $"OT Application with id: {otApplication} retrieved successfully!", mappedOTApplication));
+                return Ok(new ApiResponse<ReadOtApplicationDto?>(false, $"OT Application with id: {otApplication} retrieved successfully!", mappedOTApplication));
             }
             catch (Exception)
             {
@@ -199,11 +199,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var mappedOTApplications = mapper.Map<List<OtApplication>>(otApplications);
             try
             {
-                return Ok(new ApiResponse<List<OtApplication>>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
+                return Ok(new ApiResponse<List<OtApplication>?>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
             }
             catch (KeyNotFoundException ex)
             {
-                return Ok(new ApiResponse<List<OtApplication>>(false, ex.Message, mappedOTApplications));
+                return Ok(new ApiResponse<List<OtApplication>?>(false, ex.Message, mappedOTApplications));
             }
             catch (Exception)
             {
@@ -219,11 +219,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var mappedOTApplications = mapper.Map<List<OtApplication>>(otApplications);
             try
             {
-                return Ok(new ApiResponse<List<OtApplication>>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
+                return Ok(new ApiResponse<List<OtApplication>?>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
             }
             catch (KeyNotFoundException ex)
             {
-                return Ok(new ApiResponse<List<OtApplication>>(false, ex.Message, mappedOTApplications));
+                return Ok(new ApiResponse<List<OtApplication>?>(false, ex.Message, mappedOTApplications));
             }
             catch (Exception)
             {

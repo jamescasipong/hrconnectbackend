@@ -1,5 +1,4 @@
 using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -68,7 +67,13 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
 
     public async Task<Department?> GetDepartmentByEmployee(int employeeId)
     {
-        return await _context.Employees.Include(a => a.EmployeeDepartment).Where(a => a.Id == employeeId).Select(a => a.EmployeeDepartment).Include(a => a.Department).Select(a => a.Department).SingleOrDefaultAsync();
+        return await _context.Employees
+            .Include(a => a.EmployeeDepartment)
+            .Where(a => a.Id == employeeId)
+            .Select(a => a.EmployeeDepartment!)
+            .Include(a => a.Department)
+            .Select(a => a.Department)
+            .SingleOrDefaultAsync();
     }
 
     public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId)

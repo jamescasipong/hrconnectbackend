@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Attributes.Authorization.Requirements.Handler;
 using hrconnectbackend.Config.Authentication;
 using hrconnectbackend.Helper;
@@ -48,6 +47,7 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IEmailServices, EmailService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<AuthenticationConfiguration>();
+            services.AddScoped<ISupervisorServices, SupervisorServices>();
             services.AddScoped<IOrganizationServices, OrganizationServices>();
             // services.AddSingleton<IAuthorizationHandler, UserPermissionHandler>();
             services.AddSingleton<IAuthorizationHandler, UserRolehandler>();

@@ -9,15 +9,15 @@ public class Organization
 
     [Required]
     [StringLength(100, ErrorMessage = "Organization name cannot be longer than 100 characters.")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [StringLength(500, ErrorMessage = "Address cannot be longer than 500 characters.")]
-    public string Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
     [Required]
     [EmailAddress(ErrorMessage = "Invalid email address.")]
     [StringLength(100, ErrorMessage = "Contact email cannot be longer than 100 characters.")]
-    public string ContactEmail { get; set; }
+    public string ContactEmail { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

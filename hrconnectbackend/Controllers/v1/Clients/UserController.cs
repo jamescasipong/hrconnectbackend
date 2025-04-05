@@ -265,7 +265,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 await employeeServices.UpdateAsync(employee);
                 await userAccountServices.UpdateAsync(userAccount);
 
-                return Ok(new ApiResponse<string>(success: true, message: $"A user has authenticated successfully!", data: jwtToken));
+                return Ok(new ApiResponse<string?>(success: true, message: $"A user has authenticated successfully!", data: jwtToken));
             }
             catch (KeyNotFoundException ex)
             {
@@ -558,7 +558,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var authDTO = mapper.Map<UserAccountDto>(auth);
 
-            return Ok(new ApiResponse<UserAccountDto>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDTO));
+            return Ok(new ApiResponse<UserAccountDto?>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDTO));
         }
 
         
@@ -732,7 +732,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedUserNotification = mapper.Map<List<ReadUserNotificationDto>>(userNotifications);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDto>>(true, "Notifications retrieved successfully!", mappedUserNotification));
+                return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, "Notifications retrieved successfully!", mappedUserNotification));
             }
             catch (Exception ex)
             {

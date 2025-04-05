@@ -5,6 +5,7 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
+using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -71,7 +72,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     TimeOut = TimeSpan.Parse(shiftDTO.TimeOut)
                 });
 
-                return Ok(new ApiResponse<Shift>(success: true, message: $"Shift by Employee with ID {shiftDTO} created successfully!", data: createdShift));
+                return Ok(new ApiResponse<Shift?>(success: true, message: $"Shift by Employee with ID {shiftDTO} created successfully!", data: createdShift));
             }
             catch (Exception ex)
             {
@@ -145,7 +146,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
-                return Ok(new ApiResponse<List<ShiftDTO>>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
+                return Ok(new ApiResponse<List<ShiftDTO>?>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
             }
             catch (KeyNotFoundException ex)
             {
@@ -178,7 +179,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
-                return Ok(new ApiResponse<List<ShiftDTO>>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
+                return Ok(new ApiResponse<List<ShiftDTO>?>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
             }
             catch (KeyNotFoundException ex)
             {

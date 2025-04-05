@@ -1,5 +1,6 @@
 ﻿using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ namespace hrconnectbackend.Services.Clients
 
         }
 
-        public async Task<UserNotification> GetUserNotificationById(int notificationId)
+        public async Task<UserNotification?> GetUserNotificationById(int notificationId)
         {
             var employeeNotification = await _context.UserNotifications.FirstOrDefaultAsync(e => e.NotificationId == notificationId);
 

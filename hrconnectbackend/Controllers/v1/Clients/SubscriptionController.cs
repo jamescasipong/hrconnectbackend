@@ -1,4 +1,5 @@
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers.v1.Clients

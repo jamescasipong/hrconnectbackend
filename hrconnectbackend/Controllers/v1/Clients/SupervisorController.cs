@@ -60,10 +60,10 @@ public class SupervisorController(
 
             if (!supervisors.Any())
             {
-                return Ok(new ApiResponse<List<ReadSupervisorDto>>(false, $"Supervisors not found.", mappedSupervisors));
+                return Ok(new ApiResponse<List<ReadSupervisorDto>?>(false, $"Supervisors not found.", mappedSupervisors));
             }
 
-            return Ok(new ApiResponse<List<ReadSupervisorDto>>(true, $"Supervisors retreved successfully!", mappedSupervisors));
+            return Ok(new ApiResponse<List<ReadSupervisorDto>?>(true, $"Supervisors retreved successfully!", mappedSupervisors));
         }
         catch (Exception)
         {
@@ -87,7 +87,7 @@ public class SupervisorController(
 
             var mapped = mapper.Map<ReadSupervisorDto>(supervisor);
 
-            return Ok(new ApiResponse<ReadSupervisorDto>(true, $"Supervisor with id: {supervisorId} retrieved successfully!", mapped));
+            return Ok(new ApiResponse<ReadSupervisorDto?>(true, $"Supervisor with id: {supervisorId} retrieved successfully!", mapped));
         }
         catch (Exception)
         {
@@ -121,7 +121,7 @@ public class SupervisorController(
 
             var mapped = mapper.Map<List<ReadEmployeeDto>>(employee);
 
-            return Ok(new ApiResponse<List<ReadEmployeeDto>>(false, $"Employees under a supervisor with id: {supervisorId} retrieved successfully.", mapped));
+            return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a supervisor with id: {supervisorId} retrieved successfully.", mapped));
         }
         catch (KeyNotFoundException ex)
         {
@@ -140,7 +140,7 @@ public class SupervisorController(
         {
             var employeeSupervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
 
-            return Ok(new ApiResponse<ReadSupervisorDto>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDto>(employeeSupervisor)));
+            return Ok(new ApiResponse<ReadSupervisorDto?>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDto>(employeeSupervisor)));
         }
         catch (KeyNotFoundException ex)
         {

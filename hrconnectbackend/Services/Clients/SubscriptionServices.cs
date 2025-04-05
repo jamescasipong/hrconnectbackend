@@ -1,5 +1,5 @@
 ﻿using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +43,7 @@ public class SubscriptionServices(DataContext context)
         return await EntityFrameworkQueryableExtensions.ToListAsync(_context.SubscriptionPlans);
     }
     
-    public async Task<SubscriptionPlan> CreateSubscriptionPlan(SubscriptionPlan plan)
+    public async Task<SubscriptionPlan?> CreateSubscriptionPlan(SubscriptionPlan plan)
     {
         var createdPlan = await AddAsync(plan);
         
@@ -79,7 +79,7 @@ public class SubscriptionServices(DataContext context)
 
     public async Task<List<Subscription>> GetSubscriptionHistoryByUser(int userId)
     {
-        var userSubscriptionPlans = await EntityFrameworkQueryableExtensions.ToListAsync(_context.Subscriptions.Where(s => s.OrganizationId == userId).OrderByDescending(a => a.StartDate));
+        var userSubscriptionPlans = await _context.Subscriptions.Where(s => s.OrganizationId == userId).OrderByDescending(a => a.StartDate).ToListAsync();
         
         return userSubscriptionPlans;
     }
@@ -87,7 +87,7 @@ public class SubscriptionServices(DataContext context)
     public async Task<Subscription?> GetUserSubscription(int userId)
     {
         var userSubscriptionPlan =
-            await _context.SubscriptionPlans.Include(a => a.Subscriptions).SelectMany(a => a.Subscriptions).OrderByDescending(a => a.EndDate > DateTime.Now).Include(a => a.SubscriptionPlan).FirstOrDefaultAsync();
+            await _context.SubscriptionPlans.Include(a => a.Subscriptions).SelectMany(a => a.Subscriptions!).OrderByDescending(a => a.EndDate > DateTime.Now).Include(a => a.SubscriptionPlan).FirstOrDefaultAsync();
         
         return userSubscriptionPlan;
     }
@@ -97,7 +97,7 @@ public class SubscriptionServices(DataContext context)
         throw new NotImplementedException();
     }
 
-    public async Task<Subscription> Subscribe(int orgId, SubscriptionPlan plan)
+    public async Task<Subscription?> Subscribe(int orgId, SubscriptionPlan plan)
     {
         var subscription = await _context.Subscriptions.FirstOrDefaultAsync(a => a.OrganizationId == orgId && a.SubscriptionId == plan.Id);
 

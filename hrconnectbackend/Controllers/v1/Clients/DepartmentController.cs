@@ -41,18 +41,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 }
 
                 if (employee.EmployeeDepartmentId == null){
-                    return Ok(new ApiResponse<dynamic>(false, $"Employee not assigned to any department.", null));
+                    return Ok(new ApiResponse<dynamic?>(false, $"Employee not assigned to any department.", null));
                 }
 
                 var department = await departmentServices.GetByIdAsync(employee.EmployeeDepartmentId.Value);
 
                 if (department == null){
-                    return NotFound(new ApiResponse<ReadDepartmentDto>(false, $"Department not found.", null));
+                    return NotFound(new ApiResponse<ReadDepartmentDto?>(false, $"Department not found.", null));
                 }
 
                 var mappedDepartment = mapper.Map<ReadDepartmentDto>(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDto>(true, $"Department retrieved successfully!", mappedDepartment));
+                return Ok(new ApiResponse<ReadDepartmentDto?>(true, $"Department retrieved successfully!", mappedDepartment));
             }
             catch (Exception)
             {
@@ -84,7 +84,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 await departmentServices.AddAsync(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDto>(true, $"Department created successfully!",
+                return Ok(new ApiResponse<ReadDepartmentDto?>(true, $"Department created successfully!",
                     mapper.Map<ReadDepartmentDto>(department)));
             }
             catch (DbUpdateException ex)
@@ -104,7 +104,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var departments = await departmentServices.RetrieveDepartment(pageIndex, pageSize);
 
-                return Ok(new ApiResponse<List<EmployeeDepartment>>(true, $"Departments retrieved successfully", departments));
+                return Ok(new ApiResponse<List<EmployeeDepartment>?>(true, $"Departments retrieved successfully", departments));
             }
             catch (Exception)
             {
@@ -160,10 +160,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (!departmentByName.Any())
                 {
-                    return Ok(new ApiResponse<List<ReadDepartmentDto>>(true, $"Department containing {name} not found.", mappedDepartment));
+                    return Ok(new ApiResponse<List<ReadDepartmentDto>?>(true, $"Department containing {name} not found.", mappedDepartment));
                 }
 
-                return Ok(new ApiResponse<List<ReadDepartmentDto>>(true, $"Department containing {name} retrieved sucessfully!", mappedDepartment));
+                return Ok(new ApiResponse<List<ReadDepartmentDto>?>(true, $"Department containing {name} retrieved sucessfully!", mappedDepartment));
             }
             catch (Exception)
             {

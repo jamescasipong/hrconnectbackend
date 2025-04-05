@@ -54,7 +54,7 @@ public class AuthService(
         return Random.Next(min, max); // Generates a number between min and max-1
     }
 
-    public async Task<UserAccount> SignUp(CreateUser user)
+    public async Task<UserAccount?> SignUp(CreateUser user)
     {
         var employee = new UserAccount
         {
