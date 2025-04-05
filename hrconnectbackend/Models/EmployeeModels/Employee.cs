@@ -40,7 +40,7 @@ namespace hrconnectbackend.Models.EmployeeModels
             };
         }
         // Tables that will use EmployeeID as its foreign keys
-        public virtual EmployeePosition EmployeePosition { get; set; }
+        public virtual EmployeePosition Position { get; set; }
         public virtual EmployeeDepartment EmployeeDepartment { get; set; }
         public virtual List<Attendance>? Attendance { get; set; }
         public virtual List<OtApplication>? OtApplication { get; set; }

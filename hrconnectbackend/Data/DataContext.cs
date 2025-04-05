@@ -36,10 +36,17 @@ namespace hrconnectbackend.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }  // Refresh tokens for authentication
         public DbSet<Organization> Organizations { get; set; }  // Organization data
         public DbSet<EmployeeDepartment> EmployeeDepartments { get; set; }  // Employee-Department relationship data
+        public DbSet<UserPermission> UserPermissions { get; set; }
 
         // Configuring relationships between the entities using Fluent API
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configuring the relationship between Employee and EmployeePosition
+            modelBuilder.Entity<Employee>()
+                .HasOne(a => a.Position)
+                .WithMany(a => a.Employees)
+                .HasForeignKey(a => a.PositionId);
+            
             // Configuring the relationship between Employee and EmployeeDepartment
             modelBuilder.Entity<Employee>()
                 .HasOne(e => e.EmployeeDepartment)  // Each employee has one EmployeeDepartment
