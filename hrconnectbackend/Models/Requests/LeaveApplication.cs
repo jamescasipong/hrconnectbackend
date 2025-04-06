@@ -14,7 +14,7 @@ namespace hrconnectbackend.Models
         public string Type { get; set; } = LeaveType.Sick.ToString();
         public DateOnly StartDate { get; set; }
         public DateOnly AppliedDate { get; set; } = new DateOnly();
-        public string Reason { get; set; }
+        public string Reason { get; set; } = string.Empty;
         public string Status { get; set; } = RequestStatus.Pending.ToString();
         public Employee? Employee { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

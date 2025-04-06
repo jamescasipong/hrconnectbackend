@@ -211,6 +211,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("DepartmentGuid")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("DeptName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -225,6 +228,9 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("DepartmentId");
+
+                    b.HasIndex("DepartmentGuid")
+                        .IsUnique();
 
                     b.HasIndex("DeptName")
                         .IsUnique();
@@ -303,9 +309,11 @@ namespace hrconnectbackend.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("BankAccountNumber")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("BankName")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<decimal>("BaseSalary")
@@ -319,9 +327,11 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("EmergencyContactName")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("EmergencyContactPhone")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int?>("EmployeeDepartmentId")
@@ -335,6 +345,7 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("TaxId")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("TenantId")
@@ -803,6 +814,9 @@ namespace hrconnectbackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -846,15 +860,16 @@ namespace hrconnectbackend.Migrations
                     b.Property<bool>("EmailVerified")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("OrganizationId")
+                    b.Property<int?>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("Role")
-                        .HasColumnType("integer");
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("SmsVerified")
                         .HasColumnType("boolean");
@@ -1094,8 +1109,7 @@ namespace hrconnectbackend.Migrations
                     b.HasOne("hrconnectbackend.Models.Organization", "Organization")
                         .WithMany("Users")
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Organization");
                 });

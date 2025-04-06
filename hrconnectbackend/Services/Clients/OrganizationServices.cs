@@ -57,7 +57,7 @@ public class OrganizationServices(DataContext context): GenericRepository<Organi
         return true;
     }
 
-    public async Task<(Organization original, Organization patched, bool isValid)> ApplyPatchAsync(int organizationId, JsonPatchDocument<Organization> patch)
+    public async Task<(Organization? original, Organization? patched, bool isValid)> ApplyPatchAsync(int organizationId, JsonPatchDocument<Organization> patch)
     {
         var organization = await _context.Organizations.FindAsync(organizationId);
 
@@ -106,10 +106,6 @@ public class OrganizationServices(DataContext context): GenericRepository<Organi
 
         return result;  // Return the storage size in bytes (should be a long)
     }
-
-
-
-
 }
 
 public class DatabaseSizeResult

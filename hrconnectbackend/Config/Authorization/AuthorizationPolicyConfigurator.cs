@@ -142,18 +142,18 @@ namespace hrconnectbackend.Helper.Authorization
             options.AddPolicy("Manager", policy => policy.RequireAssertion(context => context.User.HasClaim("EmployeeRole", "Manager")));
         }
 
+
+        /// <summary>
+        /// Configures user role-based authorization policies.
+        /// This policy grants access to users based on their assigned roles.
+        /// </summary>
+        /// <param name="options"></param>
         public void UserRoleBased(AuthorizationOptions options)
         {
+            // Add policy for "Employee" role
             options.AddPolicy("Employee", policy => policy.RequireAssertion(context => context.User.HasClaim("Role", "Employee")));
+            // Add policy for "Admin" role
             options.AddPolicy("Admin", policy => policy.RequireAssertion(context => context.User.HasClaim("Role", "Admin")));
         }
-
-        // public void RequiredPermissionPolicies(AuthorizationOptions options)
-        // {
-        //     var rPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme);
-        //     
-        //     rPolicy.AddRequirements(new P)
-        //     
-        // }
     }
 }

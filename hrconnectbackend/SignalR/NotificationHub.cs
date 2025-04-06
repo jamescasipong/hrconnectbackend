@@ -18,14 +18,26 @@ namespace hrconnectbackend.SignalR
         private static Dictionary<string, List<int>> _groupConnections = new Dictionary<string, List<int>>();
         private readonly IUserNotificationServices _userNotificationServices;
         private readonly DataContext _context;
-        public NotificationHub(INotificationServices notificationServices, IEmployeeServices employeeServices, IUserNotificationServices userNotificationServices, DataContext context)
+        private readonly ILogger<NotificationHub> _logger;
+        public NotificationHub(INotificationServices notificationServices, IEmployeeServices employeeServices, IUserNotificationServices userNotificationServices, DataContext context, ILogger<NotificationHub> logger)
         {
             _notificationServices = notificationServices;
             _employeeServices = employeeServices;
             _userNotificationServices = userNotificationServices;
             _context = context;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// This method is called when a user connects to the hub.
+        /// It registers the user by storing their userId and connectionId in a dictionary.
+        /// It also logs the connection event and notifies the user that they are connected.
+        /// The userId is expected to be passed as a parameter.
+        /// The method handles exceptions and throws them if any occur.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public async Task RegisterUser(int userId)
         {
             try
@@ -50,6 +62,15 @@ namespace hrconnectbackend.SignalR
             }
         }
 
+        /// <summary>
+        /// This method is called to add a user to a specific group.
+        /// It adds the user to the group using SignalR's Groups.AddToGroupAsync method.
+        /// It also updates the _groupConnections dictionary to keep track of the user's group memberships.
+        /// The method logs the addition of the user to the group.
+        /// Finally, it sends a message to the caller indicating that they have been added to the group.
+        /// </summary>
+        /// <param name="groupId"></param>
+        /// <returns></returns>
         public async Task AddGroup(int groupId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId.ToString());
@@ -78,14 +99,26 @@ namespace hrconnectbackend.SignalR
         //     return base.OnConnectedAsync();
         // }
 
+        
+        /// <summary>
+        /// This method is called when a client disconnects from the hub.
+        /// It removes the userId and connectionId mapping from the dictionary.
+        /// It also removes the user from all groups they were part of.
+        /// The method logs the disconnection event.
+        /// </summary>
+        /// <param name="exception"></param>
+        /// <returns></returns>
         public override Task OnDisconnectedAsync(Exception? exception)
         {
             var userId = _userConnections.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
 
-            if (userId != null)
+            if (userId != 0)
             {
-                _userConnections.Remove(userId, out _);
+                // Remove the userId and connectionId mapping
+                _userConnections.Remove(userId);
+                _logger.LogInformation($"User {userId} disconnected with Connection ID: {Context.ConnectionId}");
             }
+
 
             List<int> groupNames = _groupConnections[Context.ConnectionId];
 
@@ -99,6 +132,17 @@ namespace hrconnectbackend.SignalR
             return base.OnDisconnectedAsync(exception);
         }
 
+        /// <summary>
+        /// Sends a notification to a specific user by their userId.
+        /// This method checks if the user is connected and sends the notification to their connectionId.
+        /// It also creates a new notification and associates it with the user in the database.
+        /// If the user is not found, it throws a KeyNotFoundException.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="notificationDTO"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <exception cref="Exception"></exception>
         public async Task SendNotificationToUser(int userId, CreateNotificationHubDto notificationDTO)
         {
             var employee = await _employeeServices.GetByIdAsync(userId);
@@ -170,6 +214,15 @@ namespace hrconnectbackend.SignalR
         //}
 
         // Method to send notifications to all connected clients
+
+        /// <summary>
+        /// Sends a notification to all connected clients.
+        /// This method creates a new notification and sends it to all clients.
+        /// It does not check for specific users or groups.
+        /// It also creates a new notification in the database.
+        /// </summary>
+        /// <param name="notificationDTO"></param>
+        /// <returns></returns>
         public async Task SendNotification(CreateNotificationHubDto notificationDTO)
         {
             var notification = new Notifications

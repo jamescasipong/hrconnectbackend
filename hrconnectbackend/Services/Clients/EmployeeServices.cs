@@ -62,6 +62,7 @@ namespace hrconnectbackend.Services.Clients
             return employee;
         }
 
+
         public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto)
         {
             var employeesCreated = new List<Employee>();

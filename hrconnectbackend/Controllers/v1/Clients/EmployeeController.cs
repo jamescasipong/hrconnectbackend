@@ -19,22 +19,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         IEmployeeServices employeeService,
         IMapper mapper,
         IAboutEmployeeServices aboutEmployeeServices,
-        IDepartmentServices departmentService,
         ILogger<EmployeeController> logger,
-        IUserAccountServices userAccountServices,
-        ISupervisorServices supervisorService,
-        ILeaveApplicationServices leaveApplicationService,
-        IAttendanceServices attendanceService,
-        IShiftServices shiftService,
-        INotificationServices notificationService)
+        IUserAccountServices userAccountServices
+        )
         : ControllerBase
     {
-        private readonly ISupervisorServices _supervisorService = supervisorService;
-        private readonly IShiftServices _shiftService = shiftService;
-        private readonly IDepartmentServices _departmentService = departmentService;
-        private readonly ILeaveApplicationServices _leaveApplicationService = leaveApplicationService;
-        private readonly IAttendanceServices _attendanceService = attendanceService;
-        private readonly INotificationServices _notificationService = notificationService;
 
         // [Authorize(Roles = "Admin,HR")]
         [HttpPost]

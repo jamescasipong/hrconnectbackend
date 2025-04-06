@@ -1,14 +1,14 @@
 ﻿using System.Security.Claims;
-using System.Transactions;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TransactionException = System.Transactions.TransactionException;
 
 namespace hrconnectbackend.Services.Clients;
 
@@ -46,15 +46,7 @@ public class AuthService(
         return new AuthResponse(encrypted, refreshToken);
     }
     
-    private static readonly Random Random = new Random();
-
-    // Generate a random number between min and max (inclusive)
-    public static int GenerateRandomNumber(int min, int max)
-    {
-        return Random.Next(min, max); // Generates a number between min and max-1
-    }
-
-    public async Task<UserAccount?> SignUp(CreateUser user)
+    public async Task<UserAccount?> SignUpAdmin(CreateUser user)
     {
         var employee = new UserAccount
         {
@@ -66,9 +58,55 @@ public class AuthService(
             SmsVerified = false,
             OrganizationId = user.OrganizationId,
             ChangePassword = false,
-            Role = user.Role
+            Role = "Admin"
         };
         
+        if (employee == null) return null;
+
+        await context.UserAccounts.AddAsync(employee);
+        await context.SaveChangesAsync();
+
+        return employee;
+    }
+    
+    public async Task<UserAccount?> SignUpEmployee(CreateUser user)
+    {
+        var employee = new UserAccount
+        {
+            // UserId = GenerateRandomNumber(0, int.MaxValue),
+            UserName = user.UserName,
+            Email = user.Email,
+            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
+            EmailVerified = false,
+            SmsVerified = false,
+            OrganizationId = user.OrganizationId,
+            ChangePassword = false,
+            Role = "Employee"
+        };
+        
+        await context.UserAccounts.AddAsync(employee);
+        await context.SaveChangesAsync();
+
+        return employee;
+    }
+
+    public async Task<UserAccount?> SignUpOperator(CreateUserOperator user)
+    {
+        var employee = new UserAccount
+        {
+            // UserId = GenerateRandomNumber(0, int.MaxValue),
+            UserName = user.UserName,
+            Email = user.Email,
+            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
+            EmailVerified = false,
+            SmsVerified = false,
+            OrganizationId = null,
+            ChangePassword = false,
+            Role = "Operator"
+        };
+        
+        if (employee == null) return null;
+
         await context.UserAccounts.AddAsync(employee);
         await context.SaveChangesAsync();
 
@@ -90,7 +128,7 @@ public class AuthService(
         return true;
     }
 
-    public async Task<IEnumerable<UserAccount>> GetUsers(int tenantId)
+    public async Task<IEnumerable<UserAccount>> GetUsers(Guid tenantId)
     {
         return await context.UserAccounts.Where(a => a.OrganizationId == tenantId).ToListAsync();
     }
@@ -99,13 +137,16 @@ public class AuthService(
     {
         var claims = new List<Claim>
         {
-            new Claim("organizationId", user.UserId.ToString()),
-            new Claim(ClaimTypes.Role, user.GetRoleAsString()),
-            // new Claim(ClaimTypes.Role, employee.IsAdmin ? "Admin" : "User"),
-            new Claim(ClaimTypes.Email, user.Email!),
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.UserName)
         };
+
+        if (user.OrganizationId.HasValue)
+        {
+            claims.Add(new Claim("organizationId", user.OrganizationId.Value.ToString()));
+        }
 
         // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
         //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
@@ -138,9 +179,6 @@ public class AuthService(
         logger.LogInformation("claims: {claims}", claims);
 
         DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
-        // DateTime utcTime = DateTime.UtcNow.AddMinutes(15); // This gets the current time in UTC
-        // TimeZoneInfo myTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time"); // For UTC+8
-        // DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(utcTime, myTimeZone);
         
         logger.LogInformation($"Date: {exp}");
         

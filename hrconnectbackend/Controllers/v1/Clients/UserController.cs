@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Claims;
-using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
@@ -121,9 +120,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (employee.EmployeeDepartment != null)
                 {
-                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id);
+                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id)!;
                     
-                    claims.Add(new Claim("Department", empDepartment.DeptName));
+                    claims.Add(new Claim("Department", empDepartment!.DeptName));
                 }
 
                 var key = configuration.GetValue<string>("JWT:Key")!;
@@ -162,8 +161,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
             }
         }
-
-        
         
         [HttpPost("account/login/verify")]
         public async Task<IActionResult> LoginVerification([FromBody] SigninVerification signinVerification)
@@ -209,7 +206,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 var userName = await userAccountServices.RetrieveUsername(signinVerification.Email);
                 var activePlan = await subscriptionServices.GetUserSubscription(userAccount.UserId);
                 
-                logger.LogInformation(activePlan.Id.ToString());
+                
+                if (activePlan == null)
+                {
+                    logger.LogWarning($"User account with email: {signinVerification.Email} does not have an active plan.");
+                    return Unauthorized(new ApiResponse(false, $"User account with email: {signinVerification.Email} does not have an active plan."));
+                }
+
+                // if (activePlan.EndDate < DateTime.Now)
+                // {
+                //     logger.LogWarning($"User account with email: {signinVerification.Email} has an expired plan.");
+                //     return Unauthorized(new ApiResponse(false, $"User account with email: {signinVerification.Email} has an expired plan."));
+                // }
                 
                 List<Claim> claims = new List<Claim>
                 {
@@ -222,7 +230,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 {
                     var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id);
 
-                    claims.Add(new Claim("Department", empDepartment.DeptName));
+                    claims.Add(new Claim("Department", empDepartment!.DeptName));
                 }
                 string expiresAt = activePlan.EndDate.ToString("o");
                 string subscription = activePlan.Id.ToString();

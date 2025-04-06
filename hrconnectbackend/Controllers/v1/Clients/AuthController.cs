@@ -1,9 +1,11 @@
 using hrconnectbackend.Config.Settings;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using SharpCompress.Common;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
@@ -89,14 +91,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         }
 
-        [HttpPost("signup")]
+        [HttpPost("admin/signup")]
         public async Task<IActionResult> Signup(CreateUser user)
         {
-            var userAccount = await authService.SignUp(user);
-            
-            if (userAccount == null) return BadRequest();
-            
-            return Ok();
+            var userAccount = await authService.SignUpAdmin(user);
+
+            if (userAccount == null) return BadRequest(new
+            {
+                Message = "Invalid request",
+            });
+
+            return Ok(userAccount);
         }
 
         
@@ -111,7 +116,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsersAccountByOrg(int orgId)
+        public async Task<IActionResult> GetUsersAccountByOrg(Guid orgId)
         {
             var users = await authService.GetUsers(orgId);
             // var org = HttpContext.Items["orgId"];

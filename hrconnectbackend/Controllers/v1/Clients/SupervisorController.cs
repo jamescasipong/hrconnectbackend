@@ -106,7 +106,7 @@ public class SupervisorController(
 
             return Ok(new ApiResponse<ReadSupervisorDto>(false, $"Supervisor with id: {supervisorId} retrieved successfully."));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }

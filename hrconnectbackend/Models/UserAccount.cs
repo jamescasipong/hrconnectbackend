@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Sessions;
+using SharpCompress.Common;
 
 namespace hrconnectbackend.Models
 {
@@ -14,32 +16,12 @@ namespace hrconnectbackend.Models
         public string Password { get; set; } = string.Empty;
         public bool EmailVerified { get; set; } = false;
         public bool SmsVerified { get; set; } = false;
-        public int OrganizationId { get; set; } // Foreign Key, nullable
+        public Guid? OrganizationId { get; set; } // Foreign Key, nullable
         public bool ChangePassword { get; set; } = false;
-        public UserRole? Role { get; set; }
+        public string Role { get; set; } = string.Empty; // Nullable role property
 
-        // public static UserAccount CreateUserAccount(CreateUser user)
-        // {
-        //     return new UserAccount
-        //     {
-        //         UserName = user.UserName,
-        //         Email = user.Email,
-        //         Password = user.Password,
-        //         EmailVerified = false,
-        //         SmsVerified = false,
-        //         OrganizationId = user.OrganizationId,
-        //         Role = user.role
-        //     };
-        // }
-
-        public string GetRoleAsString()
-        {
-            return Role.ToString() ?? "N/A";
-        }
+    
         public List<RefreshToken>? RefreshTokens { get; set; }
-        
-
-        // Make the Organization navigation property nullable
         public Employee? Employee { get; set; }
         public UserSettings? UserSettings { get; set; }
         public Organization? Organization { get; set; } // Optional relationship
@@ -49,6 +31,8 @@ namespace hrconnectbackend.Models
 
 public enum UserRole
 {
+    Operator,
     Admin,
     Employee,
 }
+

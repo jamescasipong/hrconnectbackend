@@ -34,6 +34,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var supervisor = await supervisorServices.GetEmployeeSupervisor(dtoApplication.EmployeeId);
 
+                if (supervisor == null)
+                {
+                    return BadRequest(new ApiResponse(false, $"Unable to process. You don't have a supervisor."));
+                }
+
                 var attendance = await attendanceServices.GetAllAsync();
 
                 var attendanceExist = attendance.FirstOrDefault(a => a.Equals(dtoApplication));

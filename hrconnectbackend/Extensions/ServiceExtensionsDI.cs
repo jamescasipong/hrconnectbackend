@@ -50,10 +50,11 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<ISupervisorServices, SupervisorServices>();
             services.AddScoped<IOrganizationServices, OrganizationServices>();
             // services.AddSingleton<IAuthorizationHandler, UserPermissionHandler>();
-            services.AddSingleton<IAuthorizationHandler, UserRolehandler>();
+            
             // services.AddSingleton<IAuthorizationRequirement, UserRoleAttribute>();
             // services.AddSingleton<AuthorizeAttribute, UserRoleAttribute>();
 
+            services.AddSingleton<IAuthorizationHandler, UserRolehandler>();
             services.AddSingleton<IAuthorizationPolicyProvider, UserRolePolicyProvider>();
 
             // Class Based Object Injections
@@ -66,7 +67,8 @@ namespace hrconnectbackend.Extensions
         public static void AddCorsHandler(this IServiceCollection services)
         {
             services.AddCors(options =>
-            {
+            {   
+                // Allow all origins, methods, and headers for the default policy
                 options.AddPolicy("AllowAll",
                     builder =>
                     {
@@ -74,7 +76,21 @@ namespace hrconnectbackend.Extensions
                                .AllowAnyMethod()
                                .AllowAnyHeader();
                     });
+                // Add a specific policy for your React app
+                options.AddPolicy("HRConnect", builder =>
+                    {
+                        builder.AllowAnyHeader()
+                                .AllowAnyMethod()
+                                .AllowCredentials()
+                                .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000"); // Replace with your React app's URL
+                    });
             });
+        }
+
+        public static void UseCorsHandler(this IApplicationBuilder app)
+        {
+            app.UseCors("HRConnect");
+            app.UseCors("AllowAll");
         }
        
     }

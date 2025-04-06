@@ -14,6 +14,8 @@ public class SubscriptionPlan
     public int TenantId { get; set; }
     public int DurationDays { get; set; }
     public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     
     public List<Subscription>? Subscriptions { get; set; }
 }

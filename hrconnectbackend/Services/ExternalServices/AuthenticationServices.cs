@@ -29,7 +29,6 @@ namespace hrconnectbackend.Services.ExternalServices
         public IActionResult? ValidateUser(ClaimsPrincipal user, int employeeId, IEnumerable<string>? requiredRoles = null)
         {
             const string? UNAUTHORIZED_MESSAGE = "Authentication required. Please sign in to access this resource.";
-            const string FORBIDDEN_MESSAGE = "Access denied. You don't have permission to access this resource.";
             
             if (!TryGetCurrentUser(user, out var empId))
             {

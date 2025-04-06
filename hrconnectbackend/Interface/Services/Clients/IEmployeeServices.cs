@@ -15,6 +15,6 @@ namespace hrconnectbackend.Interface.Services.Clients
         Task<List<Employee>> GetSubordinates(int id);
         Task CreateEmployee(CreateEmployeeDto employee);
         Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize);
-        Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDTO);
+        Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto);
     }
 }

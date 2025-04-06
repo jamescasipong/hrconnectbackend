@@ -49,6 +49,13 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         await _context.SaveChangesAsync();
     }
 
+    public async Task<Department?> GetDepartmentByGuid(Guid guid)
+    {
+        var department = await _context.Departments.FirstOrDefaultAsync(a => a.DepartmentGuid == guid);
+        
+        return department;
+    }
+
     public async Task UpdateEmployeeDepartment(int employeeId, int departmentId)
     {
         var employee = await _context.Employees.FindAsync(employeeId);

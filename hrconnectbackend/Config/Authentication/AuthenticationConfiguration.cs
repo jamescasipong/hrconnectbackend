@@ -89,6 +89,12 @@ namespace hrconnectbackend.Config.Authentication
                             var jwtHandler = new JwtSecurityTokenHandler();
                             var securityToken = jwtHandler.ReadToken(decryptedToken) as JwtSecurityToken;
 
+                            if (securityToken == null)
+                            {
+                                _logger.LogWarning("Invalid token format.");
+                                context.Fail("Invalid token format.");
+                                return;
+                            }
                             // Check if the token has expired
                             if (securityToken.ValidTo < DateTime.UtcNow)
                             {

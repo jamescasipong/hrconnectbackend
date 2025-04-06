@@ -1,13 +1,32 @@
+using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SubscriptionController(ISubscriptionServices services) : ControllerBase
+    public class SubscriptionController(ISubscriptionServices services, DataContext dbContext) : ControllerBase
     {
+
+        [HttpPost("generate-dates")]
+        public async Task<IActionResult> GenerateDates()
+        {
+            var plans = await dbContext.SubscriptionPlans.ToListAsync();
+
+            foreach (var plan in plans)
+            {
+                plan.CreatedAt = DateTime.UtcNow;
+                
+                dbContext.Update(plan);
+                await dbContext.SaveChangesAsync(); 
+            }
+
+            return Ok(plans);
+        }
+        
         [HttpPost("generate")]
         public async Task<IActionResult> GenerateSubscriptionPlan()
         {
@@ -27,6 +46,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> Subscribe(int userId, int planId)
         {
             var subPlan = await services.GetSubscriptionPlanById(planId);
+
+            if (subPlan == null)
+            {
+                return NotFound($"No subscription plan found with id {planId}");
+            }
             
             await services.Subscribe(userId, subPlan);
             

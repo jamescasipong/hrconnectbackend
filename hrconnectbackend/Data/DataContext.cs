@@ -42,6 +42,7 @@ namespace hrconnectbackend.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Department>().HasIndex(a => a.DeptName).IsUnique();
+            modelBuilder.Entity<Department>().HasIndex(a => a.DepartmentGuid).IsUnique();
             
             modelBuilder.Entity<RefreshToken>()
                 .Property(r => r.CreateAt)
@@ -101,7 +102,7 @@ namespace hrconnectbackend.Data
                 .HasOne(a => a.Organization)
                 .WithMany(o => o.Users)
                 .HasForeignKey(a => a.OrganizationId)  // Foreign key is OrganizationId
-                .OnDelete(DeleteBehavior.SetNull); // On delete, set OrganizationId to null
+                .OnDelete(DeleteBehavior.Cascade); // On delete, set OrganizationId to null
 
             // Configuring the relationship between RefreshToken and UserAccount (Cascade on delete)
             modelBuilder.Entity<RefreshToken>()

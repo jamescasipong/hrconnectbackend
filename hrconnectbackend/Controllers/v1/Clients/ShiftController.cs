@@ -206,7 +206,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { error = "An internal error occurred" });
             }

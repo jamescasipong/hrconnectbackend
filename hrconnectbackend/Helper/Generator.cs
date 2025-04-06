@@ -26,6 +26,7 @@ public static class Generator
 
         // Generate random password
         var randomPassword = new char[length];
+        #pragma warning disable SYSLIB0023 // Type or member is obsolete
         using (var rng = new RNGCryptoServiceProvider())
         {
             byte[] randomBytes = new byte[length];
@@ -37,6 +38,7 @@ public static class Generator
                 randomPassword[i] = charPool[index];
             }
         }
+        #pragma warning restore SYSLIB0023 // Type or member is obsolete
 
         return new string(randomPassword);
     }
