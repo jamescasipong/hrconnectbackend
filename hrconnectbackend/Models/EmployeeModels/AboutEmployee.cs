@@ -30,8 +30,8 @@ namespace hrconnectbackend.Models
                 InstitutionName = "No institution name",
                 Degree = "No degree",
                 FieldOfStudy = "No field of study",
-                StartDate = DateTime.Now,
-                EndDate = DateTime.Now,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow,
                 GPA = 0.0
             };
             

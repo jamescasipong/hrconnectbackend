@@ -1,7 +1,16 @@
-﻿namespace hrconnectbackend.Features.Services;
+﻿using hrconnectbackend.Data;
+using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Models;
+using Microsoft.EntityFrameworkCore;
 
-public class ArchiveBackgroundService: BackgroundService
+namespace hrconnectbackend.Features.Ongoing.Services;
+
+public class ArchiveBackgroundService(DataContext dbContext, 
+    INotificationService notificationService, 
+    ISubscriptionServices subscriptionServices): BackgroundService
 {
+    
+    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -11,4 +20,5 @@ public class ArchiveBackgroundService: BackgroundService
             await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
         }
     }
+
 }

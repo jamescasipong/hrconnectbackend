@@ -37,6 +37,7 @@ namespace hrconnectbackend.Data
         public DbSet<Organization> Organizations { get; set; }  // Organization data
         public DbSet<EmployeeDepartment> EmployeeDepartments { get; set; }  // Employee-Department relationship data
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<VerificationCode> VerificationCodes { get; set; }
 
         // Configuring relationships between the entities using Fluent API
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -53,7 +54,6 @@ namespace hrconnectbackend.Data
                 .Property(r => r.Expires)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP") // Ensure Expires is UTC
                 .ValueGeneratedOnAdd();
-            
 
             // Configuring the relationship between Employee and EmployeePosition
             modelBuilder.Entity<Employee>()
@@ -159,6 +159,9 @@ namespace hrconnectbackend.Data
                 .WithMany(u => u.UserNotification)
                 .HasForeignKey(a => a.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<UserNotification>()
+                .HasIndex(a => a.ReferenceId)
+                .IsUnique();
 
             // Configuring the relationship between UserNotification and Notification (Restrict delete)
             modelBuilder.Entity<UserNotification>()
@@ -175,6 +178,7 @@ namespace hrconnectbackend.Data
                 .WithMany(d => d.Employees)
                 .HasForeignKey(e => e.EmployeeDepartmentId)
                 .OnDelete(DeleteBehavior.SetNull); // Set null if EmployeeDepartment is deleted
+            modelBuilder.Entity<Employee>().HasOne(a => a.UserAccount).WithOne(a => a.Employee).HasForeignKey<Employee>(a => a.UserId);
 
             // Configuring the relationship between Employee and AboutEmployee
             modelBuilder.Entity<AboutEmployee>()
@@ -197,11 +201,6 @@ namespace hrconnectbackend.Data
             // Configuring the relationship between UserAccount and Employee (Cascade delete)
             modelBuilder.Entity<UserAccount>()
                 .HasKey(a => a.UserId);
-            modelBuilder.Entity<UserAccount>()
-                .HasOne(a => a.Employee)
-                .WithOne(e => e.UserAccount)
-                .HasForeignKey<Employee>(a => a.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
 
             // Configuring the relationship between Payroll and Employee (Cascade delete)
             modelBuilder.Entity<Payroll>()

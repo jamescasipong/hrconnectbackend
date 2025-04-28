@@ -15,6 +15,8 @@ public class SubscriptionPlan
     public int DurationDays { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int MaxUsers { get; set; }
+    public string Features { get; set; } = string.Empty;
 
     
     public List<Subscription>? Subscriptions { get; set; }

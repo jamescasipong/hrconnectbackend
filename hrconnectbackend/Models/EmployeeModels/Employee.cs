@@ -22,7 +22,7 @@ namespace hrconnectbackend.Models.EmployeeModels
         public string EmergencyContactName { get; set; } = "N/A";
         public string EmergencyContactPhone { get; set; } = "N/A";
         public string Status { get; set; } = StatusType.Offline.ToString();
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = null;
         public int? EmployeeDepartmentId { get; set; } = null;
 

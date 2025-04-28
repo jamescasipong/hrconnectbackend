@@ -93,12 +93,11 @@ namespace hrconnectbackend.Services.Clients
                     
                     var employeeEntity = new Employee
                     {
-                        UserId = userAccount.UserId,
                         Email = employee.Email,
                         TenantId = 1,
                         PositionId = 1,
                         Status = "offline",
-                        CreatedAt = DateTime.Now,
+                        CreatedAt = DateTime.UtcNow,
                         UpdatedAt = null
                     };
 
@@ -138,136 +137,119 @@ namespace hrconnectbackend.Services.Clients
         }
 
         public async Task CreateEmployee(CreateEmployeeDto employee)
+{
+    await using var transaction = await _context.Database.BeginTransactionAsync();
+
+    try
+    {
+        // Check if the employee is null and throw an exception
+        if (employee == null)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                // Check if the employee is null and throw an exception
-                if (employee == null)
-                {
-                    logger.LogWarning("Attempted to create an employee with null data.");
-                    throw new ArgumentNullException(nameof(employee), "Employee data cannot be null.");
-                }
-
-                // Check if an employee with the same email already exists
-                var existingEmployee = (await GetAllAsync())
-                                       .FirstOrDefault(e => e.Email == employee.Email);
-
-                // if (!EmailServices.IsValidEmail(employee.Email))
-                // {
-                //     _logger.LogWarning("Invalid email format provided: {Email}", employee.Email);
-                //     throw new ArgumentException("Invalid email format", nameof(employee.Email));
-                // }
-
-                // If an employee with the same email exists, throw an exception
-                if (existingEmployee != null)
-                {
-                    logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
-                    throw new InvalidOperationException("An employee with the same email already exists.");
-                }
-
-                string password;
-
-                if (!string.IsNullOrEmpty(employee.Password))
-                {
-                    if (!employee.Password.IsValidPassword())
-                    {
-                        throw new ArgumentException("Invalid password format", nameof(employee.Password));
-                    }
-
-                    password = BCrypt.Net.BCrypt.HashPassword(employee.Password);
-                }
-                else
-                {
-                    password = Generator.GeneratePassword();
-                }
-
-                if (!employee.Email.IsValidEmail())
-                {
-                    throw new ArgumentException("Invalid email format", nameof(employee.Email));
-                }
-                // Create the employee entity
-                var employeeEntity = new Employee
-                {
-                    Email = employee.Email,
-                    Status = "offline",
-                };
-
-                var aboutEmployee = employeeEntity.CreateAboutEmployee(employee.FirstName, employee.FirstName);
-
-                var education = aboutEmployee.CreateEducationBackground();
-                
-
-                employeeEntity.CreatedAt = DateTime.Now;
-                employeeEntity.UpdatedAt = null;
-                // Add the employee entity to the database
-                await AddAsync(employeeEntity);
-
-                string userName = $"{aboutEmployee.FirstName.CapitalLowerCaseName()}" + $"{aboutEmployee.LastName.CapitalLowerCaseName()}";
-
-                // Create associated records
-                await userAccountService.AddAsync(new UserAccount
-                {
-                    UserId = employeeEntity.Id,
-                    EmailVerified = false,
-                    SmsVerified = false,
-                    UserName = userName,
-                    Password = password,
-                    Email = employee.Email
-                });
-
-                await aboutEmployeeService.AddAsync(aboutEmployee);
-
-                await attendanceService.AddAsync(new Attendance
-                {
-                    EmployeeId = employeeEntity.Id,
-                    ClockIn = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan(),
-                    ClockOut = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan(),
-                    DateToday = DateTime.Now
-                });
-
-                await aboutEmployeeService.AddEducationBackgroundAsync(education);
-                
-                // Commit the transaction
-                await transaction.CommitAsync();
-
-                // Log success and return a success message
-                logger.LogInformation("Employee created successfully: {EmployeeId}", employeeEntity.Id);
-            }
-            catch (ArgumentNullException ex)
-            {
-                // Rollback the transaction on error
-                await transaction.RollbackAsync();
-
-                // Log the exception
-                ThrowErrorType<ArgumentNullException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
-            }
-            catch (ArgumentException ex)
-            {
-                // Rollback the transaction on error
-                await transaction.RollbackAsync();
-
-                // Log the exception
-                ThrowErrorType<ArgumentException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
-            }
-            catch (InvalidOperationException ex)
-            {
-                // Rollback the transaction on error
-                await transaction.RollbackAsync();
-
-                // Log the exception
-                ThrowErrorType<InvalidOperationException>($"Error occurred while creating employee: {ex.Message}", _ => logger.LogError(ex.Message));
-            }
-            catch (Exception ex)
-            {
-                // Rollback the transaction on error
-                await transaction.RollbackAsync();
-
-                // Log the exception
-                ThrowErrorType<Exception>($"Error occurred while creating {nameof(employee)}: {ex.Message}", _ => logger.LogError(ex.Message));
-            }
+            logger.LogWarning("Attempted to create an employee with null data.");
+            throw new ArgumentNullException(nameof(employee), "Employee data cannot be null.");
         }
+
+        // Check if an employee with the same email already exists
+        var existingEmployee = await _context.Employees
+                                             .FirstOrDefaultAsync(e => e.Email == employee.Email);
+
+        if (existingEmployee != null)
+        {
+            logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
+            throw new InvalidOperationException("An employee with the same email already exists.");
+        }
+
+        // Handle password and user account creation
+        string password = !string.IsNullOrEmpty(employee.Password) && employee.Password.IsValidPassword()
+            ? BCrypt.Net.BCrypt.HashPassword(employee.Password)
+            : Generator.GeneratePassword();
+
+        if (!employee.Email.IsValidEmail())
+        {
+            throw new ArgumentException("Invalid email format", nameof(employee.Email));
+        }
+
+        string userName = $"{employee.FirstName.CapitalLowerCaseName()}{employee.LastName.CapitalLowerCaseName()}";
+
+        var userAccount = await userAccountService.AddAsync(new UserAccount
+        {
+            EmailVerified = false,
+            SmsVerified = false,
+            UserName = userName,
+            Password = password,
+            Email = employee.Email
+        });
+
+        // Create the employee entity and ensure DateTime is UTC
+        var empEntity = new Employee
+        {
+            Email = employee.Email,
+            Status = "offline",
+            UserId = userAccount.UserId,
+            CreatedAt = DateTime.UtcNow,  // Ensure it's UTC
+            TenantId = 1,
+            UpdatedAt = null
+        };
+
+        // Add employee to the database
+        _context.Employees.Add(empEntity);
+        await _context.SaveChangesAsync();  // Save to get the generated Id
+
+        // Create associated records for AboutEmployee
+        var aboutEmployee = empEntity.CreateAboutEmployee(employee.FirstName, employee.LastName);
+        var newAboutEmployee = await aboutEmployeeService.AddAsync(aboutEmployee);
+
+        // Create Education Background for AboutEmployee
+        var education = newAboutEmployee.CreateEducationBackground();
+        await aboutEmployeeService.AddEducationBackgroundAsync(education);
+
+        // Create attendance record for the new employee
+        var attendance = new Attendance
+        {
+            EmployeeId = empEntity.Id,
+            ClockIn = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+            ClockOut = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+            DateToday = DateTime.UtcNow  // Ensure it's UTC
+        };
+        await attendanceService.AddAsync(attendance);
+
+        // Commit the transaction
+        await transaction.CommitAsync();
+
+        // Log success and return a success message
+        logger.LogInformation("Employee created successfully: {EmployeeId}", empEntity.Id);
+    }
+    catch (ArgumentNullException ex)
+    {
+        // Rollback the transaction on error
+        await transaction.RollbackAsync();
+        logger.LogError(ex.Message);
+        throw; // Rethrow the exception after logging it
+    }
+    catch (ArgumentException ex)
+    {
+        // Rollback the transaction on error
+        await transaction.RollbackAsync();
+        logger.LogError(ex.Message);
+        throw; // Rethrow the exception after logging it
+    }
+    catch (InvalidOperationException ex)
+    {
+        // Rollback the transaction on error
+        await transaction.RollbackAsync();
+        logger.LogError(ex.Message);
+        throw; // Rethrow the exception after logging it
+    }
+    catch (Exception ex)
+    {
+        // Rollback the transaction on error
+        await transaction.RollbackAsync();
+        logger.LogError(ex.Message);
+        throw; // Rethrow the exception after logging it
+    }
+}
+
+
 
         public List<Employee> GetEmployeesPagination(List<Employee> employees, int? pageIndex, int? pageSize)
         {

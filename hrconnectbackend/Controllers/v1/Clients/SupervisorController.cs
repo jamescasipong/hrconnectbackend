@@ -26,28 +26,7 @@ public class SupervisorController(
     private readonly ILeaveApplicationServices _leaveApplicationServices = leaveApplicationServices;
     private readonly INotificationServices _notificationServices = notificationServices;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
-
-    // [Authorize(Roles ="Admin,HR")]
-    // [HttpPost("create-supervisor/{id}")]
-    // public async Task<IActionResult> CreateSupervisor(int id)
-    // {
-    //     var employee = await employeeServices.GetByIdAsync(id);
-    //
-    //     if (employee == null) return NotFound();
-    //
-    //     var supervisor = await supervisorServices.GetByIdAsync(id);
-    //
-    //     if (supervisor != null) return BadRequest("It already exist!");
-    //
-    //     var newSupervisor = new Supervisor
-    //     {
-    //         EmployeeId = id
-    //     };
-    //
-    //     await supervisorServices.AddAsync(newSupervisor);
-    //
-    //     return Ok(newSupervisor);
-    // }
+    
     [Authorize(Roles ="Admin,HR")]
     [HttpGet]
     public async Task<IActionResult> GetAllSupervisors()

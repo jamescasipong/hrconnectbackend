@@ -12,7 +12,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
     [ApiController]
     public class OrganizationController(IOrganizationServices organizationServices, ILogger<OrganizationController> logger) : ControllerBase
     {
-        [UserRole("Admin")]
+        // [UserRole("Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganization organization)
         {

@@ -12,7 +12,7 @@ public interface IAuthService
     Task<UserAccount?> SignUpEmployee(CreateUser user);
     Task<UserAccount?> SignUpOperator(CreateUserOperator user);
     Task<bool> ChangePassword(string email, string password);
-    Task<IEnumerable<UserAccount>> GetUsers(Guid tenantId);
+    Task<IEnumerable<UserAccount>> GetUsers(int tenantId);
     Task<RefreshToken?> GetRefreshToken(int userId);
     Task<string> GenerateAccessToken(string refreshToken);
     Task<RefreshToken?> LogoutRefreshToken(string refreshToken);

@@ -1,6 +1,9 @@
 ﻿namespace hrconnectbackend.Features.Ongoing.Extensions;
 
-public class RedisExensions
+public static class RedisExensions
 {
-    
+    public static void AddRedis(this IServiceCollection services)
+    {
+        
+    }
 }

@@ -1,11 +1,10 @@
+using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Config.Settings;
-using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using SharpCompress.Common;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
@@ -88,11 +87,25 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public Task<IActionResult> SigninVerify([FromQuery] string token, [FromQuery] string email)
         {
             return Task.FromResult<IActionResult>(Ok());
-
         }
+        
+        // [UserRole("Admin,Operator")]
+        [HttpPost("operator/signup")]
+        public async Task<IActionResult> SignupOperator(CreateUserOperator user)
+        {
+            var userAccount = await authService.SignUpOperator(user);
 
+            if (userAccount == null) return BadRequest(new
+            {
+                Message = "Invalid request",
+            });
+
+            return Ok(userAccount);
+        }
+        
+        [UserRole("Admin,Operator")]
         [HttpPost("admin/signup")]
-        public async Task<IActionResult> Signup(CreateUser user)
+        public async Task<IActionResult> SignupAdmin(CreateUser user)
         {
             var userAccount = await authService.SignUpAdmin(user);
 
@@ -103,7 +116,21 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             return Ok(userAccount);
         }
+        
+        [UserRole("Admin,Operator")]
+        [HttpPost("employee/signup")]
+        public async Task<IActionResult> SignupEmployee(CreateUser user)
+        {
+            var userAccount = await authService.SignUpEmployee(user);
 
+            if (userAccount == null)
+                return BadRequest(new
+                {
+                    Message = "Invalid Request",
+                });
+            
+            return Ok(userAccount);
+        }
         
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)
@@ -116,7 +143,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsersAccountByOrg(Guid orgId)
+        public async Task<IActionResult> GetUsersAccountByOrg(int orgId)
         {
             var users = await authService.GetUsers(orgId);
             // var org = HttpContext.Items["orgId"];

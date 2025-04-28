@@ -1,11 +1,12 @@
 using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class SubscriptionController(ISubscriptionServices services, DataContext dbContext) : ControllerBase
@@ -52,7 +53,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return NotFound($"No subscription plan found with id {planId}");
             }
             
-            await services.Subscribe(userId, subPlan);
+            // await services.Subscribe(userId, subPlan);
             
             return Ok();
         }

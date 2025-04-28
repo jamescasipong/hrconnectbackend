@@ -45,9 +45,9 @@ namespace hrconnectbackend.Services.Clients
             var auth = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
             if (auth == null) throw new KeyNotFoundException("No user account found!");
-            //
+            // //
             // auth.VerificationCode = new Random().Next(100000, 999999);
-            // auth.VerificationCodeExpiry = expiry;
+            // auth.VerificationCodeExpiry = expiry
             
             await _context.SaveChangesAsync();
 

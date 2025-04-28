@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements.Handler;
 using hrconnectbackend.Config.Authentication;
+using hrconnectbackend.Config.Authorization;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Helper.Authorization;
 using hrconnectbackend.Interface.Services;
@@ -82,7 +83,7 @@ namespace hrconnectbackend.Extensions
                         builder.AllowAnyHeader()
                                 .AllowAnyMethod()
                                 .AllowCredentials()
-                                .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000"); // Replace with your React app's URL
+                                .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000", "https://localhost:3001"); // Replace with your React app's URL
                     });
             });
         }

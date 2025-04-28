@@ -1,12 +1,9 @@
-﻿using System.Security.Claims;
-using hrconnectbackend.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Logging;
+﻿using hrconnectbackend.Data;
+using hrconnectbackend.Helper.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
-namespace hrconnectbackend.Helper.Authorization
+namespace hrconnectbackend.Config.Authorization
 {
-    using Microsoft.AspNetCore.Authorization;
-
     /// <summary>
     /// This class configures various authorization policies used throughout the application.
     /// It ensures that users have the necessary claims or subscription levels to access resources.
@@ -57,7 +54,7 @@ namespace hrconnectbackend.Helper.Authorization
                 policy.RequireAssertion(context =>
                 {
                     _logger.LogInformation("Checking Free-trial subscription for user: {User}", context.User.Identity?.Name);
-                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, new[] { "Free-trial", "Basic", "Premium", "Enterprise" });
+                    return context.User.HasClaim("Subscription", "Free-trial");
                 });
             });
 
@@ -67,7 +64,7 @@ namespace hrconnectbackend.Helper.Authorization
                 policy.RequireAssertion(context =>
                 {
                     _logger.LogInformation("Checking Basic subscription for user: {User}", context.User.Identity?.Name);
-                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, new[] { "Free-trial", "Basic", "Premium", "Enterprise" });
+                    return context.User.HasClaim("Subscription", "Basic");
                 });
             });
 
@@ -77,7 +74,7 @@ namespace hrconnectbackend.Helper.Authorization
                 policy.RequireAssertion(context =>
                 {
                     _logger.LogInformation("Checking Premium subscription for user: {User}", context.User.Identity?.Name);
-                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, new[] { "Premium", "Enterprise" });
+                    return context.User.HasClaim("Subscription", "Premium");
                 });
             });
 

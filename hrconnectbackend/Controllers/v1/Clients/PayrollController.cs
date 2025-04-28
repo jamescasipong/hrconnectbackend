@@ -19,7 +19,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(await payrollService.GetAllAsync());
         }
 
-        // Get payroll record by ID
+        [Authorize(Policy = "Premium")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPayrollById(int id)
         {

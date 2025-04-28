@@ -12,6 +12,7 @@ using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
+    [Authorize]
     [ApiController]
     [Route("api/v{version:apiVersion}/attendance")]
     [ApiVersion("1.0")]

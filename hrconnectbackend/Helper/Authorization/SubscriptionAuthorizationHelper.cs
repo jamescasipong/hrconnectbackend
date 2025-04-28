@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 public class SubscriptionAuthorizationHelper
 {
-    public bool IsSubscriptionValid(ClaimsPrincipal user, string[] allowedPlans)
+    public bool IsSubscriptionValid(ClaimsPrincipal user, IEnumerable<string> allowedPlans)
     {
         // Check if the user has a valid subscription claim
         var subscriptionClaim = user.Claims.FirstOrDefault(claim => claim.Type == "Subscription");

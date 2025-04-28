@@ -108,13 +108,13 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
-    {
-        httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
-    });
-});
+//builder.WebHost.ConfigureKestrel(serverOptions =>
+//{
+//    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+//    {
+//        httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+//    });
+//});
 
 var app = builder.Build();
 // app.UseMiddleware<SensitiveDataFilterMiddleware>();
@@ -137,7 +137,7 @@ if (app.Environment.IsDevelopment())
     
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseHsts();
 app.UseStatusCodePages();
 app.UseRouting(); // Add UseRouting before UseCors

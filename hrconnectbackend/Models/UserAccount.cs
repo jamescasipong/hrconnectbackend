@@ -16,10 +16,11 @@ namespace hrconnectbackend.Models
         public string Password { get; set; } = string.Empty;
         public bool EmailVerified { get; set; } = false;
         public bool SmsVerified { get; set; } = false;
-        public Guid? OrganizationId { get; set; } // Foreign Key, nullable
+        public int? OrganizationId { get; set; } // Foreign Key, nullable
         public bool ChangePassword { get; set; } = false;
         public string Role { get; set; } = string.Empty; // Nullable role property
-
+        public bool Locked { get; set; } = false;
+        public int NumberOfAttempts { get; set; } = 0;
     
         public List<RefreshToken>? RefreshTokens { get; set; }
         public Employee? Employee { get; set; }
@@ -28,11 +29,3 @@ namespace hrconnectbackend.Models
         public UserPermission? UserPermission { get; set; }
     }
 }
-
-public enum UserRole
-{
-    Operator,
-    Admin,
-    Employee,
-}
-

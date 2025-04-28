@@ -15,9 +15,11 @@ public class Organization
     [EmailAddress(ErrorMessage = "Invalid email address.")]
     [StringLength(100, ErrorMessage = "Contact email cannot be longer than 100 characters.")]
     public string ContactEmail { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string Website { get; set; } = string.Empty;
+    public string Zipcode { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
-    
 
     public Organization Copy()
     {
@@ -27,6 +29,8 @@ public class Organization
             Name = Name,
             Address = Address,
             ContactEmail = ContactEmail,
+            City = City,
+            Website = Website,
             CreatedAt = CreatedAt,
             IsActive = IsActive,
         };

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text.Json;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
@@ -27,7 +28,8 @@ public class AuthService(
         var user = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
         
         if (user == null) return null;
-
+        
+        logger.LogInformation("Signin attempt for email: {user}", JsonSerializer.Serialize(user));
 
         if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
@@ -40,10 +42,10 @@ public class AuthService(
         string accessToken = GenerateAcessToken(claims, dateTime);
         string refreshToken = await GenerateRefreshToken(user.UserId, remember);
 
-        var aes = new AES256Encrpytion(configuration.GetValue<string>("EncryptionSettings:Key")!);
-        var encrypted = aes.Encrypt(accessToken);
+        // var aes = new AES256Encrpytion(configuration.GetValue<string>("EncryptionSettings:Key")!);
+        // var encrypted = aes.Encrypt(accessToken);
         
-        return new AuthResponse(encrypted, refreshToken);
+        return new AuthResponse(accessToken, refreshToken);
     }
     
     public async Task<UserAccount?> SignUpAdmin(CreateUser user)
@@ -128,7 +130,7 @@ public class AuthService(
         return true;
     }
 
-    public async Task<IEnumerable<UserAccount>> GetUsers(Guid tenantId)
+    public async Task<IEnumerable<UserAccount>> GetUsers(int tenantId)
     {
         return await context.UserAccounts.Where(a => a.OrganizationId == tenantId).ToListAsync();
     }
@@ -137,7 +139,9 @@ public class AuthService(
     {
         var claims = new List<Claim>
         {
+            new Claim("Subscription", "Premium"),
             new Claim(ClaimTypes.Role, user.Role),
+            new Claim(ClaimTypes.NameIdentifier, user.UserName),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.UserName)
