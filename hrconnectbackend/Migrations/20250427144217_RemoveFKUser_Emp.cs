@@ -1,28 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class updateForeignKeyUser : Migration
+    public partial class RemoveFKUser_Emp : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_UserAccount_Employees_UserId",
+                name: "FK_UserAccount_Employees_EmployeeId",
                 table: "UserAccount");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "UserId",
-                table: "UserAccount",
-                type: "integer",
-                nullable: false,
-                oldClrType: typeof(int),
-                oldType: "integer")
-                .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            migrationBuilder.DropIndex(
+                name: "IX_UserAccount_EmployeeId",
+                table: "UserAccount");
+
+            migrationBuilder.DropColumn(
+                name: "EmployeeId",
+                table: "UserAccount");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_UserId",
@@ -50,19 +48,23 @@ namespace hrconnectbackend.Migrations
                 name: "IX_Employees_UserId",
                 table: "Employees");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "UserId",
+            migrationBuilder.AddColumn<int>(
+                name: "EmployeeId",
                 table: "UserAccount",
                 type: "integer",
                 nullable: false,
-                oldClrType: typeof(int),
-                oldType: "integer")
-                .OldAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                defaultValue: 0);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserAccount_EmployeeId",
+                table: "UserAccount",
+                column: "EmployeeId",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_UserAccount_Employees_UserId",
+                name: "FK_UserAccount_Employees_EmployeeId",
                 table: "UserAccount",
-                column: "UserId",
+                column: "EmployeeId",
                 principalTable: "Employees",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);

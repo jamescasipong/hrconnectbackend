@@ -12,8 +12,9 @@ namespace hrconnectbackend.Models.DTOs
         public int? SupervisorId { get; set; }
         [Required(ErrorMessage = "EndTime is required")]
         public TimeOnly EndTime { get; set; }
+
         [Required(ErrorMessage = "Reason is required")]
-        public string Reasons { get; set; }
+        public string Reasons { get; set; } = string.Empty;
     }
 
     public class ReadOtApplicationDto

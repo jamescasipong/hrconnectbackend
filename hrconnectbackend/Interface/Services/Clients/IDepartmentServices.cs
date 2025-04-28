@@ -5,6 +5,7 @@ namespace hrconnectbackend.Interface.Services.Clients;
 
 public interface IDepartmentServices : IGenericRepository<Department>
 {
+    Task<Department?> GetDepartmentByGuid(Guid guid);
     Task UpdateEmployeeDepartment(int employeeId, int departmentId);
     Task UpdateDepartmentByAsync(Department department);
     Task AddEmployeToDepartment(int employeeId, int departmentId);

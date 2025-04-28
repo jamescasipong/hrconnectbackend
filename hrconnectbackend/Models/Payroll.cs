@@ -9,22 +9,17 @@ namespace hrconnectbackend.Models
     {
         [Key]
         public int PayrollId { get; set; }
-
         [ForeignKey("Employee")]
         public int EmployeeId { get; set; }
         public Employee Employee { get; set; } = null!;
-
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal BasicSalary { get; set; } = decimal.Zero;
-
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Allowances { get; set; } = decimal.Zero;
-
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Deductions { get; set; } = decimal.Zero;
         public int TenantId { get; set; }
-
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal NetSalary { get; set; } // Computed as BasicSalary + Allowances - Deductions
@@ -46,8 +41,7 @@ namespace hrconnectbackend.Models
         [Required]
         public string PaymentStatus { get; set; } = "Pending"; // Pending, Paid
 
-        [Required]
-        public string PayPeriod { get; set; } // New field for Pay Period (e.g., "6th-20th" or "21st-5th")
+        [Required] public string PayPeriod { get; set; } = string.Empty; // New field for Pay Period (e.g., "6th-20th" or "21st-5th")
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

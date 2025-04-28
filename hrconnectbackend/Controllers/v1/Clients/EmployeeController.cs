@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
-    
+    // [Authorize]
     [ApiController]
     [Route("api/v{version:apiVersion}/employee")]
     [ApiVersion("1.0")]
@@ -19,22 +20,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         IEmployeeServices employeeService,
         IMapper mapper,
         IAboutEmployeeServices aboutEmployeeServices,
-        IDepartmentServices departmentService,
         ILogger<EmployeeController> logger,
-        IUserAccountServices userAccountServices,
-        ISupervisorServices supervisorService,
-        ILeaveApplicationServices leaveApplicationService,
-        IAttendanceServices attendanceService,
-        IShiftServices shiftService,
-        INotificationServices notificationService)
+        IUserAccountServices userAccountServices
+        )
         : ControllerBase
     {
-        private readonly ISupervisorServices _supervisorService = supervisorService;
-        private readonly IShiftServices _shiftService = shiftService;
-        private readonly IDepartmentServices _departmentService = departmentService;
-        private readonly ILeaveApplicationServices _leaveApplicationService = leaveApplicationService;
-        private readonly IAttendanceServices _attendanceService = attendanceService;
-        private readonly INotificationServices _notificationService = notificationService;
 
         // [Authorize(Roles = "Admin,HR")]
         [HttpPost]
@@ -85,7 +75,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, "Employees generated successfully", empDto));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, "Employees generated successfully", empDto));
             }
             catch (Exception ex)
             {
@@ -94,44 +84,64 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize(Roles ="Admin, HR")]
+        // [Authorize(Roles ="Admin, HR")]
+        // [UserRole("Owner")]
         [HttpGet]
         public async Task<IActionResult> GetEmployees([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
+            var user = User;
+
+            if (user == null)
+            {
+                logger.LogWarning("User is unauthenticated.");
+                return Unauthorized();
+            }
+
+            if (!user.IsInRole("HR") && !user.IsInRole("Admin") && !user.IsInRole("Operator"))
+            {
+                logger.LogWarning("User is not in role 'HR' or in role 'Admin', 'Operator'.");
+                return Forbid();
+            }
+            
             try
             {
                 var employees = new List<Employee>();
-
+                logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
                 // Check if pagination parameters are provided
                 if (pageIndex == null || pageSize == null)
                 {
+                    logger.LogWarning("Page index and Page size are required.");
                     employees = await employeeService.GetAllAsync();
                 }
                 else
                 {
                     if (pageIndex <= 0)
                     {
+                        logger.LogWarning("Page index is less than zero.");
                         return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
                     }
 
                     if (pageSize <= 0)
                     {
+                        logger.LogWarning("Page size is less than zero.");
                         return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
                     }
-
+                        
                     // Apply pagination only if pageIndex and pageSize are not null
+                    logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
                     employees = await employeeService.RetrieveEmployees(pageIndex, pageSize);
 
                 }
 
                 if (!employees.Any())
                 {
+                    logger.LogWarning("No employees found.");
                     return NotFound(new ApiResponse(false, $"No employees exist"));
                 }
-
-                var employeesDTO = mapper.Map<List<ReadEmployeeDto>>(employees);
-
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(true, $"Employees retrieved successfully!", employeesDTO));
+                
+                var employeesDto = mapper.Map<List<ReadEmployeeDto>>(employees);
+                
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, $"Employees retrieved successfully!", employeesDto));
             }
             catch (Exception ex)
             {
@@ -139,30 +149,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetEmployee()
         {
-            // Check if the cookies are expired and delete them
-            if (Request.Cookies.ContainsKey("token"))
-            {
-                var cookie = Request.Cookies["token"];
-                if (cookie != null && DateTime.TryParse(cookie, out var cookieExpiryDate))
-                {
-                    if (cookieExpiryDate < DateTime.UtcNow)
-                    {
-                        Response.Cookies.Append("token", "", new CookieOptions
-                        {
-                            HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                            SameSite = SameSiteMode.None, // Prevent CSRF attacks
-                            Secure = true,
-                            Path="/",
-                            Expires = DateTime.UtcNow.AddMinutes(-1), // Cookie expires in 1 hour
-                        });
-                    }
-                }
-            }
-
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
@@ -188,7 +178,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // employeeDTO.AboutEmployee = aboutEmployeeDTO;
 
 
-            return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
         [Authorize]
         [HttpGet("education/me")]
@@ -203,7 +193,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var employeeDTO = mapper.Map<List<EducationBackgroundDto>>(employee);
         
 
-            return Ok(new ApiResponse<List<EducationBackgroundDto>>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<List<EducationBackgroundDto>?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -223,7 +213,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employeeDTO = mapper.Map<CreateAboutEmployeeDto>(employee);
 
-            return Ok(new ApiResponse<CreateAboutEmployeeDto>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new ApiResponse<CreateAboutEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
         [Authorize]
@@ -252,7 +242,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-                return Ok(new ApiResponse<ReadEmployeeDto>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+                return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
             }
             catch (Exception ex)
             {
@@ -263,7 +253,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles ="Admin,HR")]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDto employeeDTO)
+        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDto employeeDto)
         {
             var employee = await employeeService.GetByIdAsync(id);
 
@@ -281,8 +271,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 // employee.FirstName = employee.FirstName;
                 // employee.LastName = employee.LastName;
-                employee.Email = employee.Email;
-                employee.Status = employee.Status;
+                employee.Email = employeeDto.Email;
+                employee.Status = employeeDto.Status;
 
                 await employeeService.UpdateAsync(employee);
 
@@ -327,7 +317,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
                 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
             }
             catch (KeyNotFoundException ex)
             {

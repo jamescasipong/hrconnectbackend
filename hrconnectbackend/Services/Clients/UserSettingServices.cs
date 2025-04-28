@@ -30,7 +30,7 @@ namespace hrconnectbackend.Services.Clients
                 CreatedAt = DateTime.UtcNow,  // Set the creation timestamp
                 UpdatedAt = DateTime.UtcNow, // Set the update timestamp
                 IsTwoFactorEnabled = true,
-                TwoFactorMethod = null,
+                TwoFactorMethod = "email",  // Default method for 2FA
                 TwoFactorSecret = null,
             };
 
@@ -71,7 +71,7 @@ namespace hrconnectbackend.Services.Clients
             setting.PrivacyLevel = "medium";  // Default privacy level
             setting.UpdatedAt = DateTime.UtcNow; // Only update timestamp, don't change CreatedAt
             setting.IsTwoFactorEnabled = true;
-            setting.TwoFactorMethod = null;
+            setting.TwoFactorMethod = "email";  // Default method for 2FA
             setting.TwoFactorSecret = null;
 
             try

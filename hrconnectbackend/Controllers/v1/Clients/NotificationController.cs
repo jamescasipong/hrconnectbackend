@@ -2,6 +2,7 @@
 using AutoMapper;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
+using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
@@ -47,7 +48,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 
                 var userNotifications = await userNotificationServices.AddAsync(usernotification);
 
-                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(newNotification)));
+                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(newNotification)));
             }
             catch (Exception ex)
             {
@@ -78,7 +79,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 
                 var userNotifications = await userNotificationServices.AddAsync(usernotification);
 
-                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -96,7 +97,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var notifications = await userNotificationServices.GetNotificationByUserId(employeeId);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDto>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
+                return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
             }
             catch (Exception)
             {
@@ -134,7 +135,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (notification == null) return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
 
-                return Ok(new ApiResponse<ReadNotificationsDto>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -151,7 +152,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var paginationaNotifications = notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
 
-                return Ok(new ApiResponse<List<ReadNotificationsDto>>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
             }
             catch (Exception)
             {
@@ -171,7 +172,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
                 }
 
-                return Ok(new ApiResponse<ReadNotificationsDto>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+                return Ok(new ApiResponse<ReadNotificationsDto?>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
             }
             catch (Exception)
             {
@@ -188,11 +189,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             try
             {
-                return Ok(new ApiResponse<List<ReadNotificationsDto>>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
             }
             catch (ArgumentOutOfRangeException ex)
             {
-                return Ok(new ApiResponse<List<ReadNotificationsDto>>(false, $"{ex.Message}. Thus, it returned the original", mappedNotifications));
+                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(false, $"{ex.Message}. Thus, it returned the original", mappedNotifications));
             }
             catch (Exception)
             {

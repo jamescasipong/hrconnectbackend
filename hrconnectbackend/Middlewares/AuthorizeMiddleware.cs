@@ -30,3 +30,11 @@ public class AuthorizationMiddleware
         await _next(context);
     }
 }
+
+public static class AuthorizationMiddlewareExtensions
+{
+    public static IApplicationBuilder UseAuthorizationMiddleware(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AuthorizationMiddleware>();
+    }
+}

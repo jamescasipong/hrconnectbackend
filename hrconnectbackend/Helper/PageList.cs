@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace hrconnectbackend.Helper
+﻿namespace hrconnectbackend.Helper
 {
     // Adding a constraint to ensure that T implements IEnumerable<T>
     public class PageList<T> where T : IEnumerable<T>

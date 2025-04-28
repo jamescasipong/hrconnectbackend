@@ -20,6 +20,7 @@ wwwroot/
 appsettings.Development.json
 appsettings.Staging.json
 appsettings.Production.json
+appsettings.Backup.json
 
 # .NET Core
 project.lock.json
@@ -74,5 +75,10 @@ node_modules/
 
 # Ignore launchSettings.json (actual settings, not template)
 Properties/launchSettings.json
+
+
+#Ignore SSL
+localhost+2-key.pem
+localhost+2.pem
 
 

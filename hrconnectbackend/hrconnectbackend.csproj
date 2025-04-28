@@ -41,7 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\Admin\" />
+    <Folder Include="Features\Completed\" />
+    <Folder Include="Features\Planned\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

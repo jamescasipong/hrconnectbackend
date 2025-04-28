@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class NotificationServices(DataContext context, ILogger<Notifications> logger)
+public class NotificationServices(DataContext context)
     : GenericRepository<Notifications>(context), INotificationServices
 {
     public async Task<List<UserNotification>> GetNotificationsByEmployeeId(int id, int? pageIndex, int? pageSize)

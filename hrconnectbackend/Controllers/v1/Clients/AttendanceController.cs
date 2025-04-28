@@ -12,6 +12,7 @@ using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
+    [Authorize]
     [ApiController]
     [Route("api/v{version:apiVersion}/attendance")]
     [ApiVersion("1.0")]
@@ -41,9 +42,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedAttendances = mapper.Map<List<ReadAttendanceDto>>(attendances);
 
-                if (!attendances.Any()) Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances not found.", mappedAttendances));
+                if (!attendances.Any()) Ok(new ApiResponse<List<ReadAttendanceDto>?>(true, $"Attendances not found.", mappedAttendances));
 
-                return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances retrived successfully!", mappedAttendances));
+                return Ok(new ApiResponse<List<ReadAttendanceDto>?>(true, $"Attendances retrived successfully!", mappedAttendances));
             }
             catch (Exception ex)
             {
@@ -68,7 +69,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 }
 
                 var attendanceDto = mapper.Map<ReadAttendanceDto>(attendance);
-                return Ok(new ApiResponse<ReadAttendanceDto>(true, $"Attendance with ID: {id} retrieved successfully.", attendanceDto));
+                return Ok(new ApiResponse<ReadAttendanceDto?>(true, $"Attendance with ID: {id} retrieved successfully.", attendanceDto));
             }
             catch (Exception ex)
             {
@@ -159,9 +160,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedAttendance = mapper.Map<List<ReadAttendanceDto>>(attendances);
 
-                if (!attendances.Any()) return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances by employee {employeeId} not found.", mappedAttendance));
+                if (!attendances.Any()) return Ok(new ApiResponse<List<ReadAttendanceDto>?>(true, $"Attendances by employee {employeeId} not found.", mappedAttendance));
 
-                return Ok(new ApiResponse<List<ReadAttendanceDto>>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
+                return Ok(new ApiResponse<List<ReadAttendanceDto>?>(true, $"Attendances by employee {employeeId} retrieved successfully!", mappedAttendance));
             }
             catch (Exception ex)
             {
@@ -406,7 +407,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
 
-                return Ok(new ApiResponse<ReadAttendanceDto>(true, "Attendance retrieved successfully", attendanceMapped));
+                return Ok(new ApiResponse<ReadAttendanceDto?>(true, "Attendance retrieved successfully", attendanceMapped));
             }
             catch (KeyNotFoundException ex)
             {
@@ -455,7 +456,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 }
 
                 var attendanceRecords = await attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end), pageIndex, pageSize);
-                return Ok(new ApiResponse<List<Attendance>>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
+                return Ok(new ApiResponse<List<Attendance>?>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)
             {
@@ -502,7 +503,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 }
 
                 var attendanceRecords = await attendanceServices.GetMonthlyAttendanceByEmployeeId(id, pageIndex, pageSize);
-                return Ok(new ApiResponse<List<Attendance>>(true, "Monthly attendance retrieved successfully!", attendanceRecords));
+                return Ok(new ApiResponse<List<Attendance>?>(true, "Monthly attendance retrieved successfully!", attendanceRecords));
             }
             catch (ArgumentException ex)
             {
@@ -530,7 +531,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var employeeAttendanceStats = await attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, null);
 
-                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+                return Ok(new ApiResponse<dynamic?>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
             }
             catch (Exception ex)
             {
@@ -550,7 +551,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var employeeAttendanceStats = await attendanceServices.EmployeeAttendanceStatsByDeptSpecificOrToday(departmentId, DateTime.Parse(specificDate));
 
-                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+                return Ok(new ApiResponse<dynamic?>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
             }
             catch (Exception ex)
             {
@@ -569,7 +570,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var employeeAttendanceStats = await attendanceServices.EmployeeAttendanceStatsSpecificOrToday(null);
 
-                return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+                return Ok(new ApiResponse<dynamic?>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
             }
             catch (Exception ex)
             {
@@ -586,7 +587,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var employeeAttendanceStats = await attendanceServices.EmployeeAttendanceStatsSpecificOrToday(DateTime.Parse(specificDate));
 
-            return Ok(new ApiResponse<dynamic>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
+            return Ok(new ApiResponse<dynamic?>(true, "Employees Attendance Stats Retrieved", employeeAttendanceStats));
         }
 
         [Authorize(Roles = "Admin")]
@@ -638,7 +639,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var certifications = await attendanceCertificationServices.GetAllAsync();
 
-            return Ok(new ApiResponse<List<AttendanceCertification>>(true, $"Attendance certifications retrieved sucessfully!", certifications));
+            return Ok(new ApiResponse<List<AttendanceCertification>?>(true, $"Attendance certifications retrieved sucessfully!", certifications));
         }
 
         [Authorize]
@@ -682,7 +683,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"Attendance certification with ID {id} not found"));
                 }
 
-                return Ok(new ApiResponse<AttendanceCertification>(true, $"Attendance certification retrieved sucessfully!", certification));
+                return Ok(new ApiResponse<AttendanceCertification?>(true, $"Attendance certification retrieved sucessfully!", certification));
             }
 
             catch (Exception ex)

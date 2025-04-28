@@ -7,11 +7,29 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class newPOSTGRE : Migration
+    public partial class initalcreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Departments",
+                columns: table => new
+                {
+                    DepartmentId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DepartmentGuid = table.Column<Guid>(type: "uuid", nullable: false),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    DeptName = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Departments", x => x.DepartmentId);
+                });
+
             migrationBuilder.CreateTable(
                 name: "EmailSigninSessions",
                 columns: table => new
@@ -26,6 +44,19 @@ namespace hrconnectbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_EmailSigninSessions", x => x.SessionId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EmployeePosition",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Position = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmployeePosition", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -51,9 +82,12 @@ namespace hrconnectbackend.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Address = table.Column<string>(type: "text", nullable: false),
-                    ContactEmail = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ContactEmail = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    City = table.Column<string>(type: "text", nullable: false),
+                    Website = table.Column<string>(type: "text", nullable: false),
+                    Zipcode = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
@@ -86,7 +120,10 @@ namespace hrconnectbackend.Migrations
                     Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
                     DurationDays = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    MaxUsers = table.Column<int>(type: "integer", nullable: false),
+                    Features = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -99,11 +136,17 @@ namespace hrconnectbackend.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Guid = table.Column<Guid>(type: "uuid", nullable: false),
                     OrganizationId = table.Column<int>(type: "integer", nullable: false),
                     SubscriptionId = table.Column<int>(type: "integer", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    DaysNotifiedAfterExpiration = table.Column<int>(type: "integer", nullable: false),
+                    AutoRenew = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CancellationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastBillingDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NextBillingDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -127,6 +170,8 @@ namespace hrconnectbackend.Migrations
                 columns: table => new
                 {
                     EmployeeInfoId = table.Column<int>(type: "integer", nullable: false),
+                    FirstName = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
                     ProfilePicture = table.Column<string>(type: "text", nullable: false),
                     Address = table.Column<string>(type: "text", nullable: false),
                     BirthDate = table.Column<DateOnly>(type: "date", nullable: true),
@@ -143,7 +188,7 @@ namespace hrconnectbackend.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    EmployeeId = table.Column<int>(type: "integer", nullable: false),
                     InstitutionName = table.Column<string>(type: "text", nullable: false),
                     Degree = table.Column<string>(type: "text", nullable: false),
                     FieldOfStudy = table.Column<string>(type: "text", nullable: false),
@@ -155,8 +200,8 @@ namespace hrconnectbackend.Migrations
                 {
                     table.PrimaryKey("PK_EducationBackgrounds", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_EducationBackgrounds_AboutEmployees_UserId",
-                        column: x => x.UserId,
+                        name: "FK_EducationBackgrounds_AboutEmployees_EmployeeId",
+                        column: x => x.EmployeeId,
                         principalTable: "AboutEmployees",
                         principalColumn: "EmployeeInfoId",
                         onDelete: ReferentialAction.Restrict);
@@ -169,7 +214,7 @@ namespace hrconnectbackend.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false),
-                    SupervisorId = table.Column<int>(type: "integer", nullable: true),
+                    SupervisorId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
@@ -204,20 +249,23 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Departments",
+                name: "EmployeeDepartments",
                 columns: table => new
                 {
-                    DepartmentId = table.Column<int>(type: "integer", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagerId = table.Column<int>(type: "integer", nullable: false),
-                    TenantId = table.Column<int>(type: "integer", nullable: false),
-                    DeptName = table.Column<string>(type: "text", nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    DepartmentId = table.Column<int>(type: "integer", nullable: false),
+                    SupervisorId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Departments", x => x.DepartmentId);
+                    table.PrimaryKey("PK_EmployeeDepartments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EmployeeDepartments_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -226,33 +274,35 @@ namespace hrconnectbackend.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    FirstName = table.Column<string>(type: "text", nullable: false),
-                    LastName = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
-                    Position = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    PositionId = table.Column<int>(type: "integer", nullable: true),
                     BaseSalary = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    BankName = table.Column<string>(type: "text", nullable: true),
+                    BankName = table.Column<string>(type: "text", nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
-                    BankAccountNumber = table.Column<string>(type: "text", nullable: true),
-                    TaxId = table.Column<string>(type: "text", nullable: true),
-                    EmergencyContactName = table.Column<string>(type: "text", nullable: true),
-                    EmergencyContactPhone = table.Column<string>(type: "text", nullable: true),
+                    BankAccountNumber = table.Column<string>(type: "text", nullable: false),
+                    TaxId = table.Column<string>(type: "text", nullable: false),
+                    EmergencyContactName = table.Column<string>(type: "text", nullable: false),
+                    EmergencyContactPhone = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    SupervisorId = table.Column<int>(type: "integer", nullable: true),
-                    DepartmentId = table.Column<int>(type: "integer", nullable: true)
+                    EmployeeDepartmentId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Employees", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Employees_Departments_DepartmentId",
-                        column: x => x.DepartmentId,
-                        principalTable: "Departments",
-                        principalColumn: "DepartmentId",
+                        name: "FK_Employees_EmployeeDepartments_EmployeeDepartmentId",
+                        column: x => x.EmployeeDepartmentId,
+                        principalTable: "EmployeeDepartments",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Employees_EmployeePosition_PositionId",
+                        column: x => x.PositionId,
+                        principalTable: "EmployeePosition",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -306,14 +356,14 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OTApplications",
+                name: "OtApplications",
                 columns: table => new
                 {
-                    OTApplicationId = table.Column<int>(type: "integer", nullable: false)
+                    OtApplicationId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false),
+                    SupervisorId = table.Column<int>(type: "integer", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    SupervisorId = table.Column<int>(type: "integer", nullable: true),
                     StartTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
                     EndTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
                     Reasons = table.Column<string>(type: "text", nullable: false),
@@ -323,9 +373,9 @@ namespace hrconnectbackend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OTApplications", x => x.OTApplicationId);
+                    table.PrimaryKey("PK_OtApplications", x => x.OtApplicationId);
                     table.ForeignKey(
-                        name: "FK_OTApplications_Employees_EmployeeId",
+                        name: "FK_OtApplications_Employees_EmployeeId",
                         column: x => x.EmployeeId,
                         principalTable: "Employees",
                         principalColumn: "Id",
@@ -388,44 +438,28 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Supervisors",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    EmployeeId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Supervisors", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Supervisors_Employees_EmployeeId",
-                        column: x => x.EmployeeId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "UserAccount",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserName = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: true),
-                    Phone = table.Column<string>(type: "text", nullable: true),
                     EmailVerified = table.Column<bool>(type: "boolean", nullable: false),
-                    SMSVerified = table.Column<bool>(type: "boolean", nullable: false),
+                    SmsVerified = table.Column<bool>(type: "boolean", nullable: false),
                     OrganizationId = table.Column<int>(type: "integer", nullable: true),
-                    ChangePassword = table.Column<bool>(type: "boolean", nullable: false)
+                    ChangePassword = table.Column<bool>(type: "boolean", nullable: false),
+                    Role = table.Column<string>(type: "text", nullable: false),
+                    Locked = table.Column<bool>(type: "boolean", nullable: false),
+                    EmployeeId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserAccount", x => x.UserId);
                     table.ForeignKey(
-                        name: "FK_UserAccount_Employees_UserId",
-                        column: x => x.UserId,
+                        name: "FK_UserAccount_Employees_EmployeeId",
+                        column: x => x.EmployeeId,
                         principalTable: "Employees",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -434,7 +468,7 @@ namespace hrconnectbackend.Migrations
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -443,6 +477,7 @@ namespace hrconnectbackend.Migrations
                 {
                     NotificationId = table.Column<int>(type: "integer", nullable: false),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false),
+                    ReferenceId = table.Column<Guid>(type: "uuid", nullable: false),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false)
@@ -465,10 +500,56 @@ namespace hrconnectbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RefreshTokens",
+                columns: table => new
+                {
+                    RefreshTokenId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CookieName = table.Column<string>(type: "text", nullable: false),
+                    CreateAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    Expires = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshTokens", x => x.RefreshTokenId);
+                    table.ForeignKey(
+                        name: "FK_RefreshTokens_UserAccount_UserId",
+                        column: x => x.UserId,
+                        principalTable: "UserAccount",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserPermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    ResourceId = table.Column<int>(type: "integer", nullable: false),
+                    Read = table.Column<bool>(type: "boolean", nullable: false),
+                    Write = table.Column<bool>(type: "boolean", nullable: false),
+                    Delete = table.Column<bool>(type: "boolean", nullable: false),
+                    Update = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserPermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserPermissions_UserAccount_UserId",
+                        column: x => x.UserId,
+                        principalTable: "UserAccount",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserSettings",
                 columns: table => new
                 {
-                    EmployeeId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
                     Language = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     Theme = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     TenantId = table.Column<int>(type: "integer", nullable: false),
@@ -485,31 +566,9 @@ namespace hrconnectbackend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserSettings", x => x.EmployeeId);
+                    table.PrimaryKey("PK_UserSettings", x => x.UserId);
                     table.ForeignKey(
-                        name: "FK_UserSettings_Employees_EmployeeId",
-                        column: x => x.EmployeeId,
-                        principalTable: "Employees",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "RefreshTokens",
-                columns: table => new
-                {
-                    RefreshTokenId = table.Column<string>(type: "text", nullable: false),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    CookieName = table.Column<string>(type: "text", nullable: false),
-                    CreateAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Expires = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RefreshTokens", x => x.RefreshTokenId);
-                    table.ForeignKey(
-                        name: "FK_RefreshTokens_UserAccount_UserId",
+                        name: "FK_UserSettings_UserAccount_UserId",
                         column: x => x.UserId,
                         principalTable: "UserAccount",
                         principalColumn: "UserId",
@@ -522,35 +581,46 @@ namespace hrconnectbackend.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AttendanceCertifications_SupervisorId",
-                table: "AttendanceCertifications",
-                column: "SupervisorId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Attendances_EmployeeId",
                 table: "Attendances",
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Departments_ManagerId",
+                name: "IX_Departments_DepartmentGuid",
                 table: "Departments",
-                column: "ManagerId",
+                column: "DepartmentGuid",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_EducationBackgrounds_UserId",
-                table: "EducationBackgrounds",
-                column: "UserId");
+                name: "IX_Departments_DeptName",
+                table: "Departments",
+                column: "DeptName",
+                unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employees_DepartmentId",
-                table: "Employees",
+                name: "IX_EducationBackgrounds_EmployeeId",
+                table: "EducationBackgrounds",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeDepartments_DepartmentId",
+                table: "EmployeeDepartments",
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Employees_SupervisorId",
-                table: "Employees",
+                name: "IX_EmployeeDepartments_SupervisorId",
+                table: "EmployeeDepartments",
                 column: "SupervisorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_EmployeeDepartmentId",
+                table: "Employees",
+                column: "EmployeeDepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_PositionId",
+                table: "Employees",
+                column: "PositionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LeaveApplications_EmployeeId",
@@ -563,8 +633,14 @@ namespace hrconnectbackend.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OTApplications_EmployeeId",
-                table: "OTApplications",
+                name: "IX_Organizations_ContactEmail",
+                table: "Organizations",
+                column: "ContactEmail",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OtApplications_EmployeeId",
+                table: "OtApplications",
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
@@ -593,8 +669,8 @@ namespace hrconnectbackend.Migrations
                 column: "SubscriptionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Supervisors_EmployeeId",
-                table: "Supervisors",
+                name: "IX_UserAccount_EmployeeId",
+                table: "UserAccount",
                 column: "EmployeeId",
                 unique: true);
 
@@ -607,6 +683,18 @@ namespace hrconnectbackend.Migrations
                 name: "IX_UserNotifications_EmployeeId",
                 table: "UserNotifications",
                 column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserNotifications_ReferenceId",
+                table: "UserNotifications",
+                column: "ReferenceId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserPermissions_UserId",
+                table: "UserPermissions",
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_AboutEmployees_Employees_EmployeeInfoId",
@@ -625,13 +713,6 @@ namespace hrconnectbackend.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_AttendanceCertifications_Supervisors_SupervisorId",
-                table: "AttendanceCertifications",
-                column: "SupervisorId",
-                principalTable: "Supervisors",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
                 name: "FK_Attendances_Employees_EmployeeId",
                 table: "Attendances",
                 column: "EmployeeId",
@@ -640,28 +721,20 @@ namespace hrconnectbackend.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Departments_Supervisors_ManagerId",
-                table: "Departments",
-                column: "ManagerId",
-                principalTable: "Supervisors",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Employees_Supervisors_SupervisorId",
-                table: "Employees",
+                name: "FK_EmployeeDepartments_Employees_SupervisorId",
+                table: "EmployeeDepartments",
                 column: "SupervisorId",
-                principalTable: "Supervisors",
+                principalTable: "Employees",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Supervisors_Employees_EmployeeId",
-                table: "Supervisors");
+                name: "FK_EmployeeDepartments_Employees_SupervisorId",
+                table: "EmployeeDepartments");
 
             migrationBuilder.DropTable(
                 name: "AttendanceCertifications");
@@ -682,7 +755,7 @@ namespace hrconnectbackend.Migrations
                 name: "LeaveBalances");
 
             migrationBuilder.DropTable(
-                name: "OTApplications");
+                name: "OtApplications");
 
             migrationBuilder.DropTable(
                 name: "Payrolls");
@@ -703,13 +776,13 @@ namespace hrconnectbackend.Migrations
                 name: "UserNotifications");
 
             migrationBuilder.DropTable(
+                name: "UserPermissions");
+
+            migrationBuilder.DropTable(
                 name: "UserSettings");
 
             migrationBuilder.DropTable(
                 name: "AboutEmployees");
-
-            migrationBuilder.DropTable(
-                name: "UserAccount");
 
             migrationBuilder.DropTable(
                 name: "SubscriptionPlans");
@@ -718,16 +791,22 @@ namespace hrconnectbackend.Migrations
                 name: "Notifications");
 
             migrationBuilder.DropTable(
+                name: "UserAccount");
+
+            migrationBuilder.DropTable(
                 name: "Organizations");
 
             migrationBuilder.DropTable(
                 name: "Employees");
 
             migrationBuilder.DropTable(
-                name: "Departments");
+                name: "EmployeeDepartments");
 
             migrationBuilder.DropTable(
-                name: "Supervisors");
+                name: "EmployeePosition");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
         }
     }
 }

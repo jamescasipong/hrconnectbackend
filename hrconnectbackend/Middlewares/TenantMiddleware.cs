@@ -42,12 +42,12 @@ public class TenantMiddleware(RequestDelegate next, ILogger<TenantMiddleware> lo
             // Extract the TenantId from the JWT claims
             var tenantIdClaim = jsonToken?.Claims.FirstOrDefault(c => c.Type == "TenantId");
 
-            return tenantIdClaim?.Value;
+            return tenantIdClaim?.Value ?? string.Empty;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Token validation failed.");
-            return null;
+            return string.Empty;
         }
     }
 }

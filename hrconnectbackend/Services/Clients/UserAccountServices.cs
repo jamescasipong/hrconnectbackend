@@ -1,5 +1,4 @@
 ﻿using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.Sessions;
@@ -8,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
 {
-    public class UserAccountServices(DataContext context, ILogger<UserAccountServices> logger)
+    public class UserAccountServices(DataContext context)
         : GenericRepository<UserAccount>(context), IUserAccountServices
     {
 
@@ -46,9 +45,9 @@ namespace hrconnectbackend.Services.Clients
             var auth = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
             if (auth == null) throw new KeyNotFoundException("No user account found!");
-            //
+            // //
             // auth.VerificationCode = new Random().Next(100000, 999999);
-            // auth.VerificationCodeExpiry = expiry;
+            // auth.VerificationCodeExpiry = expiry
             
             await _context.SaveChangesAsync();
 
@@ -125,14 +124,14 @@ namespace hrconnectbackend.Services.Clients
             await _context.SaveChangesAsync();
         }
 
-        public async Task ResetTokenExist(string token)
+        public Task ResetTokenExist(string token)
         {
             throw new NotImplementedException();
         }
 
         public async Task<ResetPasswordSession?> GetResetPasswordSession(string token)
         {
-            var expiredSessions = await _context.ResetPasswordSessions.Where(a => a.ExpiresAt < DateTime.Now).ExecuteDeleteAsync();
+            await _context.ResetPasswordSessions.Where(a => a.ExpiresAt < DateTime.Now).ExecuteDeleteAsync();
 
             await _context.SaveChangesAsync();
 

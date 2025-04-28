@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
@@ -9,9 +10,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrganizationController(IOrganizationServices organizationServices) : ControllerBase
+    public class OrganizationController(IOrganizationServices organizationServices, ILogger<OrganizationController> logger) : ControllerBase
     {
-
+        // [UserRole("Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganization organization)
         {
@@ -24,7 +25,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(createdOrganization);
         }
         
-        
+        [UserRole("Admin,Operator")]
         [HttpPatch("{organizationId}")]
         public async Task<IActionResult> Patch(int organizationId, [FromBody] JsonPatchDocument<Organization> patch)
         {
@@ -34,10 +35,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var (original, patched, isValid) = await organizationServices.ApplyPatchAsync(organizationId, patch);
             
             // If the organization was not found or if the patch is invalid, return BadRequest
-            if (original == null || !isValid)
+            if (original == null || !isValid || patched == null)
             {
-                return NotFound("Not found nigga"); // Return appropriate error message
+                return NotFound("Organization not found or invalid patch.");
             }
+
 
             // Perform additional validation on the patched entity (in the controller)
             if (string.IsNullOrWhiteSpace(patched.Name))
@@ -80,19 +82,22 @@ namespace hrconnectbackend.Controllers.v1.Clients
             try
             {
                 long storageUsedBytes = await organizationServices.GetStorageUsedByOrganizationAsync(organizationId);
-                var storageUsedMB = storageUsedBytes / (1024 * 1024);  // Convert bytes to MB
-                return Ok(new { StorageUsedMB = storageUsedMB });
+                var storageUsedMb = storageUsedBytes / (1024 * 1024);  // Convert bytes to MB
+                return Ok(new { StorageUsedMB = storageUsedMb });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
             }
         }
-
-        [HttpGet]
-        public async Task<IActionResult> GetOrganization()
+        
+        [UserRole("Employee")]
+        [HttpGet("my-organization")]
+        public async Task<IActionResult> GetMyOrganization()
         {
             var organization = User.FindFirstValue("organizationId");
+            
+            logger.LogInformation("org: {organization}", organization);
 
             if (!int.TryParse(organization, out var organizationId))
             {
@@ -103,6 +108,26 @@ namespace hrconnectbackend.Controllers.v1.Clients
             
             return Ok(org);
         }
-
+        
+        [UserRole("Operator")]
+        [HttpGet]
+        public async Task<IActionResult> GetOrganizations()
+        {
+            var orgs = await organizationServices.GetAllAsync();
+            
+            return Ok(orgs);
+        }
+        
+        [UserRole("Operator")]
+        [HttpDelete("{organizationId}")]
+        public async Task<IActionResult> DeleteOrganization(int organizationId)
+        {
+            var org = await organizationServices.GetByIdAsync(organizationId);
+            
+            if (org == null) return NotFound("Not found");
+            
+            await organizationServices.DeleteAsync(org);
+            return Ok($"{organizationId} deleted");
+        }
     }
 }

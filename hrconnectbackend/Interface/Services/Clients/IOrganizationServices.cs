@@ -11,7 +11,7 @@ public interface IOrganizationServices: IGenericRepository<Organization>
     Task<Organization> CreateOrganization(CreateOrganization createOrganization);
     Task<bool> UpdateOrganization(OrganizationsDto organization);
     Task<bool> DeleteOrganization(int organizationId);
-    Task<(Organization original, Organization patched, bool isValid)> ApplyPatchAsync(int organizationId,
+    Task<(Organization? original, Organization? patched, bool isValid)> ApplyPatchAsync(int organizationId,
         JsonPatchDocument<Organization> patch);
     Task SaveChangesAsync();
     bool IsNameDuplicate(string name, int organizationId);

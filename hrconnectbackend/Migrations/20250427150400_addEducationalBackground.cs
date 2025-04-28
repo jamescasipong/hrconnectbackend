@@ -5,7 +5,7 @@
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class updateDate : Migration
+    public partial class addEducationalBackground : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

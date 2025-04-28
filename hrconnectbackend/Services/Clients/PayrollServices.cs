@@ -33,6 +33,12 @@ namespace hrconnectbackend.Services.Clients
                         //DateTime payPeriodEnd2 = payPeriodStart2.AddMonths(1).AddDays(-1);
 
                         var payroll1 = await CalculatePayroll(employee.Id, period1, period2);
+
+                        if (payroll1 == null)
+                        {
+                            throw new InvalidOperationException($"Error calculating payroll for employee with id {employee.Id}");
+                        }
+
                         payroll1.PayPeriod = $"{period1:dd MMM} - {period2:dd MMM}";
                         _context.Payrolls.Add(payroll1);
 
@@ -49,16 +55,20 @@ namespace hrconnectbackend.Services.Clients
             }
         }
 
-        public async Task<Payroll> CalculatePayroll(int employeeId, DateTime startDate, DateTime endDate)
+        public async Task<Payroll?> CalculatePayroll(int employeeId, DateTime startDate, DateTime endDate)
         {
             var payroll = new Payroll();
             var attendanceRecords = await _context.Attendances
                 .Where(a => a.EmployeeId == employeeId && a.DateToday >= startDate && a.DateToday <= endDate)
                 .ToListAsync();
-
             
 
             var employee = await _context.Employees.FindAsync(employeeId);
+
+            if (employee == null)
+            {
+                throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+            }
 
             decimal totalHoursWorked = 0;
             decimal overtimePay = 0;

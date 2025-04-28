@@ -9,9 +9,9 @@ namespace hrconnectbackend.Models
         [Key]
         public int EmployeeInfoId { get; set; }
         [Required]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } = string.Empty;
         [Required]
-        public string LastName { get; set; }
+        public string LastName { get; set; } = string.Empty;
         [Required]
         public string ProfilePicture { get; set; } = "default.jpg";
         [Required]
@@ -30,8 +30,8 @@ namespace hrconnectbackend.Models
                 InstitutionName = "No institution name",
                 Degree = "No degree",
                 FieldOfStudy = "No field of study",
-                StartDate = DateTime.Now,
-                EndDate = DateTime.Now,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow,
                 GPA = 0.0
             };
             

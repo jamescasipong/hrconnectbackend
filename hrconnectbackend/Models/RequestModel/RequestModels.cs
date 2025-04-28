@@ -7,4 +7,5 @@ public record InputEmail(string Email);
 public record SigninVerification(string Email, int Code);
 public record Signup(string FirstName, string LastName, string Email, string Password);
 public record CreateOrganization(string Name, string Address, string ContactEmail, DateTime CreatedAt, bool IsActive);
-public record CreateUser(string UserName, string Email, int OrganizationId, string Password, UserRole Role);
+public record CreateUser(string UserName, string Email, int? OrganizationId, string Password);
+public record CreateUserOperator(string UserName, string Email, string Password);

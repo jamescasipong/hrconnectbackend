@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
+using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,7 +48,7 @@ public class LeaveController(
                 AppliedDate = DateOnly.FromDateTime(DateTime.Now)
             };
 
-            var createdLeave = await leaveServices.RequestLeave(newLeaveApplication);
+            await leaveServices.RequestLeave(newLeaveApplication);
 
             return Ok(new ApiResponse(true, $"Leave application created successfully!"));
         }
@@ -103,14 +103,14 @@ public class LeaveController(
             // If no leaves are found, return an empty list
             if (!leaves.Any())
             {
-                return Ok(new ApiResponse<List<LeaveApplication>>(true, "No leave applications found.", new List<LeaveApplication>()));
+                return Ok(new ApiResponse<List<LeaveApplication>?>(true, "No leave applications found.", new List<LeaveApplication>()));
             }
 
             // Map the leave data to DTOs
-            var leaveDTO = mapper.Map<List<ReadLeaveApplicationDto>>(leaves);
+            var leaveDto = mapper.Map<List<ReadLeaveApplicationDto>>(leaves);
 
             // Return the leave data in the response
-            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>>(true, "Leave applications retrieved successfully!", leaveDTO));
+            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>?>(true, "Leave applications retrieved successfully!", leaveDto));
         }
         catch (Exception ex)
         {
@@ -127,7 +127,7 @@ public class LeaveController(
     {
         try
         {
-            var admins = new string[] {
+            var admins = new List<string> {
                 "Admin", "HR"
             };
 
@@ -143,9 +143,9 @@ public class LeaveController(
             }
 
 
-            var leaveDTO = mapper.Map<ReadLeaveApplicationDto>(leave);
+            var leaveDto = mapper.Map<ReadLeaveApplicationDto>(leave);
 
-            return Ok(new ApiResponse<ReadLeaveApplicationDto>(true, $"Leave application with ID: {id} retrieved successfully!", leaveDTO));
+            return Ok(new ApiResponse<ReadLeaveApplicationDto?>(true, $"Leave application with ID: {id} retrieved successfully!", leaveDto));
         }
         catch (Exception ex)
         {
@@ -158,7 +158,7 @@ public class LeaveController(
     [HttpPut("applications/{id:int}")]
     public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDto leaveRequest)
     {
-        var admins = new string[]{
+        var admins = new List<string>{
             "Admin", "HR"
         };
 
@@ -232,10 +232,13 @@ public class LeaveController(
     [HttpGet("applications/employee/{employeeId:int}")]
     public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
-        var admins = new string[] { "Admin", "HR" };
+        var admins = new List<string> { "Admin", "HR" };
         
-        // Validate the user's permissions
-        authenticationServices.ValidateUser(User, employeeId, admins);
+        var validateUser = authenticationServices.ValidateUser(User, employeeId, admins);
+
+        if (validateUser != null){
+            return validateUser;
+        }
         
 
         try
@@ -276,7 +279,7 @@ public class LeaveController(
             // Map the data to the DTO
             var employeeLeaveApplicationDto = mapper.Map<List<ReadLeaveApplicationDto>>(employeeLeaveApplication);
 
-            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>>(true, $"Leave application by employee with ID: {employeeId} retrieved successfully!", employeeLeaveApplicationDto));
+            return Ok(new ApiResponse<List<ReadLeaveApplicationDto>?>(true, $"Leave application by employee with ID: {employeeId} retrieved successfully!", employeeLeaveApplicationDto));
         }
         catch (KeyNotFoundException ex)
         {
@@ -353,11 +356,11 @@ public class LeaveController(
             // If no leave balances are found
             if (!leaves.Any())
             {
-                return Ok(new ApiResponse<List<LeaveBalance>>(true, "No leave balances found.", new List<LeaveBalance>()));
+                return Ok(new ApiResponse<List<LeaveBalance>?>(true, "No leave balances found.", new List<LeaveBalance>()));
             }
 
             // Return the leave balances
-            return Ok(new ApiResponse<List<LeaveBalance>>(success: true, message: "Leave balances retrieved successfully!", data: leaves));
+            return Ok(new ApiResponse<List<LeaveBalance>?>(success: true, message: "Leave balances retrieved successfully!", data: leaves));
         }
         catch (Exception ex)
         {
@@ -371,7 +374,7 @@ public class LeaveController(
     [HttpGet("balances/{employeeId}")]
     public async Task<IActionResult> GetLeaveBalanceByEmployeeId(int employeeId)
     {
-        var admins = new string []{
+        var admins = new List<string> {
             "Admin", "HR"
         };
         
@@ -385,9 +388,9 @@ public class LeaveController(
         {
             var balances = await leaveBalanceServices.GetLeaveBalanceByEmployeeId(employeeId);
 
-            if (!balances.Any()) return Ok(new ApiResponse<List<LeaveBalance>>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
+            if (!balances.Any()) return Ok(new ApiResponse<List<LeaveBalance>?>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
 
-            return Ok(new ApiResponse<List<LeaveBalance>>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
+            return Ok(new ApiResponse<List<LeaveBalance>?>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
         }
         catch (KeyNotFoundException ex)
         {

@@ -1,3 +1,4 @@
+using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.RequestModel;
@@ -86,19 +87,50 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public Task<IActionResult> SigninVerify([FromQuery] string token, [FromQuery] string email)
         {
             return Task.FromResult<IActionResult>(Ok());
-
         }
-
-        [HttpPost("signup")]
-        public async Task<IActionResult> Signup(CreateUser user)
+        
+        // [UserRole("Admin,Operator")]
+        [HttpPost("operator/signup")]
+        public async Task<IActionResult> SignupOperator(CreateUserOperator user)
         {
-            var userAccount = await authService.SignUp(user);
-            
-            if (userAccount == null) return BadRequest();
-            
-            return Ok();
-        }
+            var userAccount = await authService.SignUpOperator(user);
 
+            if (userAccount == null) return BadRequest(new
+            {
+                Message = "Invalid request",
+            });
+
+            return Ok(userAccount);
+        }
+        
+        [UserRole("Admin,Operator")]
+        [HttpPost("admin/signup")]
+        public async Task<IActionResult> SignupAdmin(CreateUser user)
+        {
+            var userAccount = await authService.SignUpAdmin(user);
+
+            if (userAccount == null) return BadRequest(new
+            {
+                Message = "Invalid request",
+            });
+
+            return Ok(userAccount);
+        }
+        
+        [UserRole("Admin,Operator")]
+        [HttpPost("employee/signup")]
+        public async Task<IActionResult> SignupEmployee(CreateUser user)
+        {
+            var userAccount = await authService.SignUpEmployee(user);
+
+            if (userAccount == null)
+                return BadRequest(new
+                {
+                    Message = "Invalid Request",
+                });
+            
+            return Ok(userAccount);
+        }
         
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)

@@ -1,9 +1,3 @@
-﻿namespace hrconnectbackend.Helper.CustomExceptions;
+﻿namespace hrconnectbackend.Exceptions;
 
-public class TransactionException: Exception
-{
-    public TransactionException(string message): base(message)
-    {
-        
-    }
-}
+public class TransactionException(string message) : Exception(message);

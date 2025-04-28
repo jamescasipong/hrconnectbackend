@@ -75,108 +75,119 @@ namespace hrconnectbackend.Config.Authentication
 
                     _logger.LogInformation("Processing token validation.");
 
+                    if (httpContext.Request.Cookies.TryGetValue("token", out var jwtToken))
+                    {
+                        context.Token = jwtToken.ToString();
+                        return;
+                    }
                     // Check if an access token is available in the cookies
-                    if (httpContext.Request.Cookies.TryGetValue("at_session", out var accessToken))
-                    {
-                        try
-                        {
-                            _logger.LogInformation("Access token found in cookies. Attempting decryption.");
-
-                            // Decrypt the access token using AES encryption
-                            var aes = new AES256Encrpytion(_configuration.GetValue<string>("EncryptionSettings:Key")!);
-                            var decryptedToken = aes.Decrypt(accessToken);
-
-                            var jwtHandler = new JwtSecurityTokenHandler();
-                            var securityToken = jwtHandler.ReadToken(decryptedToken) as JwtSecurityToken;
-
-                            // Check if the token has expired
-                            if (securityToken.ValidTo < DateTime.UtcNow)
-                            {
-                                _logger.LogWarning("Token is expired.");
-                                context.Fail("Token is Expired");
-                                return;
-                            }
-
-                            _logger.LogInformation("Access token is valid.");
-                            context.Token = decryptedToken;  // Assign the decrypted token for further processing
-                            return;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error decrypting access token.");
-                            context.Fail("Error processing token.");
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Access token not found, checking for refresh token.");
-
-                        // Check if a refresh token is available in the cookies
-                        if (httpContext.Request.Cookies.TryGetValue("backend_rt", out var rt))
-                        {
-                            try
-                            {
-                                _logger.LogInformation("Refresh token found in cookies. Attempting to validate.");
-
-                                // Use the service provider to resolve services like the DataContext and AuthService
-                                using var service = _serviceProvider.CreateScope();
-                                var dbContext = service.ServiceProvider.GetRequiredService<DataContext>();
-                                var authService = service.ServiceProvider.GetRequiredService<IAuthService>();
-
-                                // Look up the refresh token in the database
-                                var refreshToken = await dbContext.RefreshTokens.FirstOrDefaultAsync(a => a.RefreshTokenId == rt);
-
-                                // Check if the refresh token exists and is not expired
-                                if (refreshToken == null)
-                                {
-                                    _logger.LogWarning("Refresh token not found.");
-                                    context.Fail("Refresh token not found");
-                                    return;
-                                }
-
-                                if (refreshToken.Expires < DateTime.UtcNow)
-                                {
-                                    _logger.LogWarning("Refresh token is expired.");
-                                    context.Fail("Refresh token is expired");
-                                    return;
-                                }
-
-                                _logger.LogInformation("Refresh token is valid. Generating new access token.");
-
-                                // Generate a new access token using the valid refresh token
-                                var generatedAccessToken = await authService.GenerateAccessToken(rt);
-
-                                // Encrypt the new access token and store it in the cookies
-                                var aes = new AES256Encrpytion(_configuration.GetValue<string>("EncryptionSettings:Key")!);
-                                var encrypted = aes.Encrypt(generatedAccessToken);
-
-                                DateTime exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
-                                context.HttpContext.Response.Cookies.Append("at_session", encrypted, new CookieOptions
-                                {
-                                    HttpOnly = true,  // Ensure the cookie is accessible only via HTTP requests
-                                    SameSite = SameSiteMode.None,  // Allow the cookie to be sent with cross-site requests
-                                    Secure = true,  // Ensure the cookie is sent over HTTPS only
-                                    Path = "/",  // Define the path scope for the cookie
-                                    Expires = exp,  // Set the expiration for the new access token cookie
-                                });
-
-                                _logger.LogInformation("New access token generated and stored in cookie.");
-                            }
-                            catch (Exception ex)
-                            {
-                                // Log any errors encountered while processing the refresh token
-                                _logger.LogError(ex, "Error processing refresh token.");
-                                context.Fail("Error processing refresh token.");
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogWarning("No valid token found in cookies.");
-                            context.Fail("Token is invalid");
-                        }
-                    }
+                    // if (httpContext.Request.Cookies.TryGetValue("at_session", out var accessToken))
+                    // {
+                    //     try
+                    //     {
+                    //         _logger.LogInformation("Access token found in cookies. Attempting decryption.");
+                    //
+                    //         // Decrypt the access token using AES encryption
+                    //         var aes = new AES256Encrpytion(_configuration.GetValue<string>("EncryptionSettings:Key")!);
+                    //         var decryptedToken = aes.Decrypt(accessToken);
+                    //
+                    //         var jwtHandler = new JwtSecurityTokenHandler();
+                    //         var securityToken = jwtHandler.ReadToken(decryptedToken) as JwtSecurityToken;
+                    //
+                    //         if (securityToken == null)
+                    //         {
+                    //             _logger.LogWarning("Invalid token format.");
+                    //             context.Fail("Invalid token format.");
+                    //             return;
+                    //         }
+                    //         // Check if the token has expired
+                    //         if (securityToken.ValidTo < DateTime.UtcNow)
+                    //         {
+                    //             _logger.LogWarning("Token is expired.");
+                    //             context.Fail("Token is Expired");
+                    //             return;
+                    //         }
+                    //
+                    //         _logger.LogInformation("Access token is valid.");
+                    //         context.Token = decryptedToken;  // Assign the decrypted token for further processing
+                    //         return;
+                    //     }
+                    //     catch (Exception ex)
+                    //     {
+                    //         _logger.LogError(ex, "Error decrypting access token.");
+                    //         context.Fail("Error processing token.");
+                    //         return;
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     _logger.LogInformation("Access token not found, checking for refresh token.");
+                    //
+                    //     // Check if a refresh token is available in the cookies
+                    //     if (httpContext.Request.Cookies.TryGetValue("backend_rt", out var rt))
+                    //     {
+                    //         try
+                    //         {
+                    //             _logger.LogInformation("Refresh token found in cookies. Attempting to validate.");
+                    //
+                    //             // Use the service provider to resolve services like the DataContext and AuthService
+                    //             using var service = _serviceProvider.CreateScope();
+                    //             var dbContext = service.ServiceProvider.GetRequiredService<DataContext>();
+                    //             var authService = service.ServiceProvider.GetRequiredService<IAuthService>();
+                    //
+                    //             // Look up the refresh token in the database
+                    //             var refreshToken = await dbContext.RefreshTokens.FirstOrDefaultAsync(a => a.RefreshTokenId == rt);
+                    //
+                    //             // Check if the refresh token exists and is not expired
+                    //             if (refreshToken == null)
+                    //             {
+                    //                 _logger.LogWarning("Refresh token not found.");
+                    //                 context.Fail("Refresh token not found");
+                    //                 return;
+                    //             }
+                    //
+                    //             if (refreshToken.Expires < DateTime.UtcNow)
+                    //             {
+                    //                 _logger.LogWarning("Refresh token is expired.");
+                    //                 context.Fail("Refresh token is expired");
+                    //                 return;
+                    //             }
+                    //
+                    //             _logger.LogInformation("Refresh token is valid. Generating new access token.");
+                    //
+                    //             // Generate a new access token using the valid refresh token
+                    //             var generatedAccessToken = await authService.GenerateAccessToken(rt);
+                    //
+                    //             // Encrypt the new access token and store it in the cookies
+                    //             var aes = new AES256Encrpytion(_configuration.GetValue<string>("EncryptionSettings:Key")!);
+                    //             var encrypted = aes.Encrypt(generatedAccessToken);
+                    //
+                    //             DateTime exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
+                    //             context.HttpContext.Response.Cookies.Append("at_session", encrypted, new CookieOptions
+                    //             {
+                    //                 HttpOnly = true,  // Ensure the cookie is accessible only via HTTP requests
+                    //                 SameSite = SameSiteMode.None,  // Allow the cookie to be sent with cross-site requests
+                    //                 Secure = true,  // Ensure the cookie is sent over HTTPS only
+                    //                 Path = "/",  // Define the path scope for the cookie
+                    //                 Expires = exp,  // Set the expiration for the new access token cookie
+                    //             });
+                    //
+                    //             _logger.LogInformation("New access token generated and stored in cookie.");
+                    //         }
+                    //         catch (Exception ex)
+                    //         {
+                    //             // Log any errors encountered while processing the refresh token
+                    //             _logger.LogError(ex, "Error processing refresh token.");
+                    //             context.Fail("Error processing refresh token.");
+                    //             return;
+                    //         }
+                    //     }
+                    //     else
+                    //     {
+                    //         _logger.LogWarning("No valid token found in cookies.");
+                    //         context.Fail("Token is invalid");
+                    //     }
+                    // }
 
                     await Task.CompletedTask;
                 }

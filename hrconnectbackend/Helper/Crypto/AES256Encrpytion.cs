@@ -10,7 +10,12 @@ public class AES256Encrpytion
     {
         secretKey = key;
     }
-
+    /// <summary>
+    /// Generates a key from the given password using SHA-256 hashing algorithm.
+    /// The key size is 32 bytes (256 bits) for AES-256 encryption.
+    /// </summary>
+    /// <param name="password"></param>
+    /// <returns></returns>
     // Method to generate a key of the correct size (32 bytes for AES-256)
     public byte[] GenerateKeyFromPassword(string password)
     {
@@ -20,7 +25,13 @@ public class AES256Encrpytion
             return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
         }
     }
-
+    /// <summary>
+    /// Encrypts the given plain text using AES-256 algorithm.
+    /// /// The plain text must be a valid UTF-8 string.
+    /// The method generates a key from the password and uses a fixed IV (Initialization Vector).
+    /// </summary>
+    /// <param name="plainText"></param>
+    /// <returns></returns>
     // AES Encryption method
     public string Encrypt(string plainText)
     {
@@ -46,7 +57,14 @@ public class AES256Encrpytion
             }
         }
     }
-
+    /// <summary>
+    /// Decrypts the given cipher text using AES-256 algorithm.
+    /// The cipher text must be a valid Base64 string.
+    /// </summary>
+    /// <param name="cipherText"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
     // AES Decryption method
     public string Decrypt(string cipherText)
     {

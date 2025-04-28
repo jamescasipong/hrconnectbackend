@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Claims;
-using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
@@ -65,6 +64,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 logger.LogInformation($"Attempting to log in...");
                 if (signinBody == null) return BadRequest(new ApiResponse(success: false, message: "Body request is required."));
+                logger.LogInformation($"Email: {signinBody.Email}");
 
                 var employee = await employeeServices.GetEmployeeByEmail(signinBody.Email);
 
@@ -86,14 +86,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 // var twoFactorCode = new Random().Next(100000, 999999).ToString();
 
-                bool twoFactorCodeEnabled = true;
+                bool twoFactorCodeEnabled = false;
 
                 if (twoFactorCodeEnabled)
                 {
                     logger.LogWarning($"User Agent: {userAgent}");
                     logger.LogWarning($"IPAddress: {ipAddress}");
                     DateTime expiry = DateTime.Now.AddMinutes(5);
-                    string twoFactorCode = await userAccountServices.GenerateOtp(employee.Id, expiry);
+                    string twoFactorCode = await userAccountServices.GenerateOtp(employee.UserId, expiry);
                     await emailServices.SendAuthenticationCodeAsync(signinBody.Email, twoFactorCode, expiry);
 
                     try
@@ -121,9 +121,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (employee.EmployeeDepartment != null)
                 {
-                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id);
+                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id)!;
                     
-                    claims.Add(new Claim("Department", empDepartment.DeptName));
+                    claims.Add(new Claim("Department", empDepartment!.DeptName));
                 }
 
                 var key = configuration.GetValue<string>("JWT:Key")!;
@@ -162,152 +162,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
             }
         }
-
         
-        
-        [HttpPost("account/login/verify")]
-        public async Task<IActionResult> LoginVerification([FromBody] SigninVerification signinVerification)
-        {
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
-            }
-
-            try
-            {
-                if (signinVerification == null) return BadRequest(new ApiResponse(success: false, message: "Body request is required."));
-
-                var employee = await employeeServices.GetEmployeeByEmail(signinVerification.Email);
-
-                if (employee == null)
-                {
-                    logger.LogWarning($"An employee with email: {signinVerification.Email} not found.");
-                    return Unauthorized(new ApiResponse(false, $"An employee with email: {signinVerification.Email} not found."));
-                }
-
-                var userAccount = await userAccountServices.GetUserAccountByEmail(signinVerification.Email);
-
-                if (userAccount == null)
-                {
-                    logger.LogWarning($"User account with email: {signinVerification.Email} not found.");
-                    return Unauthorized(new ApiResponse(false, $"User account with email: {signinVerification.Email} not found."));
-                }
-
-                // if (userAccount.VerificationCode != signinVerification.Code)
-                // {
-                //     _logger.LogWarning($"Invalid verification code; try again.");
-                //     return Unauthorized(new ApiResponse(false, $"Invalid verification code; try again."));
-                // }
-                //
-                // if (userAccount.VerificationCodeExpiry < DateTime.Now)
-                // {
-                //     _logger.LogWarning($"Verification code has expired; try again.");
-                //     return Unauthorized(new ApiResponse(false, $"Verification code has expired; try again."));
-                // }
-
-                var userName = await userAccountServices.RetrieveUsername(signinVerification.Email);
-                var activePlan = await subscriptionServices.GetUserSubscription(userAccount.UserId);
-                
-                logger.LogInformation(activePlan.Id.ToString());
-                
-                List<Claim> claims = new List<Claim>
-                {
-                    // new Claim(ClaimTypes.Role, employee.IsAdmin ? "Admin" : "User"),
-                    // new Claim("Role", employee.IsAdmin ? "Admin" : "User"),
-                    new Claim(ClaimTypes.NameIdentifier, employee.Id.ToString())
-                };
-
-                if (employee.EmployeeDepartment != null)
-                {
-                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id);
-
-                    claims.Add(new Claim("Department", empDepartment.DeptName));
-                }
-                string expiresAt = activePlan.EndDate.ToString("o");
-                string subscription = activePlan.Id.ToString();
-                string subscriptionPlan = activePlan.SubscriptionPlan!.Name;
-                
-                if (activePlan != null)
-                {
-                    logger.LogInformation("Working");   
-                    
-                    claims.Add(new Claim(SubscriptionTypes.SubscriptionId, subscription));
-                    claims.Add(new Claim(SubscriptionTypes.Subscription, subscriptionPlan));
-                    claims.Add(new Claim(SubscriptionTypes.Expiration, expiresAt));
-                }
-
-                var key = configuration.GetValue<string>("JWT:Key")!;
-                var audience = configuration.GetValue<string>("JWT:Audience")!;
-                var issuer = configuration.GetValue<string>("JWT:Issuer")!;
-                var jwtService = new JwtService(key, audience, issuer);
-
-                var jwtToken = jwtService.GenerateToken(claims, DateTime.UtcNow.AddMinutes(15));
-
-                string sessionId = Guid.NewGuid().ToString();
-
-                
-                // Response.Headers.Append("Set-Cookie", "token=" + jwtToken + "; HttpOnly; Secure; SameSite=None; Path=/; Expires=" + DateTime.UtcNow.AddMinutes(15).ToString());
-                Response.Cookies.Append("token", jwtToken, new CookieOptions
-                {
-                    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                    SameSite = SameSiteMode.None, // Prevent CSRF attacks
-                    Secure = true,
-                    Path="/",
-                    Expires = DateTime.UtcNow.AddMinutes(30) // Cookie expires in 1 hour
-                });
-
-                logger.LogWarning("$A user has authenticated successfully!");
-                // userAccount.VerificationCode = null;
-                // userAccount.VerificationCodeExpiry = null;
-                employee.Status = "Online";
-
-                await employeeServices.UpdateAsync(employee);
-                await userAccountServices.UpdateAsync(userAccount);
-
-                return Ok(new ApiResponse<string>(success: true, message: $"A user has authenticated successfully!", data: jwtToken));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex.Message);
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
-            }
-        }
-
-        // [HttpPost("send-email")]
-        // public async Task<IActionResult> SendEmail(string email, string subject, string body)
-        // {
-        //     try
-        //     {
-        //         var sourceEmail = _configuration.GetValue<string>("EmailSettings:Username")!;
-        //         var password = _configuration.GetValue<string>("EmailSettings:Password")!;
-
-        //         // Ensure sensitive data is not logged or exposed
-        //         if (string.IsNullOrEmpty(sourceEmail) || string.IsNullOrEmpty(password))
-        //         {
-        //             _logger.LogError("Email configuration is missing.");
-        //             return StatusCode(500, new ApiResponse(false, "Email configuration is missing."));
-        //         }
-
-        //         var emailService = new EmailServices("smtp.gmail.com", 587, sourceEmail, password);
-
-        //         // await emailService.SendEmailAsync(email, subject, body);
-
-        //         return Ok(new ApiResponse<dynamic>(true, "Email sent successfully!"));
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "An error occurred while sending email.");
-        //         return StatusCode(500, new ApiResponse(false, "An error occurred while sending email."));
-        //     }
-        // }
 
         [HttpPost("account/send-reset")]
-        public async Task<IActionResult> VerifyReset([FromBody] InputEmail verifyResetDTO)
+        public async Task<IActionResult> VerifyReset([FromBody] InputEmail verifyResetDto)
         {
             if (!ModelState.IsValid)
             {
@@ -321,12 +179,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             try
             {
-                var user = await userAccountServices.GetUserAccountByEmail(verifyResetDTO.Email);
+                var user = await userAccountServices.GetUserAccountByEmail(verifyResetDto.Email);
                 if (user == null)
                 {
                     return NotFound(new ApiResponse(false, $"This user does not exist"));
                 }
-
 
                 var key = configuration.GetValue<string>("JWT:Key")!;
                 var audience = configuration.GetValue<string>("JWT:Audience")!;
@@ -337,14 +194,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var resetSession = new ResetPasswordSession
                 {
-                    Email = verifyResetDTO.Email,
+                    Email = verifyResetDto.Email,
                     Token = token,
                     ExpiresAt = DateTime.Now.AddHours(24)
                 };
 
                 await userAccountServices.CreatePasswordSession(resetSession);
-
-                
 
                 await emailServices.SendResetPasswordEmailAsync(resetSession.Email, token);
 
@@ -358,8 +213,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, $"An error occured while verifying the code"));
             }
         }
-
-
 
         [HttpGet("account/reset-password")]
         public async Task<IActionResult> ResetSessionExist(string token)
@@ -466,51 +319,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, "An error occurred while sending email."));
             }
         }
-
         
-        // private async Task<string> CreateSessionForUser(ApplicationUser user, string deviceId, string deviceName, string deviceIp, string userAgent)
-        // {
-        //     var sessionId = Guid.NewGuid().ToString(); // Create a new session ID
-
-        //     var activeSession = new ActiveSession
-        //     {
-        //         SessionId = sessionId,
-        //         UserId = user.Id,
-        //         DeviceId = deviceId,
-        //         DeviceName = deviceName,
-        //         DeviceIp = deviceIp,
-        //         UserAgent = userAgent,
-        //         CreatedAt = DateTime.UtcNow,
-        //         LastAccessed = DateTime.UtcNow
-        //     };
-
-        //     // Save the session in the database
-        //     _dbContext.ActiveSessions.Add(activeSession);
-        //     await _dbContext.SaveChangesAsync();
-
-        //     return sessionId;
-        // }
-
-
-        // [HttpGet("profile-session")]
-        // public async Task<IActionResult> GetMyProfile(){
-        //     var userSession = HttpContext.Session.GetString("sessionId");
-        //     var user = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-
-        //     if (userSession == null)
-        //     {
-        //         return NotFound(new ApiResponse(false, "User not found."));
-        //     }
-
-        //     var employee = await _employeeServices.GetByIdAsync(int.Parse(user));
-
-        //     if (employee == null)
-        //     {
-        //         return NotFound(new ApiResponse(false, $"Employee with ID: {userSession} not found."));
-        //     }
-
-        //     return Ok(new ApiResponse<dynamic>(true, "Profile retrqieved successfully!", new { Id = userSession, userName = employee.FirstName, role = employee.IsAdmin ? "Admin" : "User", isAdmin = employee.IsAdmin }));
-        // }
         
         [HttpPost("account/logout")]
         public async Task<IActionResult> Logout(){
@@ -556,9 +365,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!ModelState.IsValid) return BadRequest(new ApiResponse(success: false, message: ModelState.IsValid.ToString()));
 
-            var authDTO = mapper.Map<UserAccountDto>(auth);
+            var authDto = mapper.Map<UserAccountDto>(auth);
 
-            return Ok(new ApiResponse<UserAccountDto>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDTO));
+            return Ok(new ApiResponse<UserAccountDto?>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDto));
         }
 
         
@@ -732,7 +541,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 var mappedUserNotification = mapper.Map<List<ReadUserNotificationDto>>(userNotifications);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDto>>(true, "Notifications retrieved successfully!", mappedUserNotification));
+                return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, "Notifications retrieved successfully!", mappedUserNotification));
             }
             catch (Exception ex)
             {
