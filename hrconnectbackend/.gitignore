@@ -20,6 +20,7 @@ wwwroot/
 appsettings.Development.json
 appsettings.Staging.json
 appsettings.Production.json
+appsettings.Backup.json
 
 # .NET Core
 project.lock.json
