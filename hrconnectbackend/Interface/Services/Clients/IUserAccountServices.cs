@@ -6,7 +6,8 @@ namespace hrconnectbackend.Interface.Services.Clients;
 
 public interface IUserAccountServices : IGenericRepository<UserAccount>
 {
-    Task<UserAccount?> CreateUserAccount(UserAccount userAccount);
+    Task<UserAccount?> CreateUserAccount(int? organizationId, UserAccount userAccount);
+    Task<UserAccount?> CreateEmployeeUserAccount(UserAccount userAccount, int employeeId);
     Task<UserAccount?> AutomateCreateUserAccount(UserAccount userAccount);
     Task<UserAccount?> GetUserAccountByEmail(string email);
     Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken);

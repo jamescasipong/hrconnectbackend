@@ -12,13 +12,11 @@ public class Attendance
     public TimeSpan ClockIn { get; set; }
     public TimeSpan? ClockOut { get; set; }
     //public string Status { get; set; }
-    public int TenantId { get; set; }
     // This will store the total working hours, including overtime if applicable
     [Column(TypeName = "decimal(18, 2)")]
     public decimal WorkingHours { get; set; }
     public TimeSpan? LateClockIn { get; set; }
     public TimeSpan? EarlyLeave { get; set; }
-
     public Employee? Employee { get; set; }
 
     // Method to calculate working hours (you can adjust this logic as per your needs)

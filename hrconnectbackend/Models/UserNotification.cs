@@ -9,7 +9,6 @@ namespace hrconnectbackend.Models
         public Guid ReferenceId { get; set; } = Guid.NewGuid();
         public bool IsRead { get; set; }
         public string Status { get; set; } = string.Empty;
-        public int TenantId { get; set; }
         public Employee? Employee { get; set; }
         public Notifications? Notification { get; set; }
     }

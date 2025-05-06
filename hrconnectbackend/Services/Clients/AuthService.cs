@@ -1,14 +1,21 @@
-﻿using System.Security.Claims;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using AutoMapper;
+using Azure;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using TransactionException = System.Transactions.TransactionException;
 
 namespace hrconnectbackend.Services.Clients;
@@ -18,59 +25,64 @@ public class AuthService(
     IConfiguration configuration,
     IOptions<JwtSettings> jwtSettings,
     IUserAccountServices accountServices,
-    ILogger<AuthService> logger)
+    ILogger<AuthService> logger,
+    IMapper mapper)
     : IAuthService
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     public async Task<AuthResponse?> Signin(string email, string password, bool remember)
     {
-        var user = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
+        var user = await context.UserAccounts.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Email == email);
         
         if (user == null) return null;
         
-        logger.LogInformation("Signin attempt for email: {user}", JsonSerializer.Serialize(user));
 
         if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
             return null;
         }
-        
-        List<Claim> claims = await GetUserClaims(user);
+
+        var userDto = mapper.Map<UserAccountDto>(user);
+
+        List<Claim> claims = await GetUserClaims(userDto);
 
         DateTime dateTime = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
-        string accessToken = GenerateAcessToken(claims, dateTime);
-        string refreshToken = await GenerateRefreshToken(user.UserId, remember);
+        string accessToken = GenerateAcessToken(user, dateTime);
+        string refreshToken = await GenerateRefreshToken(user, remember);
 
         // var aes = new AES256Encrpytion(configuration.GetValue<string>("EncryptionSettings:Key")!);
         // var encrypted = aes.Encrypt(accessToken);
         
         return new AuthResponse(accessToken, refreshToken);
     }
-    
-    public async Task<UserAccount?> SignUpAdmin(CreateUser user)
+
+    public async Task<UserAccount?> SignUpAdmin(UserAccount userAccount)
     {
-        var employee = new UserAccount
+        string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
+
+        try
         {
-            // UserId = GenerateRandomNumber(0, int.MaxValue),
-            UserName = user.UserName,
-            Email = user.Email,
-            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
-            EmailVerified = false,
-            SmsVerified = false,
-            OrganizationId = user.OrganizationId,
-            ChangePassword = false,
-            Role = "Admin"
-        };
-        
-        if (employee == null) return null;
+            var newUser = new UserAccount
+            {
+                UserName = userAccount.UserName,
+                Password = hashedPassword,
+                Email = userAccount.Email,
+                OrganizationId = null,
+                Role = "Admin",
+            };
 
-        await context.UserAccounts.AddAsync(employee);
-        await context.SaveChangesAsync();
+            var createUser = await accountServices.AddAsync(newUser);
 
-        return employee;
+            return createUser;
+
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error creating user account: {ex.Message}", ex);
+        }
     }
-    
+
     public async Task<UserAccount?> SignUpEmployee(CreateUser user)
     {
         var employee = new UserAccount
@@ -135,14 +147,14 @@ public class AuthService(
         return await context.UserAccounts.Where(a => a.OrganizationId == tenantId).ToListAsync();
     }
 
-    private Task<List<Claim>> GetUserClaims(UserAccount user)
+    private Task<List<Claim>> GetUserClaims(UserAccountDto user)
     {
         var claims = new List<Claim>
         {
             new Claim("Subscription", "Premium"),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim(ClaimTypes.NameIdentifier, user.UserName),
-            new Claim(ClaimTypes.Email, user.Email),
+            new Claim("Role", user.Role),
+            new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Name, user.UserName)
         };
@@ -152,16 +164,58 @@ public class AuthService(
             claims.Add(new Claim("organizationId", user.OrganizationId.Value.ToString()));
         }
 
-        // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
-        //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
-        //     .Select(a => a.Department).FirstOrDefaultAsync();
-        //
-        // if (empDept != null)
-        // {
-        //     claims.Add(new Claim("Department", empDept.DeptName));
-        // }
-        
-        return Task.FromResult(claims);
+        if (user.Employee != null)
+        {
+            logger.LogInformation($"EmployeeId: {user.Employee.Id}");
+            claims.Add(new Claim("EmployeeId", user.Employee.Id.ToString()));
+        }
+        else
+        {
+            logger.LogWarning($"Employee is missing");
+        }
+
+            // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
+            //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
+            //     .Select(a => a.Department).FirstOrDefaultAsync();
+            //
+            // if (empDept != null)
+            // {
+            //     claims.Add(new Claim("Department", empDept.DeptName));
+            // }
+
+            return Task.FromResult(claims);
+    }
+
+    public ClaimsPrincipal? GetPrincipalFromAccessToken(string token)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_jwtSettings.Key);
+
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false, // optional: set true if you use Issuer
+                ValidateAudience = false, // optional: set true if you use Audience
+                ValidateLifetime = false,
+            };
+
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+
+            if (validatedToken is not JwtSecurityToken jwtToken ||
+                !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return null;
+            }
+
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<string> GenerateAccessToken(string refreshToken)
@@ -175,34 +229,71 @@ public class AuthService(
         if (isTokenActive == null)
         {
             return string.Empty;
-        }
+        }        
         
-        var claims = await GetUserClaims(user);
-        
-        
-        logger.LogInformation("claims: {claims}", claims);
-
         DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
         
         logger.LogInformation($"Date: {exp}");
         
-        string token = GenerateAcessToken(claims, exp);
+        string token = GenerateAcessToken(user, exp);
         
         logger.LogInformation($"token: {token}");
 
         return token;
     }
     
-    
-    private string GenerateAcessToken(List<Claim> claims, DateTime dateTime)
+    private string GenerateAcessToken(UserAccount user, DateTime dateTime)
     {
+        var userDto = mapper.Map<UserAccountDto>(user);
+
+        var userClaims = GetUserClaims(userDto).Result;
+
         JwtService jwtService = new JwtService(_jwtSettings.Key, _jwtSettings.Issuer, _jwtSettings.Audience);
     
-        var token = jwtService.GenerateToken(claims, dateTime);
+        var token = jwtService.GenerateToken(userClaims, dateTime);
         return token;
     }
 
-    private async Task<string> GenerateRefreshToken(int userId, bool remember)
+    public async Task<AuthResponse> GenerateTokens(UserAccount user)
+    {
+        DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
+
+        string accessToken = GenerateAcessToken(user, exp);
+        string refreshToken = await GenerateRefreshToken(user, false);
+        return new AuthResponse(accessToken, refreshToken);
+    }
+
+    public void SetAccessTokenCookie(AuthResponse tokens, HttpResponse response)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration)
+        };
+
+        response.Cookies.Append("at_session", tokens.AccessToken, new CookieOptions
+        {
+            HttpOnly = true,  // Secure from JavaScript (prevent XSS)
+            SameSite = SameSiteMode.None, // Prevent CSRF attacks
+            Secure = true,
+            Path = "/",
+            Expires = DateTime.Now.AddMinutes(_jwtSettings.AccessExpiration)
+        });
+
+        // Append refresh token to response cookies
+        response.Cookies.Append("backend_rt", tokens.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true,  // Secure from JavaScript (prevent XSS)
+            SameSite = SameSiteMode.None, // Prevent CSRF attacks
+            Secure = true,
+            Path = "/",
+            Expires = DateTime.Now.AddMinutes(_jwtSettings.RefreshExpiration)
+        });
+    }
+
+    private async Task<string> GenerateRefreshToken(UserAccount user, bool remember)
     {
         string refreshToken = Guid.NewGuid().ToString();
         
@@ -216,7 +307,7 @@ public class AuthService(
             var newRefreshToken = new RefreshToken
             {
                 RefreshTokenId = refreshToken,
-                UserId = userId,
+                UserId = user.UserId,
                 CookieName = $"{Guid.NewGuid().ToString()}",
                 IsActive = true,
                 Expires = remember

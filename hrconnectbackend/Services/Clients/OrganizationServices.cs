@@ -11,21 +11,43 @@ namespace hrconnectbackend.Services.Clients;
 
 public class OrganizationServices(DataContext context): GenericRepository<Organization>(context), IOrganizationServices
 {
-    public async Task<Organization> CreateOrganization(CreateOrganization createOrganization)
+    public async Task<Organization> CreateOrganization(int userId, Organization organization)
     {
-        var newOrg = new Organization
-        {
-            Name = createOrganization.Name,
-            Address = createOrganization.Address,
-            ContactEmail = createOrganization.ContactEmail,
-            CreatedAt = createOrganization.CreatedAt,
-            IsActive = createOrganization.IsActive
-        };
+        using var transaction = await _context.Database.BeginTransactionAsync();
 
-        await _context.Organizations.AddAsync(newOrg);
-        await _context.SaveChangesAsync();
-        
-        return newOrg;
+        try
+        {
+            var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
+            if (userAccount == null)
+            {
+                throw new KeyNotFoundException($"User account with id: {userId} does not exist.");
+            }
+
+            var newOrg = new Organization
+            {
+                Name = organization.Name,
+                Address = organization.Address,
+                ContactEmail = organization.ContactEmail,
+                CreatedAt = organization.CreatedAt,
+                IsActive = organization.IsActive
+            };
+            await _context.Organizations.AddAsync(newOrg);
+            await _context.SaveChangesAsync();
+
+
+
+            userAccount.OrganizationId = newOrg.Id;
+            _context.Update(userAccount);
+            await _context.SaveChangesAsync();
+
+            return newOrg;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+
+            throw new Exception($"Error creating organization: {ex.Message}", ex);
+        }
     }
 
     public async Task<bool> UpdateOrganization(OrganizationsDto organization)

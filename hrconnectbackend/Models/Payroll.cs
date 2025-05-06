@@ -19,7 +19,6 @@ namespace hrconnectbackend.Models
         public decimal Allowances { get; set; } = decimal.Zero;
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Deductions { get; set; } = decimal.Zero;
-        public int TenantId { get; set; }
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal NetSalary { get; set; } // Computed as BasicSalary + Allowances - Deductions
@@ -43,5 +42,7 @@ namespace hrconnectbackend.Models
 
         [Required] public string PayPeriod { get; set; } = string.Empty; // New field for Pay Period (e.g., "6th-20th" or "21st-5th")
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int OrganizationId { get; set; } // Foreign key to Organization
+        public Organization? Organization { get; set; } // Navigation property to Organization
     }
 }

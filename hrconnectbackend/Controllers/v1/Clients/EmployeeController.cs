@@ -1,11 +1,14 @@
 using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.EmployeeModels;
+using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,8 +31,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         // [Authorize(Roles = "Admin,HR")]
         [HttpPost]
-        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto employee, bool? createAccount)
+        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto employee, bool? createAccount = false)
         {
+            var organizationId = User.FindFirstValue("organizationId");
+
+            logger.LogWarning("Organization ID: {organizationId}", organizationId);
+
+            if (!int.TryParse(organizationId, out int orgId))
+            {
+                logger.LogWarning("Organization ID is not valid.");
+                return BadRequest(new ApiResponse(false, "Invalid organization ID."));
+            }
+
             if (employee == null)
             {
                 logger.LogWarning("Received null data for employee creation.");
@@ -39,7 +52,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             try
             {
                 // Call the CreateEmployeeAsync method
-                await employeeService.CreateEmployee(employee);
+                await employeeService.CreateEmployee(employee, orgId, createAccount);
 
                 return Ok(new ApiResponse(true, $"Employee created successfully!"));  // Return a success message
             }
@@ -80,6 +93,43 @@ namespace hrconnectbackend.Controllers.v1.Clients
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error generating employees");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+        }
+
+        [HttpPost("{employeeId}/create-account")]
+        public async Task<IActionResult> CreateUserAccount (int employeeId, CreateUser userAccExistingEmployee)
+        {
+            try
+            {
+                var newAccount = new UserAccount
+                {
+                    UserName = userAccExistingEmployee.UserName,
+                    Password = userAccExistingEmployee.Password,
+                    Email = userAccExistingEmployee.Email,
+                    Role = "Employee",
+                };
+
+                var user = await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
+                if (user == null)
+                {
+                    return BadRequest(new ApiResponse(false, "Failed to create user account"));
+                }
+                return Ok(new ApiResponse(true, "User account created successfully"));
+            }
+            catch (Exception ex)
+            {
+                if (ex is CustomException)
+                {
+                    return BadRequest(new ApiResponse(false, ex.Message));
+                }
+
+                if (ex is ConflictException)
+                {
+                    return Conflict(new ApiResponse(false, ex.Message));
+                }
+
+                logger.LogError(ex, "Error creating user account");
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
@@ -309,15 +359,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [HttpGet("department/{departmentId}")]
-        public async Task<IActionResult> RetrieveEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize)
+        public async Task<IActionResult> RetrieveEmployeeByDepartment(int departmentId, int? pageIndex, int? pageSize)
         {
             try
             {
-                var employeesByDept = await employeeService.GetEmployeeByDepartment(deptId, pageIndex, pageSize);
+                var employeesByDept = await employeeService.GetEmployeeByDepartment(departmentId, pageIndex, pageSize);
 
                 var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
                 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {deptId} retrieved successfully.", employeesMapped));
+                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {departmentId} retrieved successfully.", employeesMapped));
             }
             catch (KeyNotFoundException ex)
             {

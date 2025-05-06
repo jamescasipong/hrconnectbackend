@@ -242,7 +242,14 @@ namespace hrconnectbackend.Services.ExternalServices
             await SendEmailAsync(toEmail, subject, styledBody);
         }
 
+        public Task SendPaymentFailedEmailAsync(int userId, int subscriptionId)
+        {
+            throw new NotImplementedException();
+        }
 
-
+        public Task SendTrialEndingEmailAsync(int userId, DateTime trialEndDate)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

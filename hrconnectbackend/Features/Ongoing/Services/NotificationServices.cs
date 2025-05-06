@@ -19,7 +19,7 @@ public class NotificationService(DataContext dbContext, IEmailServices emailServ
         int? tenantId = user.OrganizationId!;
         var notification = new Notifications
         {
-            TenantId = tenantId.Value,
+            OrganizationId = tenantId.Value,
             Title = "Your Premium Subscription is Expiring Soon",
             Message =
                 "Your premium subscription will expire in 5 days. To avoid losing access to premium features, please renew your subscription.",
@@ -35,7 +35,6 @@ public class NotificationService(DataContext dbContext, IEmailServices emailServ
             EmployeeId = user.UserId,
             NotificationId = notification.Id,
             IsRead = false,
-            TenantId = tenantId.Value,
             Notification = notification
         };
         

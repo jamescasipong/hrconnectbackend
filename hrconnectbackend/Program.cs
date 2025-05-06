@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using AspNetCoreRateLimit;
+using hrconnectbackend.Data.Seed;
 using hrconnectbackend.Extensions;
+using hrconnectbackend.Middlewares;
 using hrconnectbackend.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
@@ -18,6 +20,7 @@ builder.Services.AddProfileMapper();
 builder.Services.AddCustomConfigSettings();
 builder.Services.AddDbContext(builder.Configuration);
 builder.Services.AddControllers().AddNewtonsoftJson();
+
 
 
 var apiVersioningBuilder = builder.Services.AddApiVersioning(options =>
@@ -47,7 +50,6 @@ builder.Services.AddDistributedMemoryCache();
 // Add session state services
 builder.Services.AddMemoryCache();
 
-
 // Add rate limiting services
 builder.Services.AddRateLimiter(_ => _
     .AddFixedWindowLimiter(policyName: "fixed", configureOptions: options =>
@@ -64,6 +66,8 @@ builder.Services.AddInMemoryRateLimiting();
 
 // Swagger setup
 builder.Services.AddEndpointsApiExplorer();
+
+
 
 
 builder.Services.AddSwaggerGen(c =>
@@ -135,6 +139,20 @@ if (app.Environment.IsDevelopment())
     //     opt.DefaultHttpClient = new(ScalarTarget.Http, ScalarClient.Http11);
     // });
     
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        await SubscriptionSeed.Initialize(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
 }
 
 //app.UseHttpsRedirection();

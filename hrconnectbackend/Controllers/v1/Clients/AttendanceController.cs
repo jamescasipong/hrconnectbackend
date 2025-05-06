@@ -183,16 +183,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                // var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+                var currentEmployeeId = User.FindFirstValue("EmployeeId");
 
-                if (currentUserId == null)
+                if (currentEmployeeId == null)
                 {
                     return Unauthorized(new ApiResponse(false, "User not authenticated."));
                 }
 
-                // Convert user ID to int
-                if (!int.TryParse(currentUserId, out int employeeId))
+                if (!int.TryParse(currentEmployeeId, out int employeeId))
                 {
                     return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
                 }
@@ -262,7 +260,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ClockOut()
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (currentUserId == null)
             {

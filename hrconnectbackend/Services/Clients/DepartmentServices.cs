@@ -1,16 +1,18 @@
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
+using System.Transactions;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class DepartmentServices(DataContext context) : GenericRepository<Department>(context), IDepartmentServices
+public class DepartmentServices(DataContext context, ILogger<DepartmentServices> logger) : GenericRepository<Department>(context), IDepartmentServices
 {
-    public async Task<List<EmployeeDepartment>> RetrieveDepartment(int? pageIndex, int? pageSize)
+    public async Task<List<EmployeeDepartment>> RetrieveEmployeeDepartments(int OrganizationId, int? pageIndex, int? pageSize)
     {
-        var departments = await _context.EmployeeDepartments.Include(e => e.Employees).ToListAsync();
+        var departments = await _context.EmployeeDepartments.Where(a => a.OrganizationId == OrganizationId).Include(a => a.Organization).Include(e => e.Employees).ToListAsync();
         
         if (pageIndex.HasValue && pageSize.HasValue)
         {
@@ -18,6 +20,41 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         }
 
         return departments;
+    }
+
+    public async Task CreateEmployeeDepartment(int departmentId, int supervisorId, int organizationId)
+    {
+        using var transaction = _context.Database.BeginTransaction();
+
+        try
+        {
+            var employeeDepartment = new EmployeeDepartment
+            {
+                DepartmentId = departmentId,
+                SupervisorId = supervisorId,
+                OrganizationId = organizationId
+            };
+
+            await _context.EmployeeDepartments.AddAsync(employeeDepartment);
+            await _context.SaveChangesAsync();
+
+            var employee = await _context.Employees.FindAsync(supervisorId);
+            if (employee != null)
+            {
+                employee.EmployeeDepartmentId = employeeDepartment.Id;
+                await _context.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(ex, "Error creating employee department");
+
+            throw new CustomException("Error creating employee department", "Transaction");
+
+        }
     }
 
     public async Task AddEmployeToDepartment(int employeeId, int departmentId)
@@ -83,13 +120,13 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
             .SingleOrDefaultAsync();
     }
 
-    public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId)
+    public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int newSupervisorId, int departmentId)
     {
         var department = await _context.EmployeeDepartments.FindAsync(departmentId);
         
         if (department == null) return null;
         
-        department.SupervisorId = employeeId;
+        department.SupervisorId = newSupervisorId;
         
         _context.EmployeeDepartments.Update(department);
         await _context.SaveChangesAsync();
@@ -102,9 +139,9 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         return department;
     }
 
-    public async Task<EmployeeDepartment?> GetEmployeeDepartment(int departmentId)
+    public async Task<EmployeeDepartment?> GetEmployeeDepartment(int employeeDeptId)
     {
-        return await _context.EmployeeDepartments.FindAsync(departmentId);
+        return await _context.EmployeeDepartments.FindAsync(employeeDeptId);
     }
 
     public async Task<EmployeeDepartment?> GetDepartmentByManagerId(int managerId)
@@ -140,4 +177,36 @@ public class DepartmentServices(DataContext context) : GenericRepository<Departm
         _context.Employees.Update(employee);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<object> RetrieveDepartment(int organizationId)
+    {
+        List<object> departmentWithEmployees = new List<object>();
+        var departments = await _context.Departments.ToListAsync();
+
+        foreach (var dept in departments)
+        {
+            var employees = await _context.Employees
+                .Where(e => e.EmployeeDepartmentId == dept.DepartmentId)
+                .ToListAsync();
+
+            logger.LogInformation($"Employees in department {dept.DeptName}: {employees.Count}");
+
+            var department = new
+            {
+                dept.DepartmentId,
+                dept.DeptName,
+                dept.Description,
+                dept.DepartmentGuid,
+                dept.OrganizationId,
+                dept.CreatedAt,
+                dept.UpdatedAt,
+                Employees = employees
+            };
+
+            departmentWithEmployees.Add(department);
+        }
+
+        return departmentWithEmployees;
+    }
+
 }

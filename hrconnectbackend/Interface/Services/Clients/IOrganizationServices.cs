@@ -8,7 +8,7 @@ namespace hrconnectbackend.Interface.Services.Clients;
 
 public interface IOrganizationServices: IGenericRepository<Organization>
 {
-    Task<Organization> CreateOrganization(CreateOrganization createOrganization);
+    Task<Organization> CreateOrganization(int userId, Organization createOrganization);
     Task<bool> UpdateOrganization(OrganizationsDto organization);
     Task<bool> DeleteOrganization(int organizationId);
     Task<(Organization? original, Organization? patched, bool isValid)> ApplyPatchAsync(int organizationId,

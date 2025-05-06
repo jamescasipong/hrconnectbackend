@@ -15,7 +15,7 @@ namespace hrconnectbackend.Services.Clients
         public async Task ClockIn(int employeeId)
         {
             var employee = await _context.Employees.FindAsync(employeeId);
-            var dayToday = DateTime.Now;
+            var dayToday = DateTime.UtcNow;
 
             // Convert clock-out time to TimeSpan
             var timeClockedIn = dayToday.TimeOfDay; // This gives us the TimeSpan of the current time
@@ -57,7 +57,7 @@ namespace hrconnectbackend.Services.Clients
             var newAttendance = new Attendance
             {
                 EmployeeId = employeeId,
-                DateToday = DateTime.Now,
+                DateToday = DateTime.UtcNow,
                 ClockIn = timeClockedIn,
                 ClockOut = null,
                 LateClockIn = lateLeave,
@@ -69,12 +69,12 @@ namespace hrconnectbackend.Services.Clients
         public async Task ClockOut(int employeeId)
         {
             var employee = await _context.Employees.FindAsync(employeeId);
-            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.Now) && a.EmployeeId == employeeId);
+            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow) && a.EmployeeId == employeeId);
             var employeeShift = await _context.Shifts.Where(e => e.EmployeeShiftId == employeeId).ToListAsync();
 
             if (attendance == null)
             {
-                throw new KeyNotFoundException($"No attendance record found for employee ID {employeeId} on {DateTime.Now:yyyy-MM-dd}. No clock-in yet.");
+                throw new KeyNotFoundException($"No attendance record found for employee ID {employeeId} on {DateTime.UtcNow:yyyy-MM-dd}. No clock-in yet.");
             }
 
             if (employee == null)
@@ -82,7 +82,7 @@ namespace hrconnectbackend.Services.Clients
                 throw new KeyNotFoundException($"Employee with ID {employeeId} not found.");
             }
 
-            var dayToday = DateTime.Now;
+            var dayToday = DateTime.UtcNow;
             var clockIn = attendance.ClockIn;
             var hasShift = employeeShift.Any(shift => dayToday.ToString("dddd") == shift.DaysOfWorked);
 
@@ -162,7 +162,7 @@ namespace hrconnectbackend.Services.Clients
 
         private async Task<dynamic> EmployeeAttendanceStats(List<Employee> employees, DateTime? specificDate)
         {
-            var today = DateTime.Now.Date;
+            var today = DateTime.UtcNow.Date;
             var shifts = await _context.Shifts.ToListAsync();
             List<Attendance> attendances;
 
@@ -197,7 +197,7 @@ namespace hrconnectbackend.Services.Clients
                 }
 
                 var shiftStartTime = employeeShift.TimeIn;
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now).ToTimeSpan();
+                var currentTime = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan();
 
                 if (employeeAttendance == null)
                 {
@@ -274,7 +274,7 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<Attendance?> GetDailyAttendanceByEmployeeId(int employeeId)
         {
-            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.Now));
+            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow));
 
             if (attendance == null)
             {
@@ -289,8 +289,8 @@ namespace hrconnectbackend.Services.Clients
             if (id <= 0)
                 throw new ArgumentException("Invalid employee ID", nameof(id));
 
-            var currentMonth = DateTime.Now.Month;
-            var currentYear = DateTime.Now.Year;
+            var currentMonth = DateTime.UtcNow.Month;
+            var currentYear = DateTime.UtcNow.Year;
 
             var attendanceRecords = await _context.Attendances
                 .Where(a => a.EmployeeId == id && a.DateToday.Month == currentMonth && a.DateToday.Year == currentYear)
@@ -330,14 +330,14 @@ namespace hrconnectbackend.Services.Clients
         // Conditional Methods
         public async Task<bool> HasClockedIn(int employeeId)
         {
-            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.Now));
+            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow));
 
             return attendance != null;
         }
 
         public async Task<bool> HasClockedOut(int employeeId)
         {
-            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.Now) && a.ClockOut != null);
+            var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow) && a.ClockOut != null);
 
             return attendance != null;
         }

@@ -1,4 +1,5 @@
 using hrconnectbackend.Data;
+using hrconnectbackend.Enum;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -8,13 +9,19 @@ namespace hrconnectbackend.Services.Clients;
 
 public class ShiftServices(DataContext context) : GenericRepository<Shift>(context), IShiftServices
 {
-    public async Task<List<Shift>> GetEmployeeShifts(int employeeId)
+    public async Task<List<Shift>> GetEmployeeShifts(int employeeId, int orgId)
     {
         var employee = await _context.Employees.FindAsync(employeeId);
+
 
         if (employee == null)
         {
             throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+        }
+
+        if (employee.OrganizationId != orgId)
+        {
+            throw new UnauthorizedAccessException($"Employee with id {employeeId} does not belong to the organization with id {orgId}");
         }
 
         var employeeShifts = await _context.Shifts.Where(a => a.EmployeeShiftId == employeeId).ToListAsync();
@@ -46,6 +53,50 @@ public class ShiftServices(DataContext context) : GenericRepository<Shift>(conte
         }
 
         return true;
+    }
+
+    public async Task<List<Shift>> GenerateShiftForEmployee(int employeeId, int orgId)
+    {
+        List<string> employeeShifts = Constants.daysOfWorked;
+
+        var employee = await _context.Employees.FindAsync(employeeId);
+
+        if (employee == null)
+        {
+            throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+        }
+
+        List<Shift> shifts = new List<Shift>();
+
+        foreach (var empShift in employeeShifts)
+        {
+            var shift = new Shift
+            {
+                EmployeeShiftId = employeeId,
+                DaysOfWorked = empShift,
+                OrganizationId = orgId,
+                TimeIn = new TimeSpan(9, 0, 0),
+                TimeOut = new TimeSpan(17, 0, 0),
+            };
+
+            shifts.Add(shift);
+        }
+
+        try
+        {
+
+            await _context.Shifts.AddRangeAsync(shifts);
+            await _context.SaveChangesAsync();
+
+
+            return shifts;
+        }
+
+        catch (Exception ex)
+        {
+            throw new Exception($"Error creating shift: {ex.Message}", ex);
+        }
+
     }
 
 }

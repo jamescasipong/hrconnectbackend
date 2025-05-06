@@ -1,10 +1,13 @@
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Response;
+using hrconnectbackend.Services.Clients;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
@@ -13,7 +16,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
     public class AuthController(
         IAuthService authService,
         ILogger<AuthController> logger,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IUserAccountServices userAccountServices)
         : ControllerBase
     {
         private readonly JwtSettings _jwtSettings = jwtSettings.Value;
@@ -65,7 +69,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 
                 Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline';";
 
-
                 logger.LogInformation("Tokens generated and sent to client for email: {Email}", signinBody.Email);
                 
                 return Ok(new ApiResponse(true, "Successfully logged in"));
@@ -74,6 +77,50 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 logger.LogError(ex, "Error during signin process for email: {Email}", signinBody.Email);
                 return StatusCode(500, new ApiResponse(false, ex.Message));
+            }
+        }
+
+        [HttpGet("session")]
+        public async Task<IActionResult> AuthSession()
+        {
+            var user = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (user == null)
+            {
+                logger.LogWarning("User not found in claims.");
+                return Unauthorized();
+            }
+
+            var userAccount = await userAccountServices.GetByIdAsync(int.Parse(user));
+
+            return Ok(new ApiResponse<UserAccount>(true, "User account found", userAccount));
+        }
+
+        [HttpPost("signup")]
+        public async Task<IActionResult> CreateUserAccount([FromBody] CreateUser userAccount)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
+            }
+
+            try
+            {
+                var newUser = new UserAccount
+                {
+                    UserName = userAccount.UserName,
+                    Password = userAccount.Password,
+                    Email = userAccount.Email,
+                    OrganizationId = null,
+                    Role = "Admin",
+                };
+                var createdUser = await authService.SignUpAdmin(newUser);
+                return Ok(new ApiResponse<UserAccount>(true, $"User account created successfully", createdUser));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while creating the user account.");
+                return StatusCode(500, new ApiResponse(false, $"An error occurred while creating the user account: {ex.Message}"));
             }
         }
 
@@ -103,19 +150,19 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(userAccount);
         }
         
-        [UserRole("Admin,Operator")]
-        [HttpPost("admin/signup")]
-        public async Task<IActionResult> SignupAdmin(CreateUser user)
-        {
-            var userAccount = await authService.SignUpAdmin(user);
+        //[UserRole("Admin,Operator")]
+        //[HttpPost("admin/signup")]
+        //public async Task<IActionResult> SignupUser(CreateUser user)
+        //{
+        //    var userAccount = await authService.SignUpAdmin(user);
 
-            if (userAccount == null) return BadRequest(new
-            {
-                Message = "Invalid request",
-            });
+        //    if (userAccount == null) return BadRequest(new
+        //    {
+        //        Message = "Invalid request",
+        //    });
 
-            return Ok(userAccount);
-        }
+        //    return Ok(userAccount);
+        //}
         
         [UserRole("Admin,Operator")]
         [HttpPost("employee/signup")]
@@ -192,9 +239,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             logger.LogInformation("Logging out user and invalidating tokens.");
 
-            var httpContext = HttpContext;
 
-            if (httpContext.Request.Cookies.TryGetValue("backend_rt", out var value))
+            if (Request.Cookies.TryGetValue("backend_rt", out var value))
             {
                 try
                 {
