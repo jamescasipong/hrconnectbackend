@@ -1,6 +1,8 @@
 ﻿using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Sessions;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +12,85 @@ namespace hrconnectbackend.Services.Clients
     public class UserAccountServices(DataContext context)
         : GenericRepository<UserAccount>(context), IUserAccountServices
     {
-
-        public Task<UserAccount?> CreateUserAccount(UserAccount userAccount)
+        public async Task<UserAccount?> CreateEmployeeUserAccount(UserAccount userAccount, int employeeId)
         {
-            throw new NotImplementedException();
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
+            using var transaction = _context.Database.BeginTransaction();
+
+            try
+            {
+                var employee = await _context.Employees.FirstOrDefaultAsync(a => a.Id == employeeId);
+
+                if (employee == null)
+                {
+                    throw new CustomException("Employee can't be found", "Entity not found.");
+                }
+
+                if (employee.UserId != null)
+                {
+                    throw new ConflictException("Employe already has account");
+                }
+
+                var newUser = new UserAccount
+                {
+                    UserName = userAccount.UserName,
+                    Password = hashedPassword,
+                    Email = userAccount.Email,
+                    OrganizationId = null,
+                    Role = "Employee",
+                };
+
+                var createUser = await AddAsync(newUser);
+
+                employee.UserId = createUser.UserId;
+
+                _context.Employees.Update(employee);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return createUser;
+
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                if (ex is CustomException)
+                {
+                    throw;
+                }
+
+                if (ex is ConflictException) throw;
+
+                throw new Exception($"Error creating user account: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<UserAccount?> CreateUserAccount(int? organizationId,UserAccount userAccount)
+        {
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
+
+            try
+            {
+                var newUser = new UserAccount
+                {
+                    UserName = userAccount.UserName,
+                    Password = hashedPassword,
+                    Email = userAccount.Email,
+                    OrganizationId = organizationId.HasValue ? organizationId.Value : null,
+                    Role = "Admin",
+                };
+
+                var createUser = await AddAsync(newUser);
+
+                return createUser;
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error creating user account: {ex.Message}", ex);
+            }
         }
 
         public Task<UserAccount?> AutomateCreateUserAccount(UserAccount userAccount)
@@ -31,7 +108,8 @@ namespace hrconnectbackend.Services.Clients
         public async Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken)
         {
             var user = await _context.RefreshTokens
-                .Include(a => a.UserAccount)  // Include the UserAccount navigation property
+                .Include(a => a.UserAccount)
+                .Include(a => a.UserAccount!.Employee)
                 .Where(a => a.RefreshTokenId == refreshToken)
                 .Include(a => a.UserAccount!.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
                 .Select(a => a.UserAccount)  // Now select UserAccount
@@ -71,7 +149,7 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task VerifyOtp(int id, int code)
         {
-            var userAccount = await _context.Auths.FirstOrDefaultAsync(a => a.UserId == id);
+            var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
             if (userAccount == null) throw new KeyNotFoundException("No user account found!");
             //
@@ -108,6 +186,7 @@ namespace hrconnectbackend.Services.Clients
 
             return userAcount.UserName;
         }
+
 
         public async Task UpdateEmail(int employeeId, string email)
         {

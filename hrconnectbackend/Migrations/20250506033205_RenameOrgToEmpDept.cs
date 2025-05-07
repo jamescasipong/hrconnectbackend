@@ -5,7 +5,7 @@
 namespace hrconnectbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class addEducationalBackground : Migration
+    public partial class RenameOrgToEmpDept : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

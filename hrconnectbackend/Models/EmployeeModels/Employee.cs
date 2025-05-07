@@ -10,13 +10,12 @@ namespace hrconnectbackend.Models.EmployeeModels
     {
         public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public int? PositionId { get; set; }
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
         public decimal BaseSalary { get; set; } = 18000m;
         public string BankName { get; set; } = "N/A";
-        public int TenantId { get; set; } 
         public string BankAccountNumber { get; set; } = "N/A";
         public string TaxId { get; set; } = "N/A";
         public string EmergencyContactName { get; set; } = "N/A";
@@ -25,6 +24,8 @@ namespace hrconnectbackend.Models.EmployeeModels
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = null;
         public int? EmployeeDepartmentId { get; set; } = null;
+        public int OrganizationId { get; set; }
+
 
         public AboutEmployee CreateAboutEmployee(string? firstName, string? lastName)
         {
@@ -40,6 +41,8 @@ namespace hrconnectbackend.Models.EmployeeModels
             };
         }
         // Tables that will use EmployeeID as its foreign keys
+        public virtual Leaves? Leaves { get; set; }
+        public virtual Organization? Organization { get; set; }
         public virtual EmployeePosition? Position { get; set; }
         public virtual EmployeeDepartment? EmployeeDepartment { get; set; }
         public virtual List<Attendance>? Attendance { get; set; }

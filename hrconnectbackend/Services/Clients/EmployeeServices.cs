@@ -1,5 +1,6 @@
 ﻿using hrconnectbackend.Data;
 using hrconnectbackend.Helper;
+using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -15,7 +16,8 @@ namespace hrconnectbackend.Services.Clients
         IAboutEmployeeServices aboutEmployeeService,
         IAttendanceServices attendanceService,
         IUserAccountServices userAccountService,
-        ILogger<EmployeeServices> logger
+        ILogger<EmployeeServices> logger,
+        IShiftServices shiftService
         )
         : GenericRepository<Employee>(context), IEmployeeServices
     {
@@ -42,12 +44,13 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<List<Employee>> GetSubordinates(int employeeId)
         {
-            return await _context.Employees
-                .Include(a => a.EmployeeDepartment)
-                .Where(e => e.Id == employeeId)
-                .Select(a => a.EmployeeDepartment!)
-                .SelectMany(a => a.Employees!)
-                .ToListAsync();
+            var employee = await _context.Employees.Where(a => a.Id == employeeId).FirstOrDefaultAsync();
+
+            if (employee == null) return new List<Employee>();
+            // Get the department ID where the employee is supervisor
+            var subordinates = await _context.Employees.Include(a => a.AboutEmployee).Where(a => a.EmployeeDepartmentId == employee.EmployeeDepartmentId && a.Id != employee.Id).ToListAsync();
+
+            return subordinates;
         }
 
         public async Task<Employee?> GetEmployeeByEmail(string email)
@@ -94,7 +97,7 @@ namespace hrconnectbackend.Services.Clients
                     var employeeEntity = new Employee
                     {
                         Email = employee.Email,
-                        TenantId = 1,
+                        OrganizationId = 1,
                         PositionId = 1,
                         Status = "offline",
                         CreatedAt = DateTime.UtcNow,
@@ -136,7 +139,7 @@ namespace hrconnectbackend.Services.Clients
             }
         }
 
-        public async Task CreateEmployee(CreateEmployeeDto employee)
+        public async Task CreateEmployee(CreateEmployeeDto employee, int orgId, bool? createAccount = false)
 {
     await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -171,29 +174,37 @@ namespace hrconnectbackend.Services.Clients
 
         string userName = $"{employee.FirstName.CapitalLowerCaseName()}{employee.LastName.CapitalLowerCaseName()}";
 
-        var userAccount = await userAccountService.AddAsync(new UserAccount
+        UserAccount? userAccount = null;
+
+        if (createAccount.HasValue && createAccount.Value)
         {
-            EmailVerified = false,
-            SmsVerified = false,
-            UserName = userName,
-            Password = password,
-            Email = employee.Email
-        });
+            userAccount = await userAccountService.AddAsync(new UserAccount
+            {
+                EmailVerified = false,
+                SmsVerified = false,
+                UserName = userName,
+                Password = password,
+                Role = "Employee",
+                Email = employee.Email
+            });
+        }
 
         // Create the employee entity and ensure DateTime is UTC
         var empEntity = new Employee
         {
             Email = employee.Email,
             Status = "offline",
-            UserId = userAccount.UserId,
             CreatedAt = DateTime.UtcNow,  // Ensure it's UTC
-            TenantId = 1,
+            UserId = (createAccount.HasValue && createAccount.Value) && userAccount != null ? userAccount?.UserId : null,
+            OrganizationId = orgId,
             UpdatedAt = null
         };
 
         // Add employee to the database
         _context.Employees.Add(empEntity);
         await _context.SaveChangesAsync();  // Save to get the generated Id
+
+        var employeeShifts = await shiftService.GenerateShiftForEmployee(empEntity.Id, orgId);
 
         // Create associated records for AboutEmployee
         var aboutEmployee = empEntity.CreateAboutEmployee(employee.FirstName, employee.LastName);
@@ -203,42 +214,21 @@ namespace hrconnectbackend.Services.Clients
         var education = newAboutEmployee.CreateEducationBackground();
         await aboutEmployeeService.AddEducationBackgroundAsync(education);
 
-        // Create attendance record for the new employee
-        var attendance = new Attendance
-        {
-            EmployeeId = empEntity.Id,
-            ClockIn = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
-            ClockOut = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
-            DateToday = DateTime.UtcNow  // Ensure it's UTC
-        };
-        await attendanceService.AddAsync(attendance);
+        //// Create attendance record for the new employee
+        //var attendance = new Attendance
+        //{
+        //    EmployeeId = empEntity.Id,
+        //    ClockIn = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+        //    ClockOut = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+        //    DateToday = DateTime.UtcNow  // Ensure it's UTC
+        //};
+        //await attendanceService.AddAsync(attendance);
 
         // Commit the transaction
         await transaction.CommitAsync();
 
         // Log success and return a success message
         logger.LogInformation("Employee created successfully: {EmployeeId}", empEntity.Id);
-    }
-    catch (ArgumentNullException ex)
-    {
-        // Rollback the transaction on error
-        await transaction.RollbackAsync();
-        logger.LogError(ex.Message);
-        throw; // Rethrow the exception after logging it
-    }
-    catch (ArgumentException ex)
-    {
-        // Rollback the transaction on error
-        await transaction.RollbackAsync();
-        logger.LogError(ex.Message);
-        throw; // Rethrow the exception after logging it
-    }
-    catch (InvalidOperationException ex)
-    {
-        // Rollback the transaction on error
-        await transaction.RollbackAsync();
-        logger.LogError(ex.Message);
-        throw; // Rethrow the exception after logging it
     }
     catch (Exception ex)
     {

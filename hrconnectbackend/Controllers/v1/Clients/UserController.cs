@@ -4,6 +4,7 @@ using hrconnectbackend.Claims;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
+using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.DTOs.AuthDTOs;
 using hrconnectbackend.Models.DTOs.GenericDTOs;
@@ -47,122 +48,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             return Ok(new ApiResponse<dynamic>(true, "Profile retrqieved successfully!", new { Id = nameIdentifier, userName, role }));
         }
-
-        [HttpPost("account/login")]
-        [EnableRateLimiting("fixed")]
-        public async Task<IActionResult> Login([FromBody] Signin? signinBody)
-        {
-            var userAgent = HttpContext.Request.Headers.UserAgent;
-            var ipAddress = HttpContext.Connection.RemoteIpAddress;
-            
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
-            }
-
-            try
-            {
-                logger.LogInformation($"Attempting to log in...");
-                if (signinBody == null) return BadRequest(new ApiResponse(success: false, message: "Body request is required."));
-                logger.LogInformation($"Email: {signinBody.Email}");
-
-                var employee = await employeeServices.GetEmployeeByEmail(signinBody.Email);
-
-                var employeePassword = await userAccountServices.RetrievePassword(signinBody.Email);
-                
-                var userName = await userAccountServices.RetrieveUsername(signinBody.Email);
-
-                if (employee == null)
-                {
-                    logger.LogWarning($"An employee with email: {signinBody.Email} not found.");
-                    return Unauthorized(new ApiResponse(false, $"An employee with email: {signinBody.Email} not found."));
-                }
-
-                if (!BCrypt.Net.BCrypt.Verify(signinBody.Password, employeePassword))
-                {
-                    logger.LogWarning($"Invalid password; try again");
-                    return Unauthorized(new ApiResponse(false, $"Invalid password; try again."));
-                }
-
-                // var twoFactorCode = new Random().Next(100000, 999999).ToString();
-
-                bool twoFactorCodeEnabled = false;
-
-                if (twoFactorCodeEnabled)
-                {
-                    logger.LogWarning($"User Agent: {userAgent}");
-                    logger.LogWarning($"IPAddress: {ipAddress}");
-                    DateTime expiry = DateTime.Now.AddMinutes(5);
-                    string twoFactorCode = await userAccountServices.GenerateOtp(employee.UserId, expiry);
-                    await emailServices.SendAuthenticationCodeAsync(signinBody.Email, twoFactorCode, expiry);
-
-                    try
-                    {
-                        logger.LogInformation($"Two-factor authentication code sent successfully!");
-                        return Ok(new ApiResponse<dynamic>(false, "two-factor authentication code sent successfully!", new
-                        {
-                            twoFactor = true
-                        }));
-                    }
-                    catch(Exception ex)
-                    {
-                        return StatusCode(500, new ApiResponse(false, ex.Message));
-                    }
-
-                }
-
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, userName),
-                    // new Claim(ClaimTypes.Role, employee.IsAdmin ? "Admin" : "User"),
-                    // new Claim("Role", employee.IsAdmin ? "Admin" : "User"),
-                    new Claim(ClaimTypes.NameIdentifier, employee.Id.ToString())
-                };
-
-                if (employee.EmployeeDepartment != null)
-                {
-                    var empDepartment = await departmentServices.GetDepartmentByEmployee(employee.Id)!;
-                    
-                    claims.Add(new Claim("Department", empDepartment!.DeptName));
-                }
-
-                var key = configuration.GetValue<string>("JWT:Key")!;
-                var audience = configuration.GetValue<string>("JWT:Audience")!;
-                var issuer = configuration.GetValue<string>("JWT:Issuer")!;
-                var jwtService = new JwtService(key, audience, issuer);
-
-
-                var jwtToken = jwtService.GenerateToken(claims, DateTime.UtcNow.AddMinutes(15));
-
-                string sessionId = Guid.NewGuid().ToString();
-
-                // HttpContext.Session.SetString("sessionId", sessionId);
-                
-                Response.Cookies.Append("token", jwtToken, new CookieOptions
-                {
-                    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                    SameSite = SameSiteMode.None, // Prevent CSRF attacks
-                    Secure = true,
-                    Path="/",
-                    Expires = DateTime.UtcNow.AddMinutes(30), // Cookie expires in 1 hour
-                });
-
-                logger.LogWarning("$A user has authenticated successfully!");
-                employee.Status = "Online";
-                await employeeServices.UpdateAsync(employee);
-                return Ok(new ApiResponse(success: true, message: $"A user has authenticated successfully!"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return Unauthorized(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex.Message);
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error: {ex.Message}"));
-            }
-        }
-        
 
         [HttpPost("account/send-reset")]
         public async Task<IActionResult> VerifyReset([FromBody] InputEmail verifyResetDto)

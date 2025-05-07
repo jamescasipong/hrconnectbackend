@@ -17,7 +17,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
     public class DepartmentController(
         IDepartmentServices departmentServices,
         IEmployeeServices employeeServices,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger<DepartmentController> logger)
         : ControllerBase
     {
         [Authorize]
@@ -26,7 +27,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GetDepartment(){
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
 
                 if (currentUserId == null){
                     return Unauthorized(new ApiResponse(false, $"User not authenticated."));
@@ -43,15 +44,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return Ok(new ApiResponse(false, $"Employee not assigned to any department."));
                 }
 
-                var department = await departmentServices.GetByIdAsync(employee.EmployeeDepartmentId.Value);
+                var department = await departmentServices.GetEmployeeDepartment(employee.EmployeeDepartmentId.Value);
 
                 if (department == null){
                     return NotFound(new ApiResponse(false, $"Department not found."));
                 }
 
-                var mappedDepartment = mapper.Map<ReadDepartmentDto>(department);
+                var mappedDepartment = mapper.Map<ReadEmployeeDepartmentDTO>(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDto?>(true, $"Department retrieved successfully!", mappedDepartment));
+                return Ok(new ApiResponse<ReadEmployeeDepartmentDTO?>(true, $"Department retrieved successfully!", mappedDepartment));
             }
             catch (Exception)
             {
@@ -84,7 +85,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 {
                     DeptName = departmentDto.DeptName,
                     Description = departmentDto.Description,
-                    TenantId = orgIdParse
+                    OrganizationId = orgIdParse
                 };
 
                 if (!ModelState.IsValid) return BadRequest(new ApiResponse(false, "Invalid Request"));
@@ -107,11 +108,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet]
         public async Task<IActionResult> RetrieveDepartments(int? pageIndex, int? pageSize)
         {
+            if (!int.TryParse(User.FindFirstValue("organizationId"), out var orgId))
+            {
+                return BadRequest(new ApiResponse(false, "Organization id is not a valid integer."));
+            }
+
             try
             {
-                var departments = await departmentServices.RetrieveDepartment(pageIndex, pageSize);
+                var departments = await departmentServices.RetrieveDepartment(orgId);
 
-                return Ok(new ApiResponse<List<EmployeeDepartment>?>(true, $"Departments retrieved successfully", departments));
+                return Ok(new ApiResponse<dynamic>(true, $"Departments retrieved successfully", departments));
             }
             catch (Exception)
             {
@@ -125,7 +131,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
                 var userRoles = User.FindAll(ClaimTypes.Role).Select(a => a.Value).ToList();
 
                 if (currentUserId == null){
@@ -224,9 +230,67 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
+        [Authorize(Roles = "Admin,HR")]
+        [HttpGet("employee-department")]
+        public async Task<IActionResult> RetrieveEmpDepartments(int? pageIndex, int? pageSize)
+        {
+            var orgId = User.FindFirstValue("organizationId");
+
+            if (!int.TryParse(orgId, out var orgIdParse))
+            {
+                return BadRequest(new ApiResponse(false, "Organization id is not a valid integer."));
+            }
+
+            try
+            {
+                var employeeDepartments = await departmentServices.RetrieveEmployeeDepartments(orgIdParse, pageIndex, pageSize);
+
+
+                var employeeDepartmentDTO = mapper.Map<List<ReadEmployeeDepartmentDTO>>(employeeDepartments);
+
+
+                return Ok(new ApiResponse<List<ReadEmployeeDepartmentDTO>>(true, $"Employee departments retrieved successfully", employeeDepartmentDTO));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving employee departments");
+                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+            }
+        }
+
         [Authorize(Roles = "Admin")]
-        [HttpPut("{departmentId:int}/supervisor")]
-        public async Task<IActionResult> UpdateSupervisor(int departmentId, int employeeId)
+        [HttpPost("{departmentId:int}/create-emp-department")]
+        public async Task<IActionResult> CreateEmployeeDepartment(int departmentId, int supervisorId)
+        {
+            var organization = User.FindFirstValue("organizationId");
+
+            if (!int.TryParse(organization, out var orgId))
+            {
+                return BadRequest(new ApiResponse(false, "Organization id is not a valid integer."));
+            }
+
+            try
+            {
+                await departmentServices.CreateEmployeeDepartment(departmentId, supervisorId, orgId);
+
+                return Ok(new ApiResponse(true, $"Employee department created successfully!"));
+            }
+            catch (Exception ex)
+            {
+                if (ex is CustomException)
+                {
+                    return BadRequest(new ApiResponse(false, ex.Message));
+                }
+                else
+                {
+                    return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+                }
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{employeeDeptId:int}/supervisor")]
+        public async Task<IActionResult> UpdateDeptSupervisor(int employeeDeptId, int supervisorId)
         {
             try
             {
@@ -235,25 +299,25 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return BadRequest(new ApiResponse(false, ModelState.ToString()));
                 }
 
-                var department = await departmentServices.GetEmployeeDepartment(departmentId);
+                var department = await departmentServices.GetEmployeeDepartment(employeeDeptId);
 
                 if (department == null)
                 {
-                    return NotFound(new ApiResponse(false, $"Unable to process. Department with {departmentId} not found."));
+                    return NotFound(new ApiResponse(false, $"Unable to process. Department with {employeeDeptId} not found."));
                 }
 
-                var employee = await employeeServices.GetByIdAsync(employeeId);
+                var employee = await employeeServices.GetByIdAsync(supervisorId);
 
                 if (employee == null)
                 {
-                    return NotFound(new ApiResponse(false, $"Unable to process. Employee with id: {employeeId} not found."));
+                    return NotFound(new ApiResponse(false, $"Unable to process. Employee with id: {supervisorId} not found."));
                 }
                 
                 var employeeDepartment = await departmentServices.UpdateEmployeeDepartmentSupervisor(employee.Id, department.Id);
                 
                 if (employeeDepartment == null) return NotFound();
 
-                return Ok(new ApiResponse(true, $"Supervisor was added or updated into a department: {departmentId} successfully!"));
+                return Ok(new ApiResponse(true, $"Supervisor was added or updated into a department: {supervisorId} successfully!"));
             }
             catch (Exception)
             {
@@ -262,18 +326,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPut("{departmentId:int}/employee")]
-        public async Task<IActionResult> UpdateEmployeeDepartment(int departmentId, int employeeId)
+        [HttpPut("{supervisorDepartmentId:int}/employee")]
+        public async Task<IActionResult> AddORUpdateEmployeeDepartment(int supervisorDepartmentId, int employeeId)
         {
             try
             {
-                var department = await departmentServices.GetByIdAsync(departmentId);
+                var department = await departmentServices.GetEmployeeDepartment(supervisorDepartmentId);
 
                 if (department == null)
                 {
-                    return NotFound(new ApiResponse(false, $"Department with id: {departmentId} not found."));
+                    return NotFound(new ApiResponse(false, $"Department with id: {supervisorDepartmentId} not found."));
                 }
-
+                
                 var employee = await employeeServices.GetByIdAsync(employeeId);
 
                 if (employee == null)
@@ -281,7 +345,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return NotFound(new ApiResponse(false, $"Unable to process. Employee with id: {employeeId} not found."));
                 }
 
-                employee.EmployeeDepartmentId = departmentId;
+                employee.EmployeeDepartmentId = supervisorDepartmentId;
                 await employeeServices.UpdateAsync(employee);
 
                 return Ok(new ApiResponse(true, $"Employee with id: {employeeId} was added or deleted"));

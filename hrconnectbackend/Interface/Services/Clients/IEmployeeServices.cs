@@ -13,7 +13,7 @@ namespace hrconnectbackend.Interface.Services.Clients
         List<Employee> GetEmployeesPagination(List<Employee> employees, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetEmployeeByDepartment(int deptId, int? pageIndex, int? pageSize);
         Task<List<Employee>> GetSubordinates(int id);
-        Task CreateEmployee(CreateEmployeeDto employee);
+        Task CreateEmployee(CreateEmployeeDto employee, int orgId, bool? createAccount = false);
         Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize);
         Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto);
     }

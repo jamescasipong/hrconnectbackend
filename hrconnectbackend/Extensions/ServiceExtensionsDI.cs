@@ -10,6 +10,7 @@ using hrconnectbackend.Interface.Services.ExternalServices;
 using hrconnectbackend.Services.Clients;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
+using SubscriptionService;
 
 namespace hrconnectbackend.Extensions
 {
@@ -45,13 +46,16 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IOTApplicationServices, OtApplicationServices>();
             services.AddScoped<IUserNotificationServices, UserNotificationServices>();
             services.AddScoped<ISubscriptionServices, SubscriptionServices>();
-            services.AddScoped<IEmailServices, EmailService>();
+            services.AddTransient<IEmailServices, EmailService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<AuthenticationConfiguration>();
             services.AddScoped<ISupervisorServices, SupervisorServices>();
             services.AddScoped<IOrganizationServices, OrganizationServices>();
+            services.AddScoped<IPlanService, PlanService>();
+            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddHostedService<SubscriptionBackgroundService>();
             // services.AddSingleton<IAuthorizationHandler, UserPermissionHandler>();
-            
+
             // services.AddSingleton<IAuthorizationRequirement, UserRoleAttribute>();
             // services.AddSingleton<AuthorizeAttribute, UserRoleAttribute>();
 
@@ -83,7 +87,7 @@ namespace hrconnectbackend.Extensions
                         builder.AllowAnyHeader()
                                 .AllowAnyMethod()
                                 .AllowCredentials()
-                                .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000", "https://localhost:3001"); // Replace with your React app's URL
+                                .WithOrigins("https://hrconnect.vercel.app", "http://localhost:3000", "https://localhost:3001", "https://localhost:3000"); // Replace with your React app's URL
                     });
             });
         }

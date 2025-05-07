@@ -49,37 +49,40 @@ namespace hrconnectbackend.Config.Authorization
             _logger.LogInformation("Configuring Subscription Policies.");
 
             // Policy for Free-trial and Basic subscribers
-            options.AddPolicy("Free-trial", policy =>
+            options.AddPolicy("Subscription:Free-trial", policy =>
             {
                 policy.RequireAssertion(context =>
                 {
                     _logger.LogInformation("Checking Free-trial subscription for user: {User}", context.User.Identity?.Name);
-                    return context.User.HasClaim("Subscription", "Free-trial");
+                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, new[] {"Free-trial", "Basic", "Pro", "Premium", "Enterprise"});
                 });
             });
 
             // Policy for Basic and above subscribers
-            options.AddPolicy("Basic", policy =>
+            options.AddPolicy("Subscription:Basic", policy =>
             {
                 policy.RequireAssertion(context =>
                 {
+                    List<string> allowedPlans = new List<string> { "Basic", "Pro", "Enterprise" };
+
                     _logger.LogInformation("Checking Basic subscription for user: {User}", context.User.Identity?.Name);
-                    return context.User.HasClaim("Subscription", "Basic");
+                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, allowedPlans);
+
                 });
             });
 
             // Policy for Premium and above subscribers
-            options.AddPolicy("Premium", policy =>
+            options.AddPolicy("Subscription:Premium", policy =>
             {
                 policy.RequireAssertion(context =>
                 {
                     _logger.LogInformation("Checking Premium subscription for user: {User}", context.User.Identity?.Name);
-                    return context.User.HasClaim("Subscription", "Premium");
+                    return _subscriptionAuthorizationHelper.IsSubscriptionValid(context.User, new[] {"Premium", "Enterprise" });
                 });
             });
 
             // Policy for Enterprise subscribers only
-            options.AddPolicy("Enterprise", policy =>
+            options.AddPolicy("Subscription:Enterprise", policy =>
             {
                 policy.RequireAssertion(context =>
                 {

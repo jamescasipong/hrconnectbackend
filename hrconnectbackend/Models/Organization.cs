@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using hrconnectbackend.Models.EmployeeModels;
+using System.ComponentModel.DataAnnotations;
 
 namespace hrconnectbackend.Models;
 
@@ -44,6 +45,17 @@ public class Organization
         createdAt = CreatedAt;
     }
 
-    public virtual ICollection<Subscription>? Subscriptions { get; set; }
+    public virtual ICollection<Department>? Departments { get; set; }
+    public virtual ICollection<LeaveBalance>? LeaveBalances { get; set; }
     public virtual ICollection<UserAccount>? Users { get; set; }
+    public virtual ICollection<Subscription>? Subscriptions { get; set; }
+    public virtual ICollection<Employee>? Employees { get; set; }
+    public virtual ICollection<Payroll>? Payrolls { get; set; }
+    public virtual ICollection<Shift>? Shifts { get; set; }
+    public virtual ICollection<Leaves>? Leaves { get; set; }
+    public virtual ICollection<AttendanceCertification>? AttendanceCertifications { get; set; }
+    public virtual ICollection<EmployeeDepartment>? EmployeeDepartments { get; set; }
+    public virtual ICollection<EmployeePosition>? EmployeePositions { get; set; }
+    public virtual ICollection<LeaveApplication>? LeaveApplications { get; set; }
+    public virtual ICollection<Notifications>? Notifications { get; set; }
 }

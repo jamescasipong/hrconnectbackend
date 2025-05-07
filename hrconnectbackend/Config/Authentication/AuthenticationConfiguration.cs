@@ -75,7 +75,7 @@ namespace hrconnectbackend.Config.Authentication
 
                     _logger.LogInformation("Processing token validation.");
 
-                    if (httpContext.Request.Cookies.TryGetValue("token", out var jwtToken))
+                    if (httpContext.Request.Cookies.TryGetValue("at_session", out var jwtToken))
                     {
                         context.Token = jwtToken.ToString();
                         return;

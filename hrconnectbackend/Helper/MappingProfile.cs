@@ -21,7 +21,8 @@ namespace hrconnectbackend.Helper
             CreateLeaveApplicationMappings();
             CreateOtApplication();
             Shift();
-
+            CreateEmployeeDepartmentMappings();
+            CreateOrganizationMapping();
         }
 
         private void Shift(){
@@ -122,6 +123,18 @@ namespace hrconnectbackend.Helper
             CreateMap<UserAccountDto, UserAccount>();
             CreateMap<UserAccount, UserAccountDto>();
             CreateMap<UserAccountDto, UserAccount>();
+        }
+
+        private void CreateEmployeeDepartmentMappings()
+        {
+            CreateMap<EmployeeDepartment, ReadEmployeeDepartmentDTO>();
+            CreateMap<ReadEmployeeDepartmentDTO, EmployeeDepartment>();
+        }
+
+        private void CreateOrganizationMapping()
+        {
+            CreateMap<Organization, OrganizationsDto>();
+            CreateMap<OrganizationsDto, Organization>();
         }
     }
 }

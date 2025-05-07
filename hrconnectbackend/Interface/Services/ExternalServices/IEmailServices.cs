@@ -8,4 +8,6 @@ public interface IEmailServices
     Task SendPasswordChangedEmailAsync(string toEmail);
     Task SendPasswordResetSuccessEmailAsync(string toEmail);
     Task SendAuthenticationCodeAsync(string toEmail, string code, DateTime expiryTime);
+    Task SendPaymentFailedEmailAsync(int userId, int subscriptionId);
+    Task SendTrialEndingEmailAsync(int userId, DateTime trialEndDate);
 }

@@ -1,5 +1,6 @@
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,76 +10,154 @@ namespace hrconnectbackend.Controllers.v1.Clients
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class SubscriptionController(ISubscriptionServices services, DataContext dbContext) : ControllerBase
+    public class SubscriptionController : ControllerBase
     {
+        private readonly ISubscriptionServices _subscriptionService;
+        private readonly IPlanService _planService;
+        private readonly IPaymentService _paymentService;
 
-        [HttpPost("generate-dates")]
-        public async Task<IActionResult> GenerateDates()
+        public SubscriptionController(
+            ISubscriptionServices subscriptionService,
+            IPlanService planService,
+            IPaymentService paymentService)
         {
-            var plans = await dbContext.SubscriptionPlans.ToListAsync();
-
-            foreach (var plan in plans)
-            {
-                plan.CreatedAt = DateTime.UtcNow;
-                
-                dbContext.Update(plan);
-                await dbContext.SaveChangesAsync(); 
-            }
-
-            return Ok(plans);
-        }
-        
-        [HttpPost("generate")]
-        public async Task<IActionResult> GenerateSubscriptionPlan()
-        {
-            await services.GenerateSubscriptionPlan();
-            
-            return Ok();
+            _subscriptionService = subscriptionService;
+            _planService = planService;
+            _paymentService = paymentService;
         }
 
-        [HttpPost("delete-all")]
-        public async Task<IActionResult> DeleteAllSubscriptionPlans()
+        // GET: api/subscriptions/plans
+        [HttpGet("plans")]
+        public async Task<ActionResult<IEnumerable<PlanDto>>> GetPlans()
         {
-            await services.DeleteAllSubscriptionPlans();
-            return Ok();
-        }
-
-        [HttpPost("subscribe-plan")]
-        public async Task<IActionResult> Subscribe(int userId, int planId)
-        {
-            var subPlan = await services.GetSubscriptionPlanById(planId);
-
-            if (subPlan == null)
-            {
-                return NotFound($"No subscription plan found with id {planId}");
-            }
-            
-            // await services.Subscribe(userId, subPlan);
-            
-            return Ok();
-        }
-
-        [HttpGet("get-all")]
-        public async Task<IActionResult> GetAllSubscriptionPlans()
-        {
-            var subscriptionPlans = await services.GetAllSubscriptionPlans();
-
-            var plans = subscriptionPlans.GroupBy(a => a.Name, a => new
-            {
-                Id = a.Id,
-                Duration = a.DurationDays,
-                Type = a.DurationDays == 365 ? "Yearly" : "Monthly",
-            }, (key, values) => new { key, values });
-            
+            var plans = await _planService.GetActivePlansAsync();
             return Ok(plans);
         }
 
-        [HttpPost("renew-plan")]
-        public async Task<IActionResult> RenewPlan(int userId, int planId)
+        // GET: api/subscriptions/user/{userId}
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<SubscriptionDto>>> GetUserSubscriptions(int userId)
         {
-            var plan = await services.GetSubscriptionPlanById(planId);
+            var subscriptions = await _subscriptionService.GetSubscriptionsByUserIdAsync(userId);
+            if (subscriptions == null)
+                return NotFound("User not found");
 
-            return Ok();
+            return Ok(subscriptions);
+        }
+
+        // POST: api/subscriptions
+        [HttpPost]
+        public async Task<ActionResult<SubscriptionDto>> CreateSubscription(CreateSubscriptionDto model)
+        {
+            try
+            {
+                var subscription = await _subscriptionService.CreateSubscriptionAsync(
+                    model.UserId,
+                    model.PlanId,
+                    model.BillingCycle,
+                    model.IncludeTrialPeriod);
+
+                return CreatedAtAction(
+                    nameof(GetSubscription),
+                    new { id = subscription.SubscriptionId },
+                    subscription);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // GET: api/subscriptions/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SubscriptionDto>> GetSubscription(int id)
+        {
+            var subscription = await _subscriptionService.GetSubscriptionByIdAsync(id);
+            if (subscription == null)
+                return NotFound();
+
+            return Ok(subscription);
+        }
+
+        // POST: api/subscriptions/{id}/cancel
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelSubscription(int id)
+        {
+            var result = await _subscriptionService.CancelSubscriptionAsync(id);
+            if (!result)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        // PUT: api/subscriptions/{id}/plan
+        [HttpPut("{id}/plan")]
+        public async Task<IActionResult> ChangeSubscriptionPlan(int id, ChangePlanDto model)
+        {
+            if (id != model.SubscriptionId)
+                return BadRequest();
+
+            var result = await _subscriptionService.ChangeSubscriptionPlanAsync(id, model.NewPlanId);
+            if (!result)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        // POST: api/subscriptions/{id}/payment
+        [HttpPost("{id}/payment")]
+        public async Task<ActionResult<PaymentDto>> ProcessPayment(int id, ProcessPaymentDto model)
+        {
+            if (id != model.SubscriptionId)
+                return BadRequest();
+
+            try
+            {
+                var payment = await _paymentService.ProcessPaymentAsync(
+                    model.SubscriptionId,
+                    model.Amount,
+                    model.TransactionId,
+                    model.PaymentMethod);
+
+                return Ok(payment);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // GET: api/subscriptions/{id}/payments
+        [HttpGet("{id}/payments")]
+        public async Task<ActionResult<IEnumerable<PaymentDto>>> GetSubscriptionPayments(int id)
+        {
+            var payments = await _paymentService.GetPaymentsBySubscriptionIdAsync(id);
+            if (payments == null)
+                return NotFound();
+
+            return Ok(payments);
+        }
+
+        // POST: api/subscriptions/{id}/usage
+        [HttpPost("{id}/usage")]
+        public async Task<IActionResult> RecordUsage(int id, RecordUsageDto model)
+        {
+            if (id != model.SubscriptionId)
+                return BadRequest();
+
+            try
+            {
+                await _subscriptionService.RecordUsageAsync(
+                    model.SubscriptionId,
+                    model.ResourceType,
+                    model.Quantity);
+
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

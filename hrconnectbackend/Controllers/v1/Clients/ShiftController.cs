@@ -40,9 +40,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet]
         public async Task<IActionResult> GetAllShifts()
         {
+            var organizationId = User.FindFirstValue("organizationId")!;
+
+            if (!int.TryParse(organizationId, out var orgId))
+            {
+                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+            }
+
             var shifts = await shiftServices.GetAllAsync();
 
-            return Ok(shifts);
+            var orgShifts = shifts.Where(a => a.OrganizationId == orgId).ToList();
+
+            return Ok(orgShifts);
         }
         [Authorize(Roles = "Admin")]
         [HttpPost]
@@ -139,10 +148,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GetMyShift()
         {
             var employeeId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var organizationId = User.FindFirstValue("organizationId")!;
+
+            if (!int.TryParse(organizationId, out var orgId))
+            {
+                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+            }
 
             try
             {
-                var shifts = await shiftServices.GetEmployeeShifts(employeeId);
+                var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
                 var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
@@ -158,35 +173,39 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize]
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("employee-shift/{employeeId}")]
         public async Task<IActionResult> GetEmployeeShift(int employeeId)
         {
+            var organizationId = User.FindFirstValue("organizationId")!;
 
-            string[] admins = {
-                "Admin", "HR"
-            };
+            if (!int.TryParse(organizationId, out var orgId))
+            {
+                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+            }
 
             try
             {
-                var validateUser = authenticationServices.ValidateUser(User, employeeId, admins);
-
-                if (validateUser != null){
-                    return validateUser;
-                }
-
-                var shifts = await shiftServices.GetEmployeeShifts(employeeId);
+                var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
                 var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
                 return Ok(new ApiResponse<List<ShiftDTO>?>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
+
             catch (Exception ex)
             {
+                if (ex is KeyNotFoundException)
+                {
+                    return NotFound(new ApiResponse(false, ex.Message));
+                }
+
+                if (ex is UnauthorizedAccessException)
+                {
+                    return Forbid();
+                }
+
                 return StatusCode(500, new ApiResponse(false, ex.Message));  // Handle unexpected errors
             }
         }
@@ -216,7 +235,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("shift-today")]
         public async Task<IActionResult> HasShiftToday()
         {
-            var user = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var user = User.FindFirstValue("EmployeeId")!;
 
             if (user == null) return Unauthorized();
 

@@ -16,6 +16,8 @@ namespace hrconnectbackend.Models
         public DateOnly AppliedDate { get; set; } = new DateOnly();
         public string Reason { get; set; } = string.Empty;
         public string Status { get; set; } = RequestStatus.Pending.ToString();
+        public int OrganizationId { get; set; } // Foreign key to Organization
+        public Organization? Organization { get; set; } // Navigation property to Organization
         public Employee? Employee { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = null;

@@ -1,4 +1,6 @@
 ﻿using hrconnectbackend.Models.Enums;
+using hrconnectbackend.Models.Requests;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace hrconnectbackend.Models.DTOs
 {
@@ -8,24 +10,19 @@ namespace hrconnectbackend.Models.DTOs
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string? Password { get; set; }
-        public bool IsAdmin { get; set; } = false;
     }
 
     public class ReadEmployeeDto
     {
         public int Id { get; set; }
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Position { get; set; } = string.Empty;
+        public string PositionId { get; set; } = string.Empty;
         public bool IsAdmin { get; set; } = false;
         public string Status { get; set; } = RequestStatus.Pending.ToString();
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public int? SupervisorId { get; set; } = null; // Foreign Key
-        public int? DepartmentId { get; set; } = null;
+        public int? EmployeeDepartmentId { get; set; } = null;
         public ReadAboutEmployeeDto? AboutEmployee { get; set; }
-        public ReadDepartmentDto? Department { get; set; }
     }
 
     public class UpdateEmployeeDto

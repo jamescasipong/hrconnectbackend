@@ -12,8 +12,8 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20250427144217_RemoveFKUser_Emp")]
-    partial class RemoveFKUser_Emp
+    [Migration("20250429053522_update-schema")]
+    partial class updateschema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -50,9 +50,6 @@ namespace hrconnectbackend.Migrations
 
                     b.Property<TimeSpan?>("LateClockIn")
                         .HasColumnType("interval");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
 
                     b.Property<decimal>("WorkingHours")
                         .HasColumnType("decimal(18, 2)");
@@ -182,6 +179,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasColumnType("text");
@@ -199,6 +199,8 @@ namespace hrconnectbackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("AttendanceCertifications");
                 });
@@ -224,7 +226,7 @@ namespace hrconnectbackend.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
+                    b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -237,6 +239,8 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("DeptName")
                         .IsUnique();
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Departments");
                 });
@@ -291,12 +295,17 @@ namespace hrconnectbackend.Migrations
                     b.Property<int>("DepartmentId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SupervisorId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("SupervisorId");
 
@@ -340,6 +349,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<int?>("EmployeeDepartmentId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("PositionId")
                         .HasColumnType("integer");
 
@@ -351,9 +363,6 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -363,6 +372,8 @@ namespace hrconnectbackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeDepartmentId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("PositionId");
 
@@ -380,11 +391,16 @@ namespace hrconnectbackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("EmployeePosition");
                 });
@@ -404,6 +420,9 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Reason")
@@ -431,6 +450,8 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("EmployeeId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.ToTable("LeaveApplications");
                 });
 
@@ -449,7 +470,7 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
+                    b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<int>("TotalLeaves")
@@ -462,7 +483,46 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("EmployeeId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.ToTable("LeaveBalances");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Leaves", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RemaningLeaves")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalLeaves")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsedLeaves")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("leaveType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("Leaves");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Notifications", b =>
@@ -480,7 +540,7 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
+                    b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Title")
@@ -491,6 +551,8 @@ namespace hrconnectbackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Notifications");
                 });
@@ -573,6 +635,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<decimal>("NetSalary")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("OvertimePay")
                         .HasColumnType("decimal(18, 2)");
 
@@ -587,9 +652,6 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("ThirteenthMonthPay")
                         .HasColumnType("decimal(18, 2)");
 
@@ -599,6 +661,8 @@ namespace hrconnectbackend.Migrations
                     b.HasKey("PayrollId");
 
                     b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Payrolls");
                 });
@@ -773,7 +837,7 @@ namespace hrconnectbackend.Migrations
                     b.Property<int>("EmployeeShiftId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("TenantId")
+                    b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 
                     b.Property<TimeSpan>("TimeIn")
@@ -785,6 +849,8 @@ namespace hrconnectbackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeShiftId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Shifts");
                 });
@@ -903,6 +969,9 @@ namespace hrconnectbackend.Migrations
                     b.Property<bool>("Locked")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("NumberOfAttempts")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("integer");
 
@@ -925,7 +994,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("UserAccount");
+                    b.ToTable("UserAccounts");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.UserNotification", b =>
@@ -946,9 +1015,6 @@ namespace hrconnectbackend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
                     b.HasKey("NotificationId");
 
                     b.HasIndex("EmployeeId");
@@ -957,6 +1023,35 @@ namespace hrconnectbackend.Migrations
                         .IsUnique();
 
                     b.ToTable("UserNotifications");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.VerificationCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VerificationCodes");
                 });
 
             modelBuilder.Entity("Attendance", b =>
@@ -1000,7 +1095,26 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("AttendanceCertifications")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Department", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Departments")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EducationBackground", b =>
@@ -1022,6 +1136,12 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organizations")
+                        .WithMany("EmployeeDepartments")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("hrconnectbackend.Models.EmployeeModels.Employee", "Supervisor")
                         .WithMany()
                         .HasForeignKey("SupervisorId")
@@ -1029,6 +1149,8 @@ namespace hrconnectbackend.Migrations
                         .IsRequired();
 
                     b.Navigation("Department");
+
+                    b.Navigation("Organizations");
 
                     b.Navigation("Supervisor");
                 });
@@ -1039,6 +1161,12 @@ namespace hrconnectbackend.Migrations
                         .WithMany("Employees")
                         .HasForeignKey("EmployeeDepartmentId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Employees")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("hrconnectbackend.Models.EmployeePosition", "Position")
                         .WithMany("Employees")
@@ -1052,9 +1180,22 @@ namespace hrconnectbackend.Migrations
 
                     b.Navigation("EmployeeDepartment");
 
+                    b.Navigation("Organization");
+
                     b.Navigation("Position");
 
                     b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.EmployeePosition", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("EmployeePositions")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
@@ -1065,7 +1206,15 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("LeaveApplications")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveBalance", b =>
@@ -1076,7 +1225,45 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("LeaveBalances")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Leaves", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.EmployeeModels.Employee", "Employee")
+                        .WithOne("Leaves")
+                        .HasForeignKey("hrconnectbackend.Models.Leaves", "EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Leaves")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("hrconnectbackend.Models.Notifications", b =>
+                {
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Notifications")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Payroll", b =>
@@ -1087,7 +1274,15 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Payrolls")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.RefreshToken", b =>
@@ -1131,7 +1326,15 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.Organization", "Organization")
+                        .WithMany("Shifts")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Subscription", b =>
@@ -1204,6 +1407,8 @@ namespace hrconnectbackend.Migrations
 
                     b.Navigation("LeaveBalance");
 
+                    b.Navigation("Leaves");
+
                     b.Navigation("OtApplication");
 
                     b.Navigation("Payroll");
@@ -1225,6 +1430,28 @@ namespace hrconnectbackend.Migrations
 
             modelBuilder.Entity("hrconnectbackend.Models.Organization", b =>
                 {
+                    b.Navigation("AttendanceCertifications");
+
+                    b.Navigation("Departments");
+
+                    b.Navigation("EmployeeDepartments");
+
+                    b.Navigation("EmployeePositions");
+
+                    b.Navigation("Employees");
+
+                    b.Navigation("LeaveApplications");
+
+                    b.Navigation("LeaveBalances");
+
+                    b.Navigation("Leaves");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("Payrolls");
+
+                    b.Navigation("Shifts");
+
                     b.Navigation("Subscriptions");
 
                     b.Navigation("Users");

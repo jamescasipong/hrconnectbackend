@@ -2,7 +2,11 @@ using System.Security.Claims;
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.RequestModel;
+using hrconnectbackend.Models.Response;
+using hrconnectbackend.Services.Clients;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,19 +14,76 @@ namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrganizationController(IOrganizationServices organizationServices, ILogger<OrganizationController> logger) : ControllerBase
+    public class OrganizationController(IOrganizationServices organizationServices, IUserAccountServices userAccountServices, IAuthService authServices, ILogger<OrganizationController> logger) : ControllerBase
     {
         // [UserRole("Admin")]
+        [Authorize]
         [HttpPost]
-        public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganization organization)
+        public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganizationDTO organization)
         {
             var validate = TryValidateModel(organization);
             
             if (!validate) return BadRequest(ModelState);
+
+            if (User == null)
+            {
+                return Unauthorized();
+            }
+
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                return BadRequest(new ApiResponse(false, $"Invalid Request"));
+            }
+
+            var newOrg = new Organization
+            {
+                Name = organization.OrgName,
+                Address = organization.Address,
+                ContactEmail = organization.ContactEmail,
+                Zipcode = organization.Zipcode,
+                City = organization.City,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
             
-            var createdOrganization = await organizationServices.CreateOrganization(organization);
-            
-            return Ok(createdOrganization);
+            try
+            {
+                var createdOrganization = await organizationServices.CreateOrganization(userId, newOrg);
+
+                if (createdOrganization == null)
+                {
+                    return BadRequest(new ApiResponse<Organization>(false, $"Failed to create organization"));
+                }
+
+                var user = await userAccountServices.GetByIdAsync(userId);
+
+                if (user == null)
+                {
+                    return NotFound(new ApiResponse<Organization>(false, $"User not found"));
+                }
+
+                var userExist = await userAccountServices.GetByIdAsync(userId);
+
+                if (userExist == null)
+                {
+                    return NotFound(new ApiResponse<Organization>(false, $"User not found"));
+                }
+
+
+                AuthResponse authResponse = await authServices.GenerateTokens(userExist);
+                authServices.SetAccessTokenCookie(authResponse, Response);
+
+                return Ok(new ApiResponse<Organization>(true, $"Account created successfully", createdOrganization));
+
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<Organization>(false, $"User not found: {ex.Message}"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Organization>(false, $"Error creating organization: {ex.Message}"));
+            }
         }
         
         [UserRole("Admin,Operator")]
@@ -91,7 +152,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
         
-        [UserRole("Employee")]
+        [Authorize]
         [HttpGet("my-organization")]
         public async Task<IActionResult> GetMyOrganization()
         {
