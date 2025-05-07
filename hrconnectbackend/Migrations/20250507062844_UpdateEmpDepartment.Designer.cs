@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using hrconnectbackend.Data;
@@ -11,9 +12,11 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250507062844_UpdateEmpDepartment")]
+    partial class UpdateEmpDepartment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -298,11 +301,16 @@ namespace hrconnectbackend.Migrations
                     b.Property<int>("SupervisorId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SupervisorId1")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("OrganizationId");
+
+                    b.HasIndex("SupervisorId1");
 
                     b.ToTable("EmployeeDepartments");
                 });
@@ -1230,9 +1238,15 @@ namespace hrconnectbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hrconnectbackend.Models.EmployeeModels.Employee", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId1");
+
                     b.Navigation("Department");
 
                     b.Navigation("Organization");
+
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EmployeeModels.Employee", b =>

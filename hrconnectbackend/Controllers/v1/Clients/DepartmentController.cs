@@ -27,7 +27,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GetDepartment(){
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
 
                 if (currentUserId == null){
                     return Unauthorized(new ApiResponse(false, $"User not authenticated."));
@@ -44,15 +44,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     return Ok(new ApiResponse(false, $"Employee not assigned to any department."));
                 }
 
-                var department = await departmentServices.GetByIdAsync(employee.EmployeeDepartmentId.Value);
+                var department = await departmentServices.GetEmployeeDepartment(employee.EmployeeDepartmentId.Value);
 
                 if (department == null){
                     return NotFound(new ApiResponse(false, $"Department not found."));
                 }
 
-                var mappedDepartment = mapper.Map<ReadDepartmentDto>(department);
+                var mappedDepartment = mapper.Map<ReadEmployeeDepartmentDTO>(department);
 
-                return Ok(new ApiResponse<ReadDepartmentDto?>(true, $"Department retrieved successfully!", mappedDepartment));
+                return Ok(new ApiResponse<ReadEmployeeDepartmentDTO?>(true, $"Department retrieved successfully!", mappedDepartment));
             }
             catch (Exception)
             {
@@ -131,7 +131,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
                 var userRoles = User.FindAll(ClaimTypes.Role).Select(a => a.Value).ToList();
 
                 if (currentUserId == null){

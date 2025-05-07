@@ -108,7 +108,8 @@ namespace hrconnectbackend.Services.Clients
         public async Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken)
         {
             var user = await _context.RefreshTokens
-                .Include(a => a.UserAccount)  // Include the UserAccount navigation property
+                .Include(a => a.UserAccount)
+                .Include(a => a.UserAccount!.Employee)
                 .Where(a => a.RefreshTokenId == refreshToken)
                 .Include(a => a.UserAccount!.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
                 .Select(a => a.UserAccount)  // Now select UserAccount

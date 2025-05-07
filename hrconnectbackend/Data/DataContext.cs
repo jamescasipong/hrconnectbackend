@@ -135,11 +135,7 @@ namespace hrconnectbackend.Data
                 .HasForeignKey(ed => ed.DepartmentId);
 
             // Configuring the relationship between EmployeeDepartment and Manager (Employee)
-            modelBuilder.Entity<EmployeeDepartment>()
-                .HasOne(ed => ed.Supervisor)
-                .WithMany()  // An Employee can manage multiple EmployeeDepartments
-                .HasForeignKey(ed => ed.SupervisorId);
-            
+            modelBuilder.Entity<EmployeeDepartment>().HasMany(a => a.Employees).WithOne(a => a.EmployeeDepartment).HasForeignKey(a => a.EmployeeDepartmentId).OnDelete(DeleteBehavior.SetNull);
             // Configuring the relationship between OtApplication and Employee
             modelBuilder.Entity<OtApplication>()
                 .HasOne(a => a.Employee)

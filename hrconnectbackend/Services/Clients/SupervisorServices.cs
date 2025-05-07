@@ -9,9 +9,19 @@ public class SupervisorServices(DataContext context): ISupervisorServices
 {
     public async Task<ICollection<Employee?>> GetAllSupervisors()
     {
-        var departmentSupervisors = await context.EmployeeDepartments.Include(a => a.Supervisor).Select(a => a.Supervisor).ToListAsync();
+        var departmentSupervisors = await context.EmployeeDepartments.ToListAsync();
+        List<Employee?> supervisors = new List<Employee?>();
 
-        return departmentSupervisors;
+        foreach (var department in departmentSupervisors)
+        {
+            var employee = await context.Employees.FindAsync(department.SupervisorId);
+
+            if (employee == null) continue;
+
+            supervisors.Add(employee);
+        }
+
+        return supervisors;
     }
     
     public async Task<Employee?> GetEmployeeSupervisor(int employeeId)
@@ -23,17 +33,19 @@ public class SupervisorServices(DataContext context): ISupervisorServices
         {
             return null;
         }
-        
-        var employeeSupervisor = await employeeDepartment.Include(a => a.Supervisor).Select(a => a.Supervisor).FirstOrDefaultAsync();
-        
-        if (employeeSupervisor == null) return null;
-        
-        return employeeSupervisor;
+
+        var supervisor = await context.Employees.FindAsync(employeeDepartment.Select(a => a.SupervisorId));
+                
+        return supervisor;
     }
 
     public async Task<Employee?> GetSupervisor(int employeeId)
     {
-        var supervisor = await context.EmployeeDepartments.Include(a => a.Supervisor).Where(a => a.Id == employeeId).Select(a => a.Supervisor).FirstOrDefaultAsync();
+        var supervisorDepartment = await context.EmployeeDepartments.FirstOrDefaultAsync(a => a.SupervisorId == employeeId);
+
+        if (supervisorDepartment == null) return null;
+
+        var supervisor = await context.Employees.FirstOrDefaultAsync(a => a.Id == supervisorDepartment.SupervisorId);
         
         return supervisor;
     }
@@ -47,7 +59,7 @@ public class SupervisorServices(DataContext context): ISupervisorServices
 
     public async Task<bool> IsSupervisor(int employeeId)
     {
-        var employeeSupervisor = await context.EmployeeDepartments.Include(a => a.Supervisor).AnyAsync(a => a.Id == employeeId);
+        var employeeSupervisor = await context.EmployeeDepartments.AnyAsync(a => a.Id == employeeId);
         
         return employeeSupervisor;
     }

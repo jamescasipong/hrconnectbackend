@@ -235,7 +235,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("shift-today")]
         public async Task<IActionResult> HasShiftToday()
         {
-            var user = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var user = User.FindFirstValue("EmployeeId")!;
 
             if (user == null) return Unauthorized();
 

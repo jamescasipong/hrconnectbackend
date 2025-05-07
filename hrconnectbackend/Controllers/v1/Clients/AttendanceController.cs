@@ -149,7 +149,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
                 
                 if (currentUserId == null)
                 {
@@ -229,7 +229,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedIn()
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (currentUserId == null)
             {
@@ -298,7 +298,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedOut()
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (currentUserId == null)
             {
@@ -330,7 +330,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance(int employeeId)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
             var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
             if (currentUserId == null)
@@ -382,7 +382,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance()
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (currentUserId == null)
             {
@@ -407,11 +407,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 return Ok(new ApiResponse<ReadAttendanceDto?>(true, "Attendance retrieved successfully", attendanceMapped));
             }
-            catch (KeyNotFoundException ex)
-            {
-                logger.Log(LogLevel.Information, ex.Message);
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
             catch (ArgumentException ex)
             {
             return BadRequest(new ApiResponse(false, ex.Message));
@@ -433,7 +428,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
                 var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
                 if (currentUserId == null)
@@ -462,7 +457,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new ApiResponse(false, ex.Message));
+                return Ok(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
@@ -480,7 +475,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var currentUserId = User.FindFirstValue("EmployeeId");
                 var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
                 if (currentUserId == null)
@@ -595,7 +590,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCoa(CreateAttendanceCertificationDto attendanceDto)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (!int.TryParse(currentUserId, out int employeeId))
             {
@@ -649,7 +644,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var certification = await attendanceCertificationServices.GetByIdAsync(id);
 
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
             var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
             if (currentUserId == null)
@@ -699,7 +694,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var existingAttendance = await attendanceCertificationServices.GetByIdAsync(id);
 
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
 
             if (currentUserId == null)
             {
@@ -741,7 +736,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var certification = await attendanceCertificationServices.GetByIdAsync(id);
 
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUserId = User.FindFirstValue("EmployeeId");
             var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
             if (currentUserId == null)

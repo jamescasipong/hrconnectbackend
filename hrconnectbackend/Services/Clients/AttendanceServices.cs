@@ -276,11 +276,6 @@ namespace hrconnectbackend.Services.Clients
         {
             var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow));
 
-            if (attendance == null)
-            {
-                throw new KeyNotFoundException($"Daily attendance for employee {employeeId} not found.");
-            }
-
             return attendance;
         }
 

@@ -44,12 +44,13 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<List<Employee>> GetSubordinates(int employeeId)
         {
-            return await _context.Employees
-                .Include(a => a.EmployeeDepartment)
-                .Where(e => e.Id == employeeId)
-                .Select(a => a.EmployeeDepartment!)
-                .SelectMany(a => a.Employees!)
-                .ToListAsync();
+            var employee = await _context.Employees.Where(a => a.Id == employeeId).FirstOrDefaultAsync();
+
+            if (employee == null) return new List<Employee>();
+            // Get the department ID where the employee is supervisor
+            var subordinates = await _context.Employees.Include(a => a.AboutEmployee).Where(a => a.EmployeeDepartmentId == employee.EmployeeDepartmentId && a.Id != employee.Id).ToListAsync();
+
+            return subordinates;
         }
 
         public async Task<Employee?> GetEmployeeByEmail(string email)

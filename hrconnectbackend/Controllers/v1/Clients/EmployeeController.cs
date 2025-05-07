@@ -203,7 +203,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("me")]
         public async Task<IActionResult> GetEmployee()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("EmployeeId");
 
             if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
 
@@ -218,7 +218,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (userAccount == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee account with an ID: {userId} not found."));
+                return Ok(new ApiResponse(false, $"Employee account with an ID: {userId} not found."));
             }
 
             // var aboutEmployeeDTO = _mapper.Map<ReadAboutEmployeeDTO>(employee.AboutEmployee);
@@ -358,6 +358,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
+        [Authorize]
         [HttpGet("department/{departmentId}")]
         public async Task<IActionResult> RetrieveEmployeeByDepartment(int departmentId, int? pageIndex, int? pageSize)
         {
@@ -378,6 +379,35 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
             }
         }
+
+        [Authorize]
+        [HttpGet("my-subordinates")]
+        public async Task<IActionResult> RetrieveSubordinates()
+        {
+
+            var employeeId = User.FindFirstValue("EmployeeId");
+
+            if (employeeId == null) return Unauthorized();
+
+            if (!int.TryParse(employeeId, out var parsedEmployeeId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var subordinates = await employeeService.GetSubordinates(parsedEmployeeId);
+
+                var subordinateRead = mapper.Map<List<ReadEmployeeDto>>(subordinates);
+
+                return Ok(subordinateRead);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
         [Authorize]
         [HttpPut("update-username/{accountId:int}")]
         public async Task<IActionResult> ChangeUserName(int accountId, string name)
