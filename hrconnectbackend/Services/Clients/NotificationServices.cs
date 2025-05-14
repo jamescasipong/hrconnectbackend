@@ -1,4 +1,6 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -16,7 +18,7 @@ public class NotificationServices(DataContext context)
             .Where(x => x.EmployeeId == id)
             .ToListAsync();
 
-        var notificationPaginations = UserNotificationsPagination(notifications, pageIndex, pageSize); 
+        var notificationPaginations = UserNotificationsPagination(notifications, pageIndex, pageSize);
 
         return notificationPaginations;
     }
@@ -37,12 +39,12 @@ public class NotificationServices(DataContext context)
     {
         if (pageIndex.HasValue && pageIndex.Value <= 0)
         {
-            throw new ArgumentOutOfRangeException($"Page index must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidInput, $"Page index must be higher than 0");
         }
 
         if (pageSize.HasValue && pageSize.Value <= 0)
         {
-            throw new ArgumentOutOfRangeException($"Page size must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidInput, $"Page index must be higher than 0");
         }
 
         if (!pageIndex.HasValue || !pageSize.HasValue)
@@ -57,11 +59,11 @@ public class NotificationServices(DataContext context)
     {
         if (pageIndex.HasValue && pageIndex.Value <= 0)
         {
-            throw new ArgumentOutOfRangeException($"Page index must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidInput, $"Page index must be higher than 0");
         }
         if (pageSize.HasValue && pageSize.Value <= 0)
         {
-            throw new ArgumentOutOfRangeException($"Page size must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidInput, $"Page size must be higher than 0");
         }
         if (!pageIndex.HasValue || !pageSize.HasValue)
         {

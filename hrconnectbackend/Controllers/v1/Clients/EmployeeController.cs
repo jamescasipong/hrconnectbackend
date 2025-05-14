@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
@@ -70,38 +71,19 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost("{employeeId}/create-account")]
         public async Task<IActionResult> CreateUserAccount(int employeeId, CreateUser userAccExistingEmployee)
         {
-            try
+
+            var newAccount = new UserAccount
             {
-                var newAccount = new UserAccount
-                {
-                    UserName = userAccExistingEmployee.UserName,
-                    Password = userAccExistingEmployee.Password,
-                    Email = userAccExistingEmployee.Email,
-                    Role = "Employee",
-                };
+                UserName = userAccExistingEmployee.UserName,
+                Password = userAccExistingEmployee.Password,
+                Email = userAccExistingEmployee.Email,
+                Role = "Employee",
+            };
 
-                var user = await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
-                if (user == null)
-                {
-                    return BadRequest(new ApiResponse(false, "Failed to create user account"));
-                }
-                return Ok(new ApiResponse(true, "User account created successfully"));
-            }
-            catch (Exception ex)
-            {
-                if (ex is CustomException)
-                {
-                    return BadRequest(new ApiResponse(false, ex.Message));
-                }
+            var user = await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
 
-                if (ex is ConflictException)
-                {
-                    return Conflict(new ApiResponse(false, ex.Message));
-                }
+            return Ok(new ApiResponse(true, "User account created successfully"));
 
-                logger.LogError(ex, "Error creating user account");
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
         }
 
         // [Authorize(Roles ="Admin, HR")]
@@ -237,40 +219,28 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(new ApiResponse<CreateAboutEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,HR")]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetEmployee(int id)
         {
-            try
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+
+            var employee = await employeeService.GetByIdAsync(id);
+
+            if (employee == null)
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
-
-                bool isAdmin = userRoles.Contains("Admin") || userRoles.Contains("HR");
-
-                if (currentUserId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
-
-                if (!isAdmin && currentUserId != id.ToString())
-                {
-                    return Forbid();
-                }
-
-                var employee = await employeeService.GetByIdAsync(id);
-
-                if (employee == null)
-                {
-                    return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
-                }
-
-                var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
-
-                return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+                return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error retrieving an employee with ID: {id}", id);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+
+            var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
+
+            return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
+
+
         }
 
         [Authorize(Roles = "Admin,HR")]
@@ -279,32 +249,25 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var employee = await employeeService.GetByIdAsync(id);
 
-            try
+            if (employee == null)
             {
-                if (employee == null)
-                {
-                    return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                // employee.FirstName = employee.FirstName;
-                // employee.LastName = employee.LastName;
-                employee.Email = employeeDto.Email;
-                employee.Status = employeeDto.Status;
-
-                await employeeService.UpdateAsync(employee);
-
-                return Ok(new ApiResponse(true, $"Employee with an ID: {id} updated successfully"));
+                return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
             }
-            catch (Exception ex)
+
+            if (!ModelState.IsValid)
             {
-                logger.LogError(ex, "Error updating an employee with ID {id}", id);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+                return BadRequest(ModelState);
             }
+
+            // employee.FirstName = employee.FirstName;
+            // employee.LastName = employee.LastName;
+            employee.Email = employeeDto.Email;
+            employee.Status = employeeDto.Status;
+
+            await employeeService.UpdateAsync(employee);
+
+            return Ok(new ApiResponse(true, $"Employee with an ID: {id} updated successfully"));
+
         }
 
         [HttpDelete("{id:int}")]
@@ -316,7 +279,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 if (employee == null)
                 {
-                    return NotFound(new ApiResponse(false, $"Employee with ID: {id} not found."));
+                    return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
                 }
 
                 await employeeService.DeleteAsync(employee);
@@ -326,7 +289,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error deleting an employee with ID {id}", id);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+                return StatusCode(500, new ErrorResponse(ErrorCodes.InternalServerError, "Internal server error"));
             }
         }
 
@@ -334,22 +297,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("department/{departmentId}")]
         public async Task<IActionResult> RetrieveEmployeeByDepartment(int departmentId, int? pageIndex, int? pageSize)
         {
-            try
-            {
-                var employeesByDept = await employeeService.GetEmployeeByDepartment(departmentId, pageIndex, pageSize);
 
-                var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
+            var employeesByDept = await employeeService.GetEmployeeByDepartment(departmentId, pageIndex, pageSize);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {departmentId} retrieved successfully.", employeesMapped));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return Ok(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
+
+            return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {departmentId} retrieved successfully.", employeesMapped));
+
         }
 
         [Authorize]
@@ -357,27 +311,20 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> RetrieveSubordinates()
         {
 
-            var employeeId = User.FindFirstValue("EmployeeId");
-
-            if (employeeId == null) return Unauthorized();
+            var employeeId = User.RetrieveSpecificUser("EmployeeId");
 
             if (!int.TryParse(employeeId, out var parsedEmployeeId))
             {
                 return Unauthorized();
             }
 
-            try
-            {
-                var subordinates = await employeeService.GetSubordinates(parsedEmployeeId);
 
-                var subordinateRead = mapper.Map<List<ReadEmployeeDto>>(subordinates);
+            var subordinates = await employeeService.GetSubordinates(parsedEmployeeId);
 
-                return Ok(subordinateRead);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest();
-            }
+            var subordinateRead = mapper.Map<List<ReadEmployeeDto>>(subordinates);
+
+            return Ok(subordinateRead);
+
         }
 
         [Authorize]

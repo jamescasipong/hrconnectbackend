@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -16,7 +18,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"Employee with ID: {employeeId} not found.");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID: {employeeId} not found.");
             }
 
             return leaveBalances;
@@ -38,6 +40,7 @@ namespace hrconnectbackend.Services.Clients
                 _context.LeaveBalances.Add(leaveBalance);
             }
 
-            await _context.SaveChangesAsync();        }
+            await _context.SaveChangesAsync();
+        }
     }
 }

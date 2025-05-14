@@ -2,7 +2,7 @@
 
 namespace hrconnectbackend.Exceptions
 {
-    public class ApiException: Exception
+    public class ApiException : Exception
     {
         public string ErrorCode { get; }
         public HttpStatusCode StatusCode { get; }
@@ -44,6 +44,13 @@ namespace hrconnectbackend.Exceptions
     {
         public ConflictException(string errorCode, string message)
             : base(errorCode, HttpStatusCode.Conflict, message) { }
+    }
+
+    // 500 Internal Server Error
+    public class InternalServerErrorException : ApiException
+    {
+        public InternalServerErrorException(string errorCode, string message)
+            : base(errorCode, HttpStatusCode.InternalServerError, message) { }
     }
 }
 

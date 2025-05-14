@@ -1,9 +1,12 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 using System.Transactions;
 
 namespace hrconnectbackend.Services.Clients;
@@ -13,7 +16,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
     public async Task<List<EmployeeDepartment>> RetrieveEmployeeDepartments(int OrganizationId, int? pageIndex, int? pageSize)
     {
         var departments = await _context.EmployeeDepartments.Where(a => a.OrganizationId == OrganizationId).Include(a => a.Organization).Include(e => e.Employees).ToListAsync();
-        
+
         if (pageIndex.HasValue && pageSize.HasValue)
         {
             departments = departments.Skip(pageIndex.Value * pageSize.Value).Take(pageSize.Value).ToList();
@@ -52,7 +55,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
             await transaction.RollbackAsync();
             logger.LogError(ex, "Error creating employee department");
 
-            throw new CustomException("Error creating employee department", "Transaction");
+            throw new Exception("An error occurred while creating the employee department.", ex);
 
         }
     }
@@ -61,11 +64,11 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
     {
         var department = await GetByIdAsync(employeeId);
 
-        if (department == null) throw new KeyNotFoundException($"Department with ID: {departmentId} not found.");
+        if (department == null) throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"Department with ID: {departmentId} not found.");
 
         var employee = await _context.Employees.FindAsync(employeeId);
 
-        if (employee == null) throw new KeyNotFoundException($"Employee with ID: {employeeId} not found.");
+        if (employee == null) throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID: {employeeId} not found.");
 
         employee.EmployeeDepartmentId = departmentId;
 
@@ -89,7 +92,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
     public async Task<Department?> GetDepartmentByGuid(Guid guid)
     {
         var department = await _context.Departments.FirstOrDefaultAsync(a => a.DepartmentGuid == guid);
-        
+
         return department;
     }
 
@@ -123,11 +126,11 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
     public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int newSupervisorId, int departmentId)
     {
         var department = await _context.EmployeeDepartments.FindAsync(departmentId);
-        
+
         if (department == null) return null;
-        
+
         department.SupervisorId = newSupervisorId;
-        
+
         _context.EmployeeDepartments.Update(department);
         await _context.SaveChangesAsync();
 
@@ -135,7 +138,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
         {
             return null;
         }
-        
+
         return department;
     }
 
@@ -150,7 +153,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
 
         if (department == null)
         {
-            throw new KeyNotFoundException($"Department with manager {managerId} not found.");
+            throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"Department with manager {managerId} not found.");
         }
 
         return department;

@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Constants;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
@@ -45,7 +47,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 };
 
                 var usernotification = mapper.Map<UserNotification>(createUserNotificationDTO);
-                
+
                 var userNotifications = await userNotificationServices.AddAsync(usernotification);
 
                 return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(newNotification)));
@@ -54,130 +56,100 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 logger.LogError($"Error in {nameof(CreateNotification)}: " + ex.Message);
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }   
+            }
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost("assing-notification/{employeeId:int}")]
         public async Task<IActionResult> CreateNotification(int employeeId, int notificationId, CreateNotificationDto notificationDTO)
         {
-            try
+
+            var notification = mapper.Map<Notifications>(notificationDTO);
+
+            await notificationServices.AddAsync(notification);
+
+            var createUserNotificationDTO = new CreateUserNotificationDto
             {
-                var notification = mapper.Map<Notifications>(notificationDTO);
+                EmployeeId = employeeId,
+                NotificationId = notification.Id,
+                IsRead = false,
+                Status = "Unread"
+            };
 
-                await notificationServices.AddAsync(notification);
+            var usernotification = mapper.Map<UserNotification>(createUserNotificationDTO);
 
-                var createUserNotificationDTO = new CreateUserNotificationDto
-                {
-                    EmployeeId = employeeId,
-                    NotificationId = notification.Id,
-                    IsRead = false,
-                    Status = "Unread"
-                };
+            await userNotificationServices.AddAsync(usernotification);
 
-                var usernotification = mapper.Map<UserNotification>(createUserNotificationDTO);
-                
-                var userNotifications = await userNotificationServices.AddAsync(usernotification);
+            return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
 
-                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }   
         }
 
         [Authorize]
         [HttpGet("my-notifications")]
         public async Task<IActionResult> RetrieveMyNotifications()
         {
-            try
-            {
-                var employeeId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-                var notifications = await userNotificationServices.GetNotificationByUserId(employeeId);
+            var employeeId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
-                return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            var employeeIdInt = TypeConverter.StringToInt(employeeId);
+
+            var notifications = await userNotificationServices.GetNotificationByUserId(employeeIdInt);
+
+            return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
+
         }
 
         [Authorize]
         [HttpPut("mark-as-read/{notificationId:int}")]
-        public async Task<IActionResult> MarkAsRead(int notificationId){
-            try {
-                var notification = await userNotificationServices.GetUserNotificationById(notificationId);
+        public async Task<IActionResult> MarkAsRead(int notificationId)
+        {
 
-                if (notification == null) return NotFound(new ApiResponse(false, $"User Notification with id: {notificationId} not found"));
+            var notification = await userNotificationServices.GetUserNotificationById(notificationId);
 
-                notification.IsRead = true;
+            notification.IsRead = true;
 
-                await userNotificationServices.UpdateAsync(notification);
+            await userNotificationServices.UpdateAsync(notification);
 
-                return Ok(new ApiResponse(true, $"User Notification with Id: {notificationId} marked as read successfully"));
-            }
-            catch (Exception ex){
-                logger.LogError(ex.Message);
-                return BadRequest(new ApiResponse(false, $"Internal Server Error"));
-            }
-
+            return Ok(new ApiResponse<ReadUserNotificationDto?>(true, $"User Notification with id: {notificationId} updated successfully.", mapper.Map<ReadUserNotificationDto>(notification)));
         }
 
         [HttpGet("{notificationId:int}")]
         public async Task<IActionResult> RetrieveNotification(int notificationId)
         {
-            try
-            {
-                var notification = await notificationServices.GetByIdAsync(notificationId);
 
-                if (notification == null) return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
+            var notification = await notificationServices.GetByIdAsync(notificationId);
 
-                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            if (notification == null) return StatusCode(404, new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
+
+            return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+
         }
 
         [HttpGet]
         public async Task<IActionResult> RetrieveNotifications(int? pageIndex, int? pageSize)
         {
-            try
-            {
-                var notifications = await notificationServices.GetAllAsync();
 
-                var paginationaNotifications = notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
+            var notifications = await notificationServices.GetAllAsync();
 
-                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            var paginationaNotifications = notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
+
+            return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
+
         }
 
         [HttpPut("{notificationId:int}")]
         public async Task<IActionResult> UpdateNotification(int notificationId, CreateNotificationDto notificationDTO)
         {
-            try
-            {
-                var notification = await notificationServices.GetByIdAsync(notificationId);
 
-                if (notification == null)
-                {
-                    return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
-                }
+            var notification = await notificationServices.GetByIdAsync(notificationId);
 
-                return Ok(new ApiResponse<ReadNotificationsDto?>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
-            }
-            catch (Exception)
+            if (notification == null)
             {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+                return NotFound(new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
             }
+
+            return Ok(new ApiResponse<ReadNotificationsDto?>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+
         }
 
         [HttpGet("employee/{employeeId:int}")]
@@ -187,40 +159,26 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var mappedNotifications = mapper.Map<List<ReadNotificationsDto>>(employeeNotifications);
 
-            try
-            {
-                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
-            }
-            catch (ArgumentOutOfRangeException ex)
-            {
-                return Ok(new ApiResponse<List<ReadNotificationsDto>?>(false, $"{ex.Message}. Thus, it returned the original", mappedNotifications));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
+
         }
 
         [HttpDelete("{notificationId:int}")]
         public async Task<IActionResult> DeleteNotification(int notificationId)
         {
-            try
+
+            var notification = await notificationServices.GetByIdAsync(notificationId);
+
+            if (notification == null)
             {
-                var notification = await notificationServices.GetByIdAsync(notificationId);
-
-                if (notification == null)
-                {
-                    return NotFound(new ApiResponse(false, $"Notification with id: {notificationId} does not exist."));
-                }
-
-                await notificationServices.DeleteAsync(notification);
-
-                return Ok(new ApiResponse(true, $"Notification with id: {notificationId} deleted successfully"));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
             }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+
+            await notificationServices.DeleteAsync(notification);
+
+            return Ok(new ApiResponse(true, $"Notification with id: {notificationId} deleted successfully"));
+
+
         }
     }
 }

@@ -34,7 +34,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (department == null)
             {
-                throw new KeyNotFoundException($"No department found with an id {deptId}");
+                throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"No department found with an id {deptId}");
             }
 
             var employees = await _context.Employees.Where(e => e.EmployeeDepartmentId == deptId).ToListAsync();
@@ -61,7 +61,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"No employee found with an email {email}");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employee found with an email {email}");
             }
 
             return employee;
@@ -135,6 +135,7 @@ namespace hrconnectbackend.Services.Clients
                 {
                     await transaction.RollbackAsync(); // Rollback this iteration
                     logger.LogError(ex, "Error creating employee with email {Email}. Rolling back.", employee.Email);
+                    throw new Exception($"Error creating employee with email {employee.Email}", ex);
                     // Optionally continue to next employee or rethrow
                 }
             }
@@ -144,96 +145,96 @@ namespace hrconnectbackend.Services.Clients
 
 
         public async Task CreateEmployee(CreateEmployeeDto employee, int orgId, bool? createAccount = false)
-{
-    await using var transaction = await _context.Database.BeginTransactionAsync();
-
-    try
-    {
-        // Check if an employee with the same email already exists
-        var existingEmployee = await _context.Employees
-                                             .FirstOrDefaultAsync(e => e.Email == employee.Email);
-
-        if (existingEmployee != null)
         {
-            logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
-            throw new ConflictException(ErrorCodes.DuplicateEmail, "An employee with the same email already exists.");
-        }
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        // Handle password and user account creation
-        string password = !string.IsNullOrEmpty(employee.Password) && employee.Password.IsValidPassword()
-            ? BCrypt.Net.BCrypt.HashPassword(employee.Password)
-            : Generator.GeneratePassword();
-
-        if (!employee.Email.IsValidEmail())
-        {
-            throw new ValidationException("Invalid email format", nameof(employee.Email));
-        }
-
-        string userName = $"{employee.FirstName.CapitalLowerCaseName()}{employee.LastName.CapitalLowerCaseName()}";
-
-        UserAccount? userAccount = null;
-
-        if (createAccount.HasValue && createAccount.Value)
-        {
-            userAccount = await userAccountService.AddAsync(new UserAccount
+            try
             {
-                EmailVerified = false,
-                SmsVerified = false,
-                UserName = userName,
-                Password = password,
-                Role = "Employee",
-                Email = employee.Email
-            });
+                // Check if an employee with the same email already exists
+                var existingEmployee = await _context.Employees
+                                                     .FirstOrDefaultAsync(e => e.Email == employee.Email);
+
+                if (existingEmployee != null)
+                {
+                    logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
+                    throw new ConflictException(ErrorCodes.DuplicateEmail, "An employee with the same email already exists.");
+                }
+
+                // Handle password and user account creation
+                string password = !string.IsNullOrEmpty(employee.Password) && employee.Password.IsValidPassword()
+                    ? BCrypt.Net.BCrypt.HashPassword(employee.Password)
+                    : Generator.GeneratePassword();
+
+                if (!employee.Email.IsValidEmail())
+                {
+                    throw new ValidationException("Invalid email format", nameof(employee.Email));
+                }
+
+                string userName = $"{employee.FirstName.CapitalLowerCaseName()}{employee.LastName.CapitalLowerCaseName()}";
+
+                UserAccount? userAccount = null;
+
+                if (createAccount.HasValue && createAccount.Value)
+                {
+                    userAccount = await userAccountService.AddAsync(new UserAccount
+                    {
+                        EmailVerified = false,
+                        SmsVerified = false,
+                        UserName = userName,
+                        Password = password,
+                        Role = "Employee",
+                        Email = employee.Email
+                    });
+                }
+
+                // Create the employee entity and ensure DateTime is UTC
+                var empEntity = new Employee
+                {
+                    Email = employee.Email,
+                    Status = "offline",
+                    CreatedAt = DateTime.UtcNow,  // Ensure it's UTC
+                    UserId = (createAccount.HasValue && createAccount.Value) && userAccount != null ? userAccount?.UserId : null,
+                    OrganizationId = orgId,
+                    UpdatedAt = null
+                };
+
+                // Add employee to the database
+                _context.Employees.Add(empEntity);
+                await _context.SaveChangesAsync();  // Save to get the generated Id
+
+                var employeeShifts = await shiftService.GenerateShiftForEmployee(empEntity.Id, orgId);
+
+                // Create associated records for AboutEmployee
+                var aboutEmployee = empEntity.CreateAboutEmployee(employee.FirstName, employee.LastName);
+                var newAboutEmployee = await aboutEmployeeService.AddAsync(aboutEmployee);
+
+                // Create Education Background for AboutEmployee
+                var education = newAboutEmployee.CreateEducationBackground();
+                await aboutEmployeeService.AddEducationBackgroundAsync(education);
+
+                //// Create attendance record for the new employee
+                //var attendance = new Attendance
+                //{
+                //    EmployeeId = empEntity.Id,
+                //    ClockIn = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+                //    ClockOut = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
+                //    DateToday = DateTime.UtcNow  // Ensure it's UTC
+                //};
+                //await attendanceService.AddAsync(attendance);
+
+                // Commit the transaction
+                await transaction.CommitAsync();
+
+                // Log success and return a success message
+                logger.LogInformation("Employee created successfully: {EmployeeId}", empEntity.Id);
+            }
+            catch (Exception ex)
+            {
+                // Rollback the transaction on error
+                await transaction.RollbackAsync();
+                throw; // Rethrow the exception after logging it
+            }
         }
-
-        // Create the employee entity and ensure DateTime is UTC
-        var empEntity = new Employee
-        {
-            Email = employee.Email,
-            Status = "offline",
-            CreatedAt = DateTime.UtcNow,  // Ensure it's UTC
-            UserId = (createAccount.HasValue && createAccount.Value) && userAccount != null ? userAccount?.UserId : null,
-            OrganizationId = orgId,
-            UpdatedAt = null
-        };
-
-        // Add employee to the database
-        _context.Employees.Add(empEntity);
-        await _context.SaveChangesAsync();  // Save to get the generated Id
-
-        var employeeShifts = await shiftService.GenerateShiftForEmployee(empEntity.Id, orgId);
-
-        // Create associated records for AboutEmployee
-        var aboutEmployee = empEntity.CreateAboutEmployee(employee.FirstName, employee.LastName);
-        var newAboutEmployee = await aboutEmployeeService.AddAsync(aboutEmployee);
-
-        // Create Education Background for AboutEmployee
-        var education = newAboutEmployee.CreateEducationBackground();
-        await aboutEmployeeService.AddEducationBackgroundAsync(education);
-
-        //// Create attendance record for the new employee
-        //var attendance = new Attendance
-        //{
-        //    EmployeeId = empEntity.Id,
-        //    ClockIn = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
-        //    ClockOut = TimeOnly.FromDateTime(DateTime.UtcNow).ToTimeSpan(),
-        //    DateToday = DateTime.UtcNow  // Ensure it's UTC
-        //};
-        //await attendanceService.AddAsync(attendance);
-
-        // Commit the transaction
-        await transaction.CommitAsync();
-
-        // Log success and return a success message
-        logger.LogInformation("Employee created successfully: {EmployeeId}", empEntity.Id);
-    }
-    catch (Exception ex)
-    {
-        // Rollback the transaction on error
-        await transaction.RollbackAsync();
-        throw; // Rethrow the exception after logging it
-    }
-}
 
 
 
@@ -265,7 +266,7 @@ namespace hrconnectbackend.Services.Clients
         {
             log?.Invoke(message);
             var errorType = Activator.CreateInstance(typeof(T), message);
-            
+
             throw ((T)errorType!);
         }
 

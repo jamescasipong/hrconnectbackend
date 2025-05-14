@@ -1,4 +1,6 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -35,7 +37,7 @@ public class LeaveApplicationServices(
         if (employee == null)
         {
             logger.LogWarning($"Employee with ID {leaveApplication.EmployeeId} not found.");
-            throw new ArgumentException("Employee not found.");
+            throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID {leaveApplication.EmployeeId} not found.");
         }
 
         leaveApplication.Status = "Pending"; // Default status
@@ -66,7 +68,7 @@ public class LeaveApplicationServices(
 
         if (leaveApplication == null)
         {
-            throw new KeyNotFoundException($"Leave application with ID: {id} not found.");
+            throw new NotFoundException(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found.");
         }
 
         leaveApplication.Status = "Rejected";
@@ -112,7 +114,7 @@ public class LeaveApplicationServices(
         {
             leaveApplication = await _context.LeaveApplications.Where(l => l.EmployeeId == employeeId).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         }
-        
+
         if (leaveApplication.Count == 0 || leaveApplication == null)
         {
             throw new ArgumentException("Leave application not found.");
@@ -126,18 +128,11 @@ public class LeaveApplicationServices(
         var employee = await _context.Employees.FindAsync(employeeId);
         var leaveApplication = await _context.LeaveApplications.Where(l => l.EmployeeId == employeeId).ToListAsync();
 
-        if (employee == null)
+        if (employee == null || leaveApplication == null || leaveApplication.Count == 0)
         {
             logger.LogWarning($"Leave application with ID: {employeeId} not found.");
-            throw new KeyNotFoundException($"Leave application with ID: {employeeId} not found.");
+            throw new NotFoundException(ErrorCodes.LeaveNotFound, $"Leave application with ID: {employeeId} not found.");
         }
-
-        if (!leaveApplication.Any())
-        {
-            logger.LogWarning($"Leave application by employee: {employee.Id} not found.");
-            throw new KeyNotFoundException($"Leave application with ID: {employeeId} not found.");
-        }
-
         return leaveApplication;
     }
 }

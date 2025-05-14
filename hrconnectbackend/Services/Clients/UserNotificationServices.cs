@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -18,9 +20,14 @@ namespace hrconnectbackend.Services.Clients
 
         }
 
-        public async Task<UserNotification?> GetUserNotificationById(int notificationId)
+        public async Task<UserNotification> GetUserNotificationById(int notificationId)
         {
             var employeeNotification = await _context.UserNotifications.FirstOrDefaultAsync(e => e.NotificationId == notificationId);
+
+            if (employeeNotification == null)
+            {
+                throw new NotFoundException(ErrorCodes.NotificationNotFound, $"Notification with ID {notificationId} not found.");
+            }
 
             return employeeNotification;
         }

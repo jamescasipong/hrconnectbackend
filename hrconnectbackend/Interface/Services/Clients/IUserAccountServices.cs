@@ -6,10 +6,10 @@ namespace hrconnectbackend.Interface.Services.Clients;
 
 public interface IUserAccountServices : IGenericRepository<UserAccount>
 {
-    Task<UserAccount?> CreateUserAccount(int? organizationId, UserAccount userAccount);
+    Task<UserAccount> CreateUserAccount(int? organizationId, UserAccount userAccount);
     Task<UserAccount?> CreateEmployeeUserAccount(UserAccount userAccount, int employeeId);
     Task<UserAccount?> AutomateCreateUserAccount(UserAccount userAccount);
-    Task<UserAccount?> GetUserAccountByEmail(string email);
+    Task<UserAccount> GetUserAccountByEmail(string email);
     Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken);
     Task<string> RetrievePassword(string email);
     Task<string> GenerateOtp(int id, DateTime expiry);
@@ -19,6 +19,6 @@ public interface IUserAccountServices : IGenericRepository<UserAccount>
     Task UpdateEmail(int employeeId, string email);
     Task ResetTokenExist(string token);
     Task<ResetPasswordSession?> GetResetPasswordSession(string token);
-    Task CreatePasswordSession (ResetPasswordSession resetPasswordSession);
+    Task CreatePasswordSession(ResetPasswordSession resetPasswordSession);
     Task DeleteResetPassword(string token);
 }

@@ -63,41 +63,33 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var sourcePassword = Environment.GetEnvironmentVariable("EmailPassword")!;
 
 
-            try
+
+            var user = await userAccountServices.GetUserAccountByEmail(verifyResetDto.Email);
+            if (user == null)
             {
-                var user = await userAccountServices.GetUserAccountByEmail(verifyResetDto.Email);
-                if (user == null)
-                {
-                    return NotFound(new ApiResponse(false, $"This user does not exist"));
-                }
-
-                var key = configuration.GetValue<string>("JWT:Key")!;
-                var audience = configuration.GetValue<string>("JWT:Audience")!;
-                var issuer = configuration.GetValue<string>("JWT:Issuer")!;
-                var jwtService = new JwtService(key, audience, issuer);
-
-                var token = jwtService.GenerateToken();
-
-                var resetSession = new ResetPasswordSession
-                {
-                    Email = verifyResetDto.Email,
-                    Token = token,
-                    ExpiresAt = DateTime.Now.AddHours(24)
-                };
-
-                await userAccountServices.CreatePasswordSession(resetSession);
-
-                await emailServices.SendResetPasswordEmailAsync(resetSession.Email, token);
-
-
-                return Ok(new ApiResponse(true, $"Email sent successfully"));
+                return NotFound(new ApiResponse(false, $"This user does not exist"));
             }
-            catch (Exception ex)
+
+            var key = configuration.GetValue<string>("JWT:Key")!;
+            var audience = configuration.GetValue<string>("JWT:Audience")!;
+            var issuer = configuration.GetValue<string>("JWT:Issuer")!;
+            var jwtService = new JwtService(key, audience, issuer);
+
+            var token = jwtService.GenerateToken();
+
+            var resetSession = new ResetPasswordSession
             {
-                var message = ex.Message;
-                logger.LogError("log error: {message}", message);
-                return StatusCode(500, new ApiResponse(false, $"An error occured while verifying the code"));
-            }
+                Email = verifyResetDto.Email,
+                Token = token,
+                ExpiresAt = DateTime.Now.AddHours(24)
+            };
+
+            await userAccountServices.CreatePasswordSession(resetSession);
+
+            await emailServices.SendResetPasswordEmailAsync(resetSession.Email, token);
+
+
+            return Ok(new ApiResponse(true, $"Email sent successfully"));
         }
 
         [HttpGet("account/reset-password")]

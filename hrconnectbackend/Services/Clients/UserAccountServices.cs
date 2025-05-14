@@ -24,7 +24,7 @@ namespace hrconnectbackend.Services.Clients
 
                 if (employee == null)
                 {
-                    throw new CustomException("Employee can't be found", "Entity not found.");
+                    throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} does not exist.");
                 }
 
                 if (employee.UserId != null)
@@ -53,22 +53,39 @@ namespace hrconnectbackend.Services.Clients
                 return createUser;
 
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException ex)
             {
                 await transaction.RollbackAsync();
 
-                if (ex is CustomException)
-                {
-                    throw;
-                }
+                throw new Exception("Concurrency error occurred while creating user account.", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
 
-                if (ex is ConflictException) throw;
+                throw new Exception("Database update error occurred while creating user account.", ex);
+            }
+            catch (NotFoundException ex)
+            {
+                await transaction.RollbackAsync();
 
-                throw new Exception($"Error creating user account: {ex.Message}", ex);
+                throw new Exception($"Employee not found: {ex.Message}", ex);
+            }
+            catch (ConflictException ex)
+            {
+                await transaction.RollbackAsync();
+
+                throw new Exception($"Conflict error: {ex.Message}", ex);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+
+                throw;
             }
         }
 
-        public async Task<UserAccount?> CreateUserAccount(int? organizationId,UserAccount userAccount)
+        public async Task<UserAccount> CreateUserAccount(int? organizationId, UserAccount userAccount)
         {
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
 
@@ -99,9 +116,18 @@ namespace hrconnectbackend.Services.Clients
             throw new NotImplementedException();
         }
 
-        public async Task<UserAccount?> GetUserAccountByEmail(string email)
+        public async Task<UserAccount> GetUserAccountByEmail(string email)
         {
             var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
+
+            if (userAccount == null)
+            {
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with email: {email} not found.");
+            }
+            if (userAccount.Locked)
+            {
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "User account is locked.");
+            }
 
             return userAccount;
         }
@@ -115,7 +141,7 @@ namespace hrconnectbackend.Services.Clients
                 .Include(a => a.UserAccount!.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
                 .Select(a => a.UserAccount)  // Now select UserAccount
                 .FirstOrDefaultAsync();
-            
+
             return user;
         }
 
@@ -123,11 +149,8 @@ namespace hrconnectbackend.Services.Clients
         {
             var auth = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
-            if (auth == null) throw new KeyNotFoundException("No user account found!");
-            // //
-            // auth.VerificationCode = new Random().Next(100000, 999999);
-            // auth.VerificationCodeExpiry = expiry
-            
+            if (auth == null) throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with id: {id} not found.");
+
             await _context.SaveChangesAsync();
 
             return "auth.VerificationCode.Value.ToString()";
@@ -139,7 +162,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (userAccount == null)
             {
-                throw new KeyNotFoundException($"User account for employee with email: ${email} not found.");
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"User account for employee with email: ${email} not found.");
             }
 
             if (userAccount.SmsVerified || userAccount.EmailVerified)
@@ -152,7 +175,7 @@ namespace hrconnectbackend.Services.Clients
         {
             var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == id);
 
-            if (userAccount == null) throw new KeyNotFoundException("No user account found!");
+            if (userAccount == null) throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with id: {id} not found.");
             //
             // if (userAccount.VerificationCode == null) throw new KeyNotFoundException("No verification code found!");
             //
@@ -170,7 +193,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (userAcount == null)
             {
-                throw new KeyNotFoundException($"No user account found with an email {email}");
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"No user account found with an email {email}");
             }
 
             return userAcount.Password;
@@ -182,7 +205,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (userAcount == null)
             {
-                throw new KeyNotFoundException($"No user account found with an email {email}");
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"No user account found with an email {email}");
             }
 
             return userAcount.UserName;
@@ -195,7 +218,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"User account with id: {employeeId} does not exist.");
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with id: {employeeId} does not exist.");
             }
 
             employee.Email = email;
@@ -223,8 +246,8 @@ namespace hrconnectbackend.Services.Clients
         public async Task DeleteResetPassword(string token)
         {
             var deletedCount = await _context.ResetPasswordSessions.FirstOrDefaultAsync(a => a.Token == token);
-            
-            if (deletedCount == null) throw new ArgumentNullException(nameof(deletedCount)); 
+
+            if (deletedCount == null) throw new ArgumentNullException(nameof(deletedCount));
 
             _context.ResetPasswordSessions.Remove(deletedCount);
             await _context.SaveChangesAsync();
