@@ -75,12 +75,12 @@ namespace hrconnectbackend.Services.Clients
 
             if (attendance == null)
             {
-                throw new KeyNotFoundException($"No attendance record found for employee ID {employeeId} on {DateTime.UtcNow:yyyy-MM-dd}. No clock-in yet.");
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No attendance record found for employee ID {employeeId} on {DateTime.UtcNow:yyyy-MM-dd}. No clock-in yet.");
             }
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"Employee with ID {employeeId} not found.");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID {employeeId} not found.");
             }
 
             var dayToday = DateTime.UtcNow;
@@ -90,7 +90,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (!hasShift)
             {
-                throw new InvalidOperationException($"Employee with ID {employeeId} has no shift today. Cannot clock in.");
+                throw new ConflictException(ErrorCodes.EmployeeNoShift, $"Employee with ID {employeeId} has no shift today. Cannot clock out.");
             }
 
             // Convert clock-out time to TimeSpan
@@ -99,20 +99,19 @@ namespace hrconnectbackend.Services.Clients
             // Calculate working hours as the difference between clock-in and clock-out
             attendance.ClockOut = timeClockedOut;
             attendance.WorkingHours = (decimal)(timeClockedOut - clockIn).TotalHours;
- 
+
             var hasClockedIn = await HasClockedIn(employeeId);
 
             if (!hasClockedIn)
             {
-                throw new ArgumentException($"Employee with ID: {employeeId} has not clocked in yet.");
+                throw new ConflictException(ErrorCodes.AttendanceNotClockedIn, $"Employee with ID {employeeId} has not clocked in yet.");
             }
 
             var hasClockedOut = await HasClockedOut(employeeId);
 
-
             if (hasClockedOut)
             {
-                throw new ArgumentException($"Employee with ID {employeeId} has already clocked out.");
+                throw new ConflictException(ErrorCodes.AlreadyClockedIn, $"Employee with ID {employeeId} has already clocked out.");
             }
 
 
@@ -147,10 +146,10 @@ namespace hrconnectbackend.Services.Clients
         public async Task<dynamic> EmployeeAttendanceStatsByShiftSpecificOrToday(int shiftId, DateTime? specificDate)
         {
             var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee).ToListAsync();
-            
+
             if (employees == null || !employees.Any()) throw new KeyNotFoundException($"Employee with ID {shiftId} not found.");
 
-            
+
             return await EmployeeAttendanceStats(employees, specificDate);
         }
 
@@ -305,10 +304,14 @@ namespace hrconnectbackend.Services.Clients
         public async Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end, int? pageIndex, int? pageSize)
         {
             if (id <= 0)
-                throw new ArgumentException("Invalid employee ID", nameof(id));
+            {
+                throw new BadRequestException(ErrorCodes.InvalidEmployeeData, "Invalid employee ID");
+            }
 
             if (start > end)
-                throw new ArgumentException("Start date must be earlier than or equal to end date.");
+            {
+                throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Start date cannot be greater than end date.");
+            }
 
             var attendanceRecords = await _context.Attendances
                 .Where(a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) >= DateOnly.FromDateTime(start) && DateOnly.FromDateTime(a.DateToday) <= DateOnly.FromDateTime(end))
@@ -317,8 +320,7 @@ namespace hrconnectbackend.Services.Clients
 
             var paginationAttendance = GetAttendancesPagination(attendanceRecords, pageIndex, pageSize);
 
-            if (!attendanceRecords.Any())
-                throw new KeyNotFoundException($"No attendance records found for employee with ID {id} in the given date range.");
+            if (!attendanceRecords.Any()) throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No attendance records found for employee with ID {id} between {start:yyyy-MM-dd} and {end:yyyy-MM-dd}.");
 
             return paginationAttendance;
         }
@@ -341,9 +343,13 @@ namespace hrconnectbackend.Services.Clients
         public List<Attendance> GetAttendancesPagination(List<Attendance> attendances, int? pageIndex, int? pageSize)
         {
             if (pageSize.HasValue && pageSize.Value <= 0)
-                throw new ArgumentOutOfRangeException("Page number must be greater than zero.");
+            {
+                throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Quantity must be greater than zero.");
+            }
             if (pageSize.HasValue && pageSize.Value <= 0)
-                throw new ArgumentOutOfRangeException("Quantity must be greater than zero.");
+            {
+                throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Page index must be greater than zero.");
+            }
 
             if (!pageIndex.HasValue || !pageSize.HasValue)
             {

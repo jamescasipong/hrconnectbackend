@@ -9,7 +9,6 @@
         public const string TokenExpired = "TOKEN_EXPIRED";
         public const string AccessDenied = "ACCESS_DENIED";
 
-        // 
 
         // User Errors
         public const string UserNotFound = "USER_NOT_FOUND";
@@ -26,6 +25,7 @@
         public const string EmployeeNoShift = "EMPLOYEE_NO_SHIFT";
 
         // Attendance Errors
+        public const string AttendanceNotClockedIn = "ATTENDANCE_NOT_CLOCKED_IN";
         public const string AlreadyClockedIn = "ALREADY_CLOCKED_IN";
         public const string AttendanceNotFound = "ATTENDANCE_NOT_FOUND";
         public const string InvalidAttendanceData = "INVALID_ATTENDANCE_DATA";

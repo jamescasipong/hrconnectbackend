@@ -12,7 +12,7 @@
 
     }
 
-    public record ErrorDetails( 
+    public record ErrorDetails(
         string Code,      // Machine-readable (e.g., "EMPLOYEE_NOT_FOUND")
         string Message,   // Human-readable
         string? Details = null  // Debugging info (optional)

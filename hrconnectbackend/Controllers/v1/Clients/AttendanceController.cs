@@ -198,7 +198,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await attendanceServices.ClockIn(employeeId);
             return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
-
         }
 
         [Authorize]
@@ -219,17 +218,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
 
-            try
-            {
-                var clockedIn = await attendanceServices.HasClockedIn(employeeId);
 
-                return Ok(new ApiResponse<bool>(true, $"{(clockedIn ? "Has Clocked In" : "Not yet clocked In")}", clockedIn));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error checking's employee attendance {EmployeeId}", employeeId);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            var clockedIn = await attendanceServices.HasClockedIn(employeeId);
+
+            return Ok(new ApiResponse<bool>(true, $"{(clockedIn ? "Has Clocked In" : "Not yet clocked In")}", clockedIn));
+
         }
         [Authorize]
         [HttpPut("clock-out")]
@@ -250,25 +243,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
 
-            try
-            {
-                var clockedIn = await attendanceServices.HasClockedIn(employeeId);
+            await attendanceServices.ClockOut(employeeId);
 
-                if (!clockedIn) return BadRequest(new ApiResponse(false, $"You must clock in first."));
-
-                await attendanceServices.ClockOut(employeeId);
-
-                return Ok(new ApiResponse(true, $"Clock-out recorded for employee {employeeId} successfully"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error processing clock-out for employee {EmployeeId}", employeeId);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            return Ok(new ApiResponse(true, $"Clock-out recorded for employee {employeeId} successfully"));
         }
         [Authorize]
         [HttpGet("clocked-out")]
@@ -288,24 +265,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
 
-            try
-            {
-                bool clockedOut = await attendanceServices.HasClockedOut(employeeId);
+            bool clockedOut = await attendanceServices.HasClockedOut(employeeId);
 
-                return Ok(new ApiResponse<bool>(true, $"Has already clocked in.", clockedOut));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error checking's employee attendance {EmployeeId}", employeeId);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            return Ok(new ApiResponse<bool>(true, clockedOut ? "Has Clocked Out" : "Not yet clocked out", clockedOut));
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,HR")]
         [HttpGet("daily/{employeeId:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance(int employeeId)
         {
@@ -326,38 +293,21 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
 
-            bool isAdmin = userRoles.Contains("Admin");
-            if (!isAdmin && currentUserIdInt != employeeId)
+            var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+
+            if (attendanceToday == null)
             {
-                return Forbid(); // 403 Forbidden
+                return NotFound(new ErrorResponse(ErrorCodes.AttendanceNotFound, $"Attendance for employee {employeeId} not found."));
             }
 
-            try
-            {
-                var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+            var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
 
-                return Ok(attendanceToday);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
-                return StatusCode(500, new { error = "An internal error occurred" });
-            }
+            return Ok(new SuccessResponse<ReadAttendanceDto?>(attendanceMapped, $"Attendance for employee {employeeId} retrieved successfully!"));
         }
 
         [Authorize]
         [HttpGet("my-attendance-today")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance()
         {
@@ -377,24 +327,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
 
-            try
-            {
-                var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
-                logger.Log(LogLevel.Information, "Attendance retrieved successfully");
+            var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+            logger.Log(LogLevel.Information, "Attendance retrieved successfully");
 
-                var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
+            if (attendanceToday == null)
+            {
+                return NotFound(new ErrorResponse(ErrorCodes.AttendanceNotFound, $"Attendance for employee {employeeId} not found."));
+            }
 
-                return Ok(new ApiResponse<ReadAttendanceDto?>(true, "Attendance retrieved successfully", attendanceMapped));
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
-                return StatusCode(500, new { error = "An internal error occurred" });
-            }
+            var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
+
+            return Ok(new ApiResponse<ReadAttendanceDto?>(true, "Attendance retrieved successfully", attendanceMapped));
+
         }
 
         [Authorize]
@@ -405,44 +349,30 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, int? pageIndex = 1, int? pageSize = 5)
         {
-            try
+
+            var currentUserId = User.FindFirstValue("EmployeeId");
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (currentUserId == null)
             {
-                var currentUserId = User.FindFirstValue("EmployeeId");
-                var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
-
-                if (currentUserId == null)
-                {
-                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
-                }
-
-                if (!int.TryParse(currentUserId, out int currentUserIdInt))
-                {
-                    return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
-                }
-
-                bool isAdmin = userRoles.Contains("Admin");
-
-                if (!isAdmin && currentUserIdInt != employeeId)
-                {
-                    return Forbid(); // 403 Forbidden
-                }
-
-                var attendanceRecords = await attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end), pageIndex, pageSize);
-                return Ok(new ApiResponse<List<Attendance>?>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
-            catch (ArgumentException ex)
+
+            if (!int.TryParse(currentUserId, out int currentUserIdInt))
             {
-                return BadRequest(new ApiResponse(false, ex.Message));
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
-            catch (KeyNotFoundException ex)
+
+            bool isAdmin = userRoles.Contains("Admin");
+
+            if (!isAdmin && currentUserIdInt != employeeId)
             {
-                return Ok(new ApiResponse(false, ex.Message));
+                return Forbid(); // 403 Forbidden
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, $"Error retrieving in the range between {start} and {end} for employee ID: {employeeId}");
-                return StatusCode(500, new { error = "An internal error occurred" });
-            }
+
+            var attendanceRecords = await attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, DateTime.Parse(start), DateTime.Parse(end), pageIndex, pageSize);
+
+            return Ok(new ApiResponse<List<Attendance>?>(true, $"Attendance in the range between {start} and {end} retrieved successfully!", attendanceRecords));
         }
         [Authorize]
         [HttpGet("monthly/{employeeId:int}")]
