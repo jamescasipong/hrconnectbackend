@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
@@ -25,19 +26,19 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"Employee with id: {employeeId} not found.");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} not found.");
             }
 
             if (!hasShift)
             {
-                throw new InvalidOperationException($"Employee with ID {employeeId} has no shift today. Cannot clock in.");
+                throw new ConflictException(ErrorCodes.EmployeeNoShift, $"Employee with ID {employeeId} has no shift today. Cannot clock in.");
             }
 
             var hasClockedIn = await HasClockedIn(employeeId);
 
             if (hasClockedIn)
             {
-                throw new ConflictException($"Employee with ID {employeeId} has already clocked in.");
+                throw new ConflictException(ErrorCodes.AlreadyClockedIn, $"Employee with ID {employeeId} has already clocked in.");
             }
 
             TimeSpan lateLeave = TimeSpan.Zero;

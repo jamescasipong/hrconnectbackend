@@ -37,7 +37,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 return Ok(new ApiResponse(true, $"Payroll for all employees successfully generated"));
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 return StatusCode(500, ex);
             }

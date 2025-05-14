@@ -1,5 +1,5 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
-using hrconnectbackend.Enum;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -57,7 +57,7 @@ public class ShiftServices(DataContext context) : GenericRepository<Shift>(conte
 
     public async Task<List<Shift>> GenerateShiftForEmployee(int employeeId, int orgId)
     {
-        List<string> employeeShifts = Constants.daysOfWorked;
+        List<string> employeeShifts = DaysOfWorked.DaysOfWorkedList;
 
         var employee = await _context.Employees.FindAsync(employeeId);
 

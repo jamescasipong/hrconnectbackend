@@ -166,6 +166,7 @@ app.UseAuthorization();
 
 app.UseWebSockets(); // Place UseWebSockets before MapControllers
 app.MapControllers();
+app.UseMiddleware<ErrorExceptionMiddleware>();
 
 // Map SignalR hubs
 app.MapHub<NotificationHub>("/notificationHub");

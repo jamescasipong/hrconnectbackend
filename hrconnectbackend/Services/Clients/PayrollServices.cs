@@ -20,6 +20,7 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task GeneratePayrollForAllEmployees(DateTime period1, DateTime period2)
         {
+
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try

@@ -34,7 +34,8 @@ public class LeaveController(
         {
             var validateUser = authenticationServices.ValidateUser(User, leaveRequest.EmployeeId);
 
-            if (validateUser != null){
+            if (validateUser != null)
+            {
                 return validateUser;
             }
 
@@ -52,7 +53,8 @@ public class LeaveController(
 
             return Ok(new ApiResponse(true, $"Leave application created successfully!"));
         }
-        catch (ArgumentNullException ex){
+        catch (ArgumentNullException ex)
+        {
             return BadRequest(new ApiResponse(false, ex.Message));
         }
         catch (ArgumentException ex)
@@ -66,7 +68,7 @@ public class LeaveController(
         }
     }
 
-    [Authorize(Roles ="Admin,HR")]
+    [Authorize(Roles = "Admin,HR")]
     [HttpGet("applications")]
     public async Task<IActionResult> GetAllLeaves([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
@@ -120,7 +122,7 @@ public class LeaveController(
         }
     }
 
-    
+
     [Authorize]
     [HttpGet("applications/{id:int}")]
     public async Task<IActionResult> GetLeaveById(int id)
@@ -138,7 +140,8 @@ public class LeaveController(
 
             var validateUser = authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
 
-            if (validateUser != null){
+            if (validateUser != null)
+            {
                 return validateUser;
             }
 
@@ -176,7 +179,8 @@ public class LeaveController(
 
             var validateUser = authenticationServices.ValidateUser(User, leaveApplication.EmployeeId, admins);
 
-            if (validateUser != null){
+            if (validateUser != null)
+            {
                 return validateUser;
             }
 
@@ -194,13 +198,13 @@ public class LeaveController(
             logger.LogError(ex, "Error updating a leave application with ID: {id}", id);
             return StatusCode(500, "Internal server error");
         }
-    }    
+    }
 
     [Authorize]
     [HttpDelete("applications/{id:int}")]
     public async Task<IActionResult> DeleteLeave(int id)
     {
-        var admins = new []{
+        var admins = new[]{
             "Admin", "HR"
         };
         try
@@ -214,7 +218,8 @@ public class LeaveController(
 
             var validateUser = authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
 
-            if (validateUser != null){
+            if (validateUser != null)
+            {
                 return validateUser;
             }
 
@@ -233,13 +238,14 @@ public class LeaveController(
     public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
         var admins = new List<string> { "Admin", "HR" };
-        
+
         var validateUser = authenticationServices.ValidateUser(User, employeeId, admins);
 
-        if (validateUser != null){
+        if (validateUser != null)
+        {
             return validateUser;
         }
-        
+
 
         try
         {
@@ -294,8 +300,8 @@ public class LeaveController(
         }
     }
 
-    
-    [Authorize(Roles ="HR,Admin")]
+
+    [Authorize(Roles = "HR,Admin")]
     [HttpPut("applications/approve/{id:int}")]
     public async Task<IActionResult> ApproveLeave(int id)
     {
@@ -315,7 +321,7 @@ public class LeaveController(
             return StatusCode(500, "Internal server error");
         }
     }
-    [Authorize(Roles ="HR,Admin")]
+    [Authorize(Roles = "HR,Admin")]
     [HttpPut("applications/reject/{id:int}")]
     public async Task<IActionResult> RejectLeave(int id)
     {
@@ -377,10 +383,11 @@ public class LeaveController(
         var admins = new List<string> {
             "Admin", "HR"
         };
-        
+
         var validateUser = authenticationServices.ValidateUser(User, employeeId, admins);
 
-        if (validateUser != null){
+        if (validateUser != null)
+        {
             return validateUser;
         }
 

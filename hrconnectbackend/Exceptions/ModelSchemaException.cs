@@ -2,5 +2,6 @@
 
 public class ModelSchemaException(string message): Exception(message)
 {
-    
+    public string ErrorCode { get; }
+   
 }

@@ -210,11 +210,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize(Roles ="Admin,HR")]
+        [Authorize(Roles = "Admin,HR")]
         [HttpGet("shift-today/{employeeId}")]
         public async Task<IActionResult> HasShiftToday(int employeeId)
         {
-            
+
 
             try
             {
@@ -241,10 +241,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             try
             {
-                if (int.TryParse(user, out var employeeId)){
+                if (int.TryParse(user, out var employeeId))
+                {
                     var hasShift = await shiftServices.HasShiftToday(employeeId);
                     return Ok(new ApiResponse<bool>(true, $"User has shift today", hasShift));
-                }else{
+                }
+                else
+                {
                     return Unauthorized();
                 }
             }
@@ -275,5 +278,5 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return daysOfWorked.Any(a => a.ToLower() == name.ToLower());
         }
     }
-    
+
 }

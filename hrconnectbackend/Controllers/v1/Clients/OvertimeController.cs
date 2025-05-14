@@ -102,7 +102,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             catch (Exception)
             {
                 return StatusCode(500, "Internal server error");
-            } 
+            }
         }
 
         [HttpGet("{oTApplicationId:int}")]
@@ -171,7 +171,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 return Ok(new ApiResponse(false, $"OT Application with id: {otApplicationId} deleted successfully!"));
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
             }

@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
@@ -66,21 +68,24 @@ namespace hrconnectbackend.Services.Clients
         }
 
 
-        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto)
+        public async Task<List<Employee>> GenerateEmployeesWithEmail(List<GenerateEmployeeDto> employeesDto, int orgId)
         {
             var employeesCreated = new List<Employee>();
-            try
+
+            foreach (var employee in employeesDto)
             {
-                foreach (var employee in employeesDto)
+                using var transaction = await _context.Database.BeginTransactionAsync(); // Begin transaction per employee
+                try
                 {
-                    var existingEmployee = await _context.Employees.FirstOrDefaultAsync(e => e.Email.ToString().Trim() == employee.Email.Trim());
+                    var existingEmployee = await _context.Employees
+                        .FirstOrDefaultAsync(e => e.Email.ToString().Trim() == employee.Email.Trim());
 
                     if (existingEmployee != null)
                     {
                         logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
                         continue;
                     }
-                    
+
                     string password = Generator.GeneratePassword();
                     string username = Generator.GenerateUsername();
 
@@ -91,24 +96,22 @@ namespace hrconnectbackend.Services.Clients
                         Email = employee.Email,
                         ChangePassword = true
                     };
-                    
+
                     await userAccountService.AddAsync(userAccount);
-                    
+
                     var employeeEntity = new Employee
                     {
                         Email = employee.Email,
-                        OrganizationId = 1,
-                        PositionId = 1,
+                        OrganizationId = orgId,
+                        PositionId = null,
                         Status = "offline",
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = null
                     };
 
                     await AddAsync(employeeEntity);
-                    
 
-                    AboutEmployee aboutEmployee = employeeEntity.CreateAboutEmployee(firstName:null, lastName:null);
-                    
+                    AboutEmployee aboutEmployee = employeeEntity.CreateAboutEmployee(firstName: null, lastName: null);
                     EducationBackground educationBackground = aboutEmployee.CreateEducationBackground();
 
                     await aboutEmployeeService.AddAsync(aboutEmployee);
@@ -122,22 +125,23 @@ namespace hrconnectbackend.Services.Clients
                     });
 
                     await aboutEmployeeService.AddEducationBackgroundAsync(educationBackground);
-                    
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync(); // Commit after all operations
 
                     employeesCreated.Add(employeeEntity);
-                    await _context.SaveChangesAsync();
-
-
                 }
-
-                return employeesCreated;
-
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync(); // Rollback this iteration
+                    logger.LogError(ex, "Error creating employee with email {Email}. Rolling back.", employee.Email);
+                    // Optionally continue to next employee or rethrow
+                }
             }
-            catch (Exception ex)
-            {
-                throw new Exception(employeesDto.Count + " employees could not be created. " + ex.Message);
-            }
+
+            return employeesCreated;
         }
+
 
         public async Task CreateEmployee(CreateEmployeeDto employee, int orgId, bool? createAccount = false)
 {
@@ -145,13 +149,6 @@ namespace hrconnectbackend.Services.Clients
 
     try
     {
-        // Check if the employee is null and throw an exception
-        if (employee == null)
-        {
-            logger.LogWarning("Attempted to create an employee with null data.");
-            throw new ArgumentNullException(nameof(employee), "Employee data cannot be null.");
-        }
-
         // Check if an employee with the same email already exists
         var existingEmployee = await _context.Employees
                                              .FirstOrDefaultAsync(e => e.Email == employee.Email);
@@ -159,7 +156,7 @@ namespace hrconnectbackend.Services.Clients
         if (existingEmployee != null)
         {
             logger.LogWarning("Employee with email {Email} already exists.", employee.Email);
-            throw new InvalidOperationException("An employee with the same email already exists.");
+            throw new ConflictException(ErrorCodes.DuplicateEmail, "An employee with the same email already exists.");
         }
 
         // Handle password and user account creation
@@ -169,7 +166,7 @@ namespace hrconnectbackend.Services.Clients
 
         if (!employee.Email.IsValidEmail())
         {
-            throw new ArgumentException("Invalid email format", nameof(employee.Email));
+            throw new ValidationException("Invalid email format", nameof(employee.Email));
         }
 
         string userName = $"{employee.FirstName.CapitalLowerCaseName()}{employee.LastName.CapitalLowerCaseName()}";
@@ -234,7 +231,6 @@ namespace hrconnectbackend.Services.Clients
     {
         // Rollback the transaction on error
         await transaction.RollbackAsync();
-        logger.LogError(ex.Message);
         throw; // Rethrow the exception after logging it
     }
 }

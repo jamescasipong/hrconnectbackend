@@ -1,4 +1,5 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -28,7 +29,7 @@ namespace hrconnectbackend.Services.Clients
 
                 if (employee.UserId != null)
                 {
-                    throw new ConflictException("Employe already has account");
+                    throw new ConflictException(ErrorCodes.EmployeeAlreadyHasAccount, "Employe already has account");
                 }
 
                 var newUser = new UserAccount

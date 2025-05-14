@@ -26,8 +26,8 @@ public class SupervisorController(
     private readonly ILeaveApplicationServices _leaveApplicationServices = leaveApplicationServices;
     private readonly INotificationServices _notificationServices = notificationServices;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
-    
-    [Authorize(Roles ="Admin,HR")]
+
+    [Authorize(Roles = "Admin,HR")]
     [HttpGet]
     public async Task<IActionResult> GetAllSupervisors()
     {
@@ -73,7 +73,7 @@ public class SupervisorController(
             return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
         }
     }
-    [Authorize(Roles ="Admin,HR")]
+    [Authorize(Roles = "Admin,HR")]
     [HttpDelete("{supervisorId:int}")]
     public async Task<IActionResult> DeleteSupervisor(int supervisorId)
     {
@@ -135,5 +135,5 @@ public class SupervisorController(
         }
     }
 
-    
+
 }

@@ -23,17 +23,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
     [Route("api/v{version:apiVersion}/user")]
     [ApiVersion("1.0")]
     public class UserController
-    (IUserAccountServices userAccountServices, ILogger<UserController> logger, IMapper mapper, IEmployeeServices employeeServices, IConfiguration configuration, 
+    (IUserAccountServices userAccountServices, ILogger<UserController> logger, IMapper mapper, IEmployeeServices employeeServices, IConfiguration configuration,
     IUserSettingsServices userSettingsServices, INotificationServices notificationServices, ISubscriptionServices subscriptionServices, IEmailServices emailServices, IDepartmentServices departmentServices) : Controller
     {
 
         [Authorize]
         [HttpGet("account/profile")]
-        public async Task<IActionResult> GetProfile(){
+        public async Task<IActionResult> GetProfile()
+        {
             var nameIdentifier = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userName = User.FindFirstValue(ClaimTypes.Name);
             var role = User.FindFirstValue(ClaimTypes.Role);
-            
+
             if (nameIdentifier == null)
             {
                 return Unauthorized(new ApiResponse(false, "User not found."));
@@ -127,7 +128,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 logger.LogInformation("Reset session found.");
                 return Ok(new ApiResponse(true, $"Reset session found."));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var message = ex.Message;
                 logger.LogError("log error: {message}", message);
@@ -193,7 +194,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             try
             {
                 var thirtyMinutes = expiryDate != null ? DateTime.Parse(expiryDate) : DateTime.Now.AddMinutes(5);
-                
+
                 await emailServices.SendAuthenticationCodeAsync(email, code, thirtyMinutes);
 
                 return Ok(new ApiResponse<dynamic>(true, "Email sent successfully!"));
@@ -204,16 +205,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, new ApiResponse(false, "An error occurred while sending email."));
             }
         }
-        
-        
+
+
         [HttpPost("account/logout")]
-        public async Task<IActionResult> Logout(){
+        public async Task<IActionResult> Logout()
+        {
             Response.Cookies.Append("token", "", new CookieOptions
             {
                 HttpOnly = true,  // Secure from JavaScript (prevent XSS)
                 SameSite = SameSiteMode.None, // Prevent CSRF attacks
                 Secure = true,
-                Path="/",
+                Path = "/",
                 Expires = DateTime.UtcNow.AddMinutes(-1), // Cookie expires in 1 hour
             });
 
@@ -255,7 +257,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(new ApiResponse<UserAccountDto?>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDto));
         }
 
-        
+
         [Authorize]
         [Authorize(Roles = "Admin")]
         [HttpGet("account")]
@@ -300,10 +302,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employee = await employeeServices.GetByIdAsync(employeeId);
 
-            if (employee == null){
+            if (employee == null)
+            {
                 return NotFound(new ApiResponse(false, $"Employee with id: {employeeId} not found"));
             }
-            
+
             employee.Email = email;
 
             await userAccountServices.UpdateEmail(employeeId, email);
@@ -434,7 +437,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
     }
-    
+
     public record NewPasswords(string Password);
 
 }

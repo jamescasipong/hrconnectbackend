@@ -1,8 +1,8 @@
-﻿namespace hrconnectbackend.Enum
+﻿namespace hrconnectbackend.Constants
 {
-    public static class Constants
+    public class DaysOfWorked
     {
-        public static List<string> daysOfWorked = new List<string>
+        public static List<string> DaysOfWorkedList = new List<string>
         {
             "Monday",
             "Tuesday",
@@ -11,6 +11,4 @@
             "Friday",
         };
     }
-
-
 }

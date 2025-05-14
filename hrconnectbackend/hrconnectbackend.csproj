@@ -41,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Enum\" />
     <Folder Include="Features\Completed\" />
     <Folder Include="Features\Planned\" />
     <Folder Include="Migrations\" />

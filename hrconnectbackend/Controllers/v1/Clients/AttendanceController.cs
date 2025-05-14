@@ -1,6 +1,8 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Exceptions;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -12,7 +14,6 @@ using MongoDB.Bson;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
-    [Authorize]
     [ApiController]
     [Route("api/v{version:apiVersion}/attendance")]
     [ApiVersion("1.0")]
@@ -171,7 +172,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize] // Ensures the user is authenticated
+        //[Authorize] // Ensures the user is authenticated
         [HttpPost("clock-in")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -181,18 +182,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ClockIn()
         {
-            try
-            {
-                var currentEmployeeId = User.FindFirstValue("EmployeeId");
-
-                if (currentEmployeeId == null)
-                {
-                    return Unauthorized(new ApiResponse(false, "User not authenticated."));
-                }
+                string currentEmployeeId = User.GetEmployeeSession();
 
                 if (!int.TryParse(currentEmployeeId, out int employeeId))
                 {
-                    return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                    return Unauthorized(new ErrorResponse(ErrorCodes.SessionNotFound, "Employee session not found."));
                 }
 
                 var hasClockedOut = await attendanceServices.HasClockedOut(employeeId);
@@ -203,24 +197,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 await attendanceServices.ClockIn(employeeId);
                 return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new ApiResponse(false, ex.Message));
-            }
-            catch (ConflictException ex)
-            {
-                return Conflict(new ApiResponse(false, ex.Message));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error processing clock-in for employee");
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            
         }
 
         [Authorize]

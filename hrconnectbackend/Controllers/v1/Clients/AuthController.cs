@@ -28,7 +28,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> Signin([FromBody] Signin signinBody, [FromQuery] bool rememberMe = false)
         {
             logger.LogInformation("Signin attempt for email: {Email}", signinBody.Email);
-            
+
             var auth = await authService.Signin(signinBody.Email, signinBody.Password, rememberMe);
 
             if (!ModelState.IsValid)
@@ -66,11 +66,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     Path = "/",
                     Expires = rememberMe ? DateTime.Now.AddMinutes(_jwtSettings.RefreshExpirationRemember) : DateTime.Now.AddMinutes(_jwtSettings.RefreshExpiration)
                 });
-                
+
                 Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline';";
 
                 logger.LogInformation("Tokens generated and sent to client for email: {Email}", signinBody.Email);
-                
+
                 return Ok(new ApiResponse(true, "Successfully logged in"));
             }
             catch (Exception ex)
@@ -135,7 +135,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             return Task.FromResult<IActionResult>(Ok());
         }
-        
+
         // [UserRole("Admin,Operator")]
         [HttpPost("operator/signup")]
         public async Task<IActionResult> SignupOperator(CreateUserOperator user)
@@ -149,7 +149,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             return Ok(userAccount);
         }
-        
+
         //[UserRole("Admin,Operator")]
         //[HttpPost("admin/signup")]
         //public async Task<IActionResult> SignupUser(CreateUser user)
@@ -163,7 +163,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         //    return Ok(userAccount);
         //}
-        
+
         [UserRole("Admin,Operator")]
         [HttpPost("employee/signup")]
         public async Task<IActionResult> SignupEmployee(CreateUser user)
@@ -175,17 +175,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 {
                     Message = "Invalid Request",
                 });
-            
+
             return Ok(userAccount);
         }
-        
+
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)
         {
             var userAccount = await authService.ChangePassword(user.Email, user.Password);
-            
+
             if (!userAccount) return BadRequest();
-            
+
             return Ok();
         }
 
@@ -203,7 +203,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             logger.LogInformation("Refreshing access token.");
 
             var refreshToken = HttpContext.Request.Cookies["backend_rt"];
-            
+
             if (refreshToken == null)
             {
                 logger.LogWarning("No refresh token found in request.");
@@ -219,7 +219,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
 
             var exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
-            
+
             HttpContext.Response.Cookies.Append("at_session", generateAccessToken, new CookieOptions
             {
                 HttpOnly = true,  // Secure from JavaScript (prevent XSS)
@@ -259,7 +259,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     Response.Cookies.Delete("backend_rt");
 
                     logger.LogInformation("Tokens invalidated successfully for refresh token: {RefreshToken}", value);
-                    
+
                     return Ok("Successfully logged out");
                 }
                 catch (Exception ex)

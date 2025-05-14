@@ -2,6 +2,8 @@ using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Exceptions;
+using hrconnectbackend.Extensions;
+using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
@@ -33,72 +35,40 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto employee, bool? createAccount = false)
         {
-            var organizationId = User.FindFirstValue("organizationId");
+            var organizationId = User.RetrieveSpecificUser("organizationId");
 
-            logger.LogWarning("Organization ID: {organizationId}", organizationId);
-
-            if (!int.TryParse(organizationId, out int orgId))
-            {
-                logger.LogWarning("Organization ID is not valid.");
-                return BadRequest(new ApiResponse(false, "Invalid organization ID."));
-            }
+            int organizationIdInt = TypeConverter.StringToInt(organizationId);
 
             if (employee == null)
             {
                 logger.LogWarning("Received null data for employee creation.");
                 return BadRequest("Employee data cannot be null.");
             }
-            
-            try
-            {
-                // Call the CreateEmployeeAsync method
-                await employeeService.CreateEmployee(employee, orgId, createAccount);
 
-                return Ok(new ApiResponse(true, $"Employee created successfully!"));  // Return a success message
-            }
-            catch (ArgumentNullException ex)
-            {
-                logger.LogError(ex, "Error creating employee due to null data.");
-                return BadRequest(new ApiResponse(false, ex.Message));  // Return BadRequest for specific exceptions
-            }
-            catch (ArgumentException ex)
-            {
-                logger.LogError(ex, "Error creating employee: Invalid argument.");
-                return BadRequest(new ApiResponse(false, ex.Message)); // Return BadRequest for invalid arguments
-            }
-            catch (InvalidOperationException ex)
-            {
-                logger.LogError(ex, "Error creating employee: Invalid operation.");
-                return Conflict(new ApiResponse(false, ex.Message));  // Return Conflict for specific scenarios like existing employee
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An unexpected error occurred while creating employee.");
-                return StatusCode(500, "Internal server error");  // Handle unexpected errors
-            }
+            // Call the CreateEmployeeAsync method
+            await employeeService.CreateEmployee(employee, organizationIdInt, createAccount);
+
+            return Ok(new ApiResponse(true, $"Employee created successfully!"));  // Return a success message
+
         }
 
         [Authorize(Roles = "Admin,HR")]
         [HttpPost("generate-employees")]
         public async Task<IActionResult> GenerateEmployees([FromBody] List<GenerateEmployeeDto> employees)
         {
-            try
-            {
-                var emp = await employeeService.GenerateEmployeesWithEmail(employees);
+            var organizationId = User.RetrieveSpecificUser("organizationId");
+            int organizationIdInt = TypeConverter.StringToInt(organizationId);
 
-                var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
+            var emp = await employeeService.GenerateEmployeesWithEmail(employees, organizationIdInt);
 
-                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, "Employees generated successfully", empDto));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error generating employees");
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
+
+            return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, "Employees generated successfully", empDto));
+
         }
 
         [HttpPost("{employeeId}/create-account")]
-        public async Task<IActionResult> CreateUserAccount (int employeeId, CreateUser userAccExistingEmployee)
+        public async Task<IActionResult> CreateUserAccount(int employeeId, CreateUser userAccExistingEmployee)
         {
             try
             {
@@ -152,7 +122,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 logger.LogWarning("User is not in role 'HR' or in role 'Admin', 'Operator'.");
                 return Forbid();
             }
-            
+
             try
             {
                 var employees = new List<Employee>();
@@ -176,7 +146,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                         logger.LogWarning("Page size is less than zero.");
                         return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
                     }
-                        
+
                     // Apply pagination only if pageIndex and pageSize are not null
                     logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
                     employees = await employeeService.RetrieveEmployees(pageIndex, pageSize);
@@ -188,9 +158,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
                     logger.LogWarning("No employees found.");
                     return NotFound(new ApiResponse(false, $"No employees exist"));
                 }
-                
+
                 var employeesDto = mapper.Map<List<ReadEmployeeDto>>(employees);
-                
+
                 return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, $"Employees retrieved successfully!", employeesDto));
             }
             catch (Exception ex)
@@ -232,7 +202,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
         [Authorize]
         [HttpGet("education/me")]
-        public async Task<IActionResult> GetEducation(){
+        public async Task<IActionResult> GetEducation()
+        {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
@@ -241,7 +212,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
 
             var employeeDTO = mapper.Map<List<EducationBackgroundDto>>(employee);
-        
+
 
             return Ok(new ApiResponse<List<EducationBackgroundDto>?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
         }
@@ -279,7 +250,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 if (currentUserId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
 
-                if (!isAdmin && currentUserId != id.ToString()){
+                if (!isAdmin && currentUserId != id.ToString())
+                {
                     return Forbid();
                 }
 
@@ -301,7 +273,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
         }
 
-        [Authorize(Roles ="Admin,HR")]
+        [Authorize(Roles = "Admin,HR")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDto employeeDto)
         {
@@ -328,7 +300,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 return Ok(new ApiResponse(true, $"Employee with an ID: {id} updated successfully"));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "Error updating an employee with ID {id}", id);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
@@ -351,7 +323,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
                 return Ok(new ApiResponse(true, $"Employee with ID: {id} deleted successfully!"));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "Error deleting an employee with ID {id}", id);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
@@ -367,7 +339,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 var employeesByDept = await employeeService.GetEmployeeByDepartment(departmentId, pageIndex, pageSize);
 
                 var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
-                
+
                 return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {departmentId} retrieved successfully.", employeesMapped));
             }
             catch (KeyNotFoundException ex)
@@ -424,13 +396,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Ok(new ApiResponse(true, $"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "Error updating an employee's account username with account ID {id}", accountId);
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
         }
-        
+
     }
 
 }
