@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using hrconnectbackend.Data;
@@ -11,9 +12,11 @@ using hrconnectbackend.Data;
 namespace hrconnectbackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250514081536_newDB")]
+    partial class newDB
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,7 +58,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("Attendances", (string)null);
+                    b.ToTable("Attendances");
                 });
 
             modelBuilder.Entity("UserSettings", b =>
@@ -118,7 +121,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("UserSettings", (string)null);
+                    b.ToTable("UserSettings");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.AboutEmployee", b =>
@@ -150,7 +153,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("EmployeeInfoId");
 
-                    b.ToTable("AboutEmployees", (string)null);
+                    b.ToTable("AboutEmployees");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.AttendanceCertification", b =>
@@ -199,7 +202,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("AttendanceCertifications", (string)null);
+                    b.ToTable("AttendanceCertifications");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Department", b =>
@@ -239,7 +242,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EducationBackground", b =>
@@ -278,7 +281,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("EducationBackgrounds", (string)null);
+                    b.ToTable("EducationBackgrounds");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EmployeeDepartment", b =>
@@ -304,7 +307,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("EmployeeDepartments", (string)null);
+                    b.ToTable("EmployeeDepartments");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EmployeeModels.Employee", b =>
@@ -375,7 +378,7 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Employees", (string)null);
+                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.EmployeePosition", b =>
@@ -397,7 +400,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("EmployeePosition", (string)null);
+                    b.ToTable("EmployeePosition");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveApplication", b =>
@@ -447,7 +450,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("LeaveApplications", (string)null);
+                    b.ToTable("LeaveApplications");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.LeaveBalance", b =>
@@ -480,7 +483,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("LeaveBalances", (string)null);
+                    b.ToTable("LeaveBalances");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Leaves", b =>
@@ -517,7 +520,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Leaves", (string)null);
+                    b.ToTable("Leaves");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Notifications", b =>
@@ -549,7 +552,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Organization", b =>
@@ -598,7 +601,7 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("ContactEmail")
                         .IsUnique();
 
-                    b.ToTable("Organizations", (string)null);
+                    b.ToTable("Organizations");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Payment", b =>
@@ -638,7 +641,7 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("TransactionId")
                         .IsUnique();
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Payroll", b =>
@@ -699,7 +702,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Payrolls", (string)null);
+                    b.ToTable("Payrolls");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Plan", b =>
@@ -731,7 +734,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("PlanId");
 
-                    b.ToTable("Plans", (string)null);
+                    b.ToTable("Plans");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.PlanFeature", b =>
@@ -762,7 +765,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("PlanId");
 
-                    b.ToTable("PlanFeatures", (string)null);
+                    b.ToTable("PlanFeatures");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.RefreshToken", b =>
@@ -794,7 +797,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Requests.OtApplication", b =>
@@ -838,8 +841,36 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("OtApplications", (string)null);
+                    b.ToTable("OtApplications");
                 });
+
+            // modelBuilder.Entity("hrconnectbackend.Models.Sessions.EmailSigninSession", b =>
+            //     {
+            //         b.Property<string>("SessionId")
+            //             .HasColumnType("text");
+
+            //         b.Property<DateTime>("CreatedAt")
+            //             .HasColumnType("timestamp with time zone");
+
+            //         b.Property<string>("Email")
+            //             .IsRequired()
+            //             .HasColumnType("text");
+
+            //         b.Property<DateTime>("ExpiresAt")
+            //             .HasColumnType("timestamp with time zone");
+
+            //         b.Property<string>("IpAddress")
+            //             .IsRequired()
+            //             .HasColumnType("text");
+
+            //         b.Property<string>("UserAgent")
+            //             .IsRequired()
+            //             .HasColumnType("text");
+
+            //         b.HasKey("SessionId");
+
+            //         b.ToTable("EmailSigninSessions");
+            //     });
 
             modelBuilder.Entity("hrconnectbackend.Models.Sessions.ResetPasswordSession", b =>
                 {
@@ -855,7 +886,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("Token");
 
-                    b.ToTable("ResetPasswordSessions", (string)null);
+                    b.ToTable("ResetPasswordSessions");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Sessions.UserPermission", b =>
@@ -889,7 +920,7 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserPermissions", (string)null);
+                    b.ToTable("UserPermissions");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Shift", b =>
@@ -922,7 +953,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Shifts", (string)null);
+                    b.ToTable("Shifts");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.Subscription", b =>
@@ -976,7 +1007,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Subscriptions", (string)null);
+                    b.ToTable("Subscriptions");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.UsageRecord", b =>
@@ -1005,7 +1036,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("SubscriptionId");
 
-                    b.ToTable("UsageRecords", (string)null);
+                    b.ToTable("UsageRecords");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.UserAccount", b =>
@@ -1054,7 +1085,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("UserAccounts", (string)null);
+                    b.ToTable("UserAccounts");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.UserNotification", b =>
@@ -1082,7 +1113,7 @@ namespace hrconnectbackend.Migrations
                     b.HasIndex("ReferenceId")
                         .IsUnique();
 
-                    b.ToTable("UserNotifications", (string)null);
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("hrconnectbackend.Models.VerificationCode", b =>
@@ -1111,7 +1142,7 @@ namespace hrconnectbackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("VerificationCodes", (string)null);
+                    b.ToTable("VerificationCodes");
                 });
 
             modelBuilder.Entity("Attendance", b =>

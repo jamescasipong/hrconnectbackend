@@ -36,8 +36,6 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
             await _context.Organizations.AddAsync(newOrg);
             await _context.SaveChangesAsync();
 
-
-
             userAccount.OrganizationId = newOrg.Id;
             _context.Update(userAccount);
             await _context.SaveChangesAsync();

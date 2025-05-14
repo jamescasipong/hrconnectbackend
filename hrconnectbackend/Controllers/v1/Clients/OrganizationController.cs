@@ -44,13 +44,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 IsActive = true
             };
 
-
             var createdOrganization = await organizationServices.CreateOrganization(userIdInt, newOrg);
-
-            if (createdOrganization == null)
-            {
-                return BadRequest(new ApiResponse<Organization>(false, $"Failed to create organization"));
-            }
 
             var user = await userAccountServices.GetByIdAsync(userIdInt);
 

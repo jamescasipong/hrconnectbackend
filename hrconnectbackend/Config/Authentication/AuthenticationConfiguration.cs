@@ -1,10 +1,8 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+﻿using System.Text;
 using hrconnectbackend.Config.Settings;
-using hrconnectbackend.Data;
-using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Constants;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -68,6 +66,31 @@ namespace hrconnectbackend.Config.Authentication
             // Define event handlers for processing JWT tokens
             options.Events = new JwtBearerEvents
             {
+                OnChallenge = context =>
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Unauthorized, "Unauthorized access. Please login again."));
+                },
+                OnForbidden = context =>
+                {
+                    context.Response.StatusCode = 403;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Forbidden, "Forbidden access. You do not have permission to access this resource."));
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Unauthorized, "Authentication failed. Please login again."));
+                },
+                OnTokenValidated = context =>
+                {
+                    // This event is triggered when the token is successfully validated
+                    _logger.LogInformation("Token validation successful.");
+                    return Task.CompletedTask;
+                },
                 // Event triggered when the message is received (token validation)
                 OnMessageReceived = async (context) =>
                 {

@@ -4,6 +4,7 @@
     {
         // Authorization Errors
         public const string Unauthorized = "UNAUTHORIZED";
+        public const string Forbidden = "FORBIDDEN";
         public const string InvalidCredentials = "INVALID_CREDENTIALS";
         public const string TokenExpired = "TOKEN_EXPIRED";
         public const string AccessDenied = "ACCESS_DENIED";

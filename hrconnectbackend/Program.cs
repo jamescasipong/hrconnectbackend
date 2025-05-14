@@ -138,7 +138,7 @@ if (app.Environment.IsDevelopment())
     //     opt.Theme = ScalarTheme.Mars;
     //     opt.DefaultHttpClient = new(ScalarTarget.Http, ScalarClient.Http11);
     // });
-    
+
 }
 
 using (var scope = app.Services.CreateScope())
@@ -162,11 +162,11 @@ app.UseRouting(); // Add UseRouting before UseCors
 app.UseCorsHandler(); // Use the CORS middleware
 app.UseSession(); // Add session middleware
 app.UseAuthentication();
+app.UseMiddleware<ErrorExceptionMiddleware>();
 app.UseAuthorization();
 
 app.UseWebSockets(); // Place UseWebSockets before MapControllers
 app.MapControllers();
-app.UseMiddleware<ErrorExceptionMiddleware>();
 
 // Map SignalR hubs
 app.MapHub<NotificationHub>("/notificationHub");
