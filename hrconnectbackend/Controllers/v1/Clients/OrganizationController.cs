@@ -1,5 +1,9 @@
 using System.Security.Claims;
+using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
+using hrconnectbackend.Constants;
+using hrconnectbackend.Extensions;
+using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -14,7 +18,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrganizationController(IOrganizationServices organizationServices, IUserAccountServices userAccountServices, IAuthService authServices, ILogger<OrganizationController> logger) : ControllerBase
+    public class OrganizationController(IOrganizationServices organizationServices, IUserAccountServices userAccountServices, IAuthService authServices, ILogger<OrganizationController> logger, IMapper mapper) : ControllerBase
     {
         // [UserRole("Admin")]
         [Authorize]
@@ -22,18 +26,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> CreateOrganization([FromBody] CreateOrganizationDTO organization)
         {
             var validate = TryValidateModel(organization);
-            
+
             if (!validate) return BadRequest(ModelState);
 
-            if (User == null)
-            {
-                return Unauthorized();
-            }
+            var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            {
-                return BadRequest(new ApiResponse(false, $"Invalid Request"));
-            }
+            var userIdInt = TypeConverter.StringToInt(userId);
 
             var newOrg = new Organization
             {
@@ -45,60 +43,43 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             };
-            
-            try
+
+
+            var createdOrganization = await organizationServices.CreateOrganization(userIdInt, newOrg);
+
+            if (createdOrganization == null)
             {
-                var createdOrganization = await organizationServices.CreateOrganization(userId, newOrg);
-
-                if (createdOrganization == null)
-                {
-                    return BadRequest(new ApiResponse<Organization>(false, $"Failed to create organization"));
-                }
-
-                var user = await userAccountServices.GetByIdAsync(userId);
-
-                if (user == null)
-                {
-                    return NotFound(new ApiResponse<Organization>(false, $"User not found"));
-                }
-
-                var userExist = await userAccountServices.GetByIdAsync(userId);
-
-                if (userExist == null)
-                {
-                    return NotFound(new ApiResponse<Organization>(false, $"User not found"));
-                }
-
-
-                AuthResponse authResponse = await authServices.GenerateTokens(userExist);
-                authServices.SetAccessTokenCookie(authResponse, Response);
-
-                return Ok(new ApiResponse<Organization>(true, $"Account created successfully", createdOrganization));
-
+                return BadRequest(new ApiResponse<Organization>(false, $"Failed to create organization"));
             }
-            catch (KeyNotFoundException ex)
+
+            var user = await userAccountServices.GetByIdAsync(userIdInt);
+
+            if (user == null)
             {
-                return NotFound(new ApiResponse<Organization>(false, $"User not found: {ex.Message}"));
+                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User not found with id: {userIdInt}"));
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<Organization>(false, $"Error creating organization: {ex.Message}"));
-            }
+
+            AuthResponse authResponse = await authServices.GenerateTokens(user);
+            authServices.SetAccessTokenCookie(authResponse, Response);
+
+            return Ok(new ApiResponse<Organization>(true, $"Account created successfully", createdOrganization));
+
+
         }
-        
+
         [UserRole("Admin,Operator")]
         [HttpPatch("{organizationId}")]
         public async Task<IActionResult> Patch(int organizationId, [FromBody] JsonPatchDocument<Organization> patch)
         {
 
-            
+
             // Call the service to apply the patch to the Organization entity
             var (original, patched, isValid) = await organizationServices.ApplyPatchAsync(organizationId, patch);
-            
+
             // If the organization was not found or if the patch is invalid, return BadRequest
             if (original == null || !isValid || patched == null)
             {
-                return NotFound("Organization not found or invalid patch.");
+                return NotFound(new ErrorResponse(ErrorCodes.OrganizationNotFound, $"Organization with id {organizationId} not found"));
             }
 
 
@@ -134,61 +115,56 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 patched
             };
 
-            return Ok(model);
+            return Ok(new ApiResponse<object>(true, $"Organization with id {organizationId} updated successfully", model));
         }
-        
+
         [HttpGet("{organizationId}/storage-usage")]
         public async Task<IActionResult> GetStorageUsed(int organizationId)
         {
-            try
-            {
-                long storageUsedBytes = await organizationServices.GetStorageUsedByOrganizationAsync(organizationId);
-                var storageUsedMb = storageUsedBytes / (1024 * 1024);  // Convert bytes to MB
-                return Ok(new { StorageUsedMB = storageUsedMb });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
+
+            long storageUsedBytes = await organizationServices.GetStorageUsedByOrganizationAsync(organizationId);
+            var storageUsedMb = storageUsedBytes / (1024 * 1024);  // Convert bytes to MB
+            return Ok(new { StorageUsedMB = storageUsedMb });
+
         }
-        
+
         [Authorize]
         [HttpGet("my-organization")]
         public async Task<IActionResult> GetMyOrganization()
         {
-            var organization = User.FindFirstValue("organizationId");
-            
-            logger.LogInformation("org: {organization}", organization);
+            var organization = User.RetrieveSpecificUser("OrganizationId");
 
-            if (!int.TryParse(organization, out var organizationId))
-            {
-                return NotFound("Not found");
-            }
-            
+            var organizationId = TypeConverter.StringToInt(organization);
+
             var org = await organizationServices.GetByIdAsync(organizationId);
-            
-            return Ok(org);
+
+            var mappedOrg = mapper.Map<OrganizationsDto>(org);
+
+            return Ok(new ApiResponse<OrganizationsDto>(true, $"Organization found", mappedOrg));
         }
-        
+
         [UserRole("Operator")]
         [HttpGet]
         public async Task<IActionResult> GetOrganizations()
         {
             var orgs = await organizationServices.GetAllAsync();
-            
-            return Ok(orgs);
+
+            var mappedOrgs = mapper.Map<List<OrganizationsDto>>(orgs);
+
+            return Ok(new ApiResponse<List<OrganizationsDto>>(true, $"Organizations found", mappedOrgs));
         }
-        
+
         [UserRole("Operator")]
         [HttpDelete("{organizationId}")]
         public async Task<IActionResult> DeleteOrganization(int organizationId)
         {
             var org = await organizationServices.GetByIdAsync(organizationId);
-            
-            if (org == null) return NotFound("Not found");
-            
+
+            if (org == null) return NotFound(new ErrorResponse(ErrorCodes.OrganizationNotFound, $"Organization with id {organizationId} not found"));
+
             await organizationServices.DeleteAsync(org);
-            return Ok($"{organizationId} deleted");
+
+            return Ok(new ApiResponse<Organization>(true, $"Organization with id {organizationId} deleted successfully"));
         }
     }
 }

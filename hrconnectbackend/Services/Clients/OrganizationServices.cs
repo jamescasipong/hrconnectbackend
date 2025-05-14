@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -9,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class OrganizationServices(DataContext context): GenericRepository<Organization>(context), IOrganizationServices
+public class OrganizationServices(DataContext context) : GenericRepository<Organization>(context), IOrganizationServices
 {
     public async Task<Organization> CreateOrganization(int userId, Organization organization)
     {
@@ -20,7 +22,7 @@ public class OrganizationServices(DataContext context): GenericRepository<Organi
             var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
             if (userAccount == null)
             {
-                throw new KeyNotFoundException($"User account with id: {userId} does not exist.");
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with id: {userId} does not exist.");
             }
 
             var newOrg = new Organization
@@ -42,37 +44,49 @@ public class OrganizationServices(DataContext context): GenericRepository<Organi
 
             return newOrg;
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await transaction.RollbackAsync();
+
+            throw new Exception($"Concurrency error: {ex.Message}", ex);
+        }
+        catch (DbUpdateException ex)
+        {
+            await transaction.RollbackAsync();
+
+            throw new Exception($"Database update error: {ex.Message}", ex);
+        }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
 
-            throw new Exception($"Error creating organization: {ex.Message}", ex);
+            throw new Exception($"An error occurred while creating the organization: {ex.Message}", ex);
         }
     }
 
     public async Task<bool> UpdateOrganization(OrganizationsDto organization)
     {
         var org = await _context.Organizations.FindAsync(organization.Id);
-        
+
         if (org == null) return false;
-        
+
         org.Name = organization.Name;
         org.Address = organization.Address;
         org.ContactEmail = organization.ContactEmail;
         org.IsActive = organization.IsActive;
-        
+
         _context.Organizations.Update(org);
         await _context.SaveChangesAsync();
-        
+
         return true;
     }
 
     public async Task<bool> DeleteOrganization(int organizationId)
     {
         var org = await _context.Organizations.FindAsync(organizationId);
-        
+
         if (org == null) return false;
-        
+
         _context.Organizations.Remove(org);
         await _context.SaveChangesAsync();
 
@@ -110,7 +124,7 @@ public class OrganizationServices(DataContext context): GenericRepository<Organi
         return _context.Organizations
             .Any(o => o.Name == name && o.Id != organizationId); // Exclude the current organization
     }
-    
+
     public async Task<long> GetStorageUsedByOrganizationAsync(int organizationId)
     {
         // Dynamically create the database name using the organizationId (e.g., hrconnectbackend_1, hrconnectbackend_2, etc.)

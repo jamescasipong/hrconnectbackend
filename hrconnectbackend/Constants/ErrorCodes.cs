@@ -8,6 +8,8 @@
         public const string TokenExpired = "TOKEN_EXPIRED";
         public const string AccessDenied = "ACCESS_DENIED";
 
+        // 
+
         // User Errors
         public const string UserNotFound = "USER_NOT_FOUND";
         public const string UserAlreadyExists = "USER_ALREADY_EXISTS";
@@ -74,6 +76,9 @@
         // Miscellaneous Errors
         public const string UnknownError = "UNKNOWN_ERROR";
         public const string InvalidInput = "INVALID_INPUT";
+
+        // Organization Errors
+        public const string OrganizationNotFound = "ORGANIZATION_NOT_FOUND";
 
 
     }

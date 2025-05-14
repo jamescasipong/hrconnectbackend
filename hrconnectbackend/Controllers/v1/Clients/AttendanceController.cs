@@ -64,7 +64,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 var attendance = await attendanceServices.GetByIdAsync(id);
 
-                if (attendance == null) 
+                if (attendance == null)
                 {
                     return NotFound(new ApiResponse<object>(false, $"Attendance with an ID: {id} not found."));
                 }
@@ -151,7 +151,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             try
             {
                 var currentUserId = User.FindFirstValue("EmployeeId");
-                
+
                 if (currentUserId == null)
                 {
                     return Unauthorized(new ApiResponse(false, "User not authenticated."));
@@ -182,22 +182,23 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ClockIn()
         {
-                string currentEmployeeId = User.GetEmployeeSession();
+            string currentEmployeeId = User.GetEmployeeSession();
 
-                if (!int.TryParse(currentEmployeeId, out int employeeId))
-                {
-                    return Unauthorized(new ErrorResponse(ErrorCodes.SessionNotFound, "Employee session not found."));
-                }
+            if (!int.TryParse(currentEmployeeId, out int employeeId))
+            {
+                return Unauthorized(new ErrorResponse(ErrorCodes.Unauthorized, "Employee session not found."));
+            }
 
-                var hasClockedOut = await attendanceServices.HasClockedOut(employeeId);
+            var hasClockedOut = await attendanceServices.HasClockedOut(employeeId);
 
-                if (hasClockedOut){
-                    return Ok(new ApiResponse(false, $"You have already clocked out"));
-                }
+            if (hasClockedOut)
+            {
+                return Ok(new ApiResponse(false, $"You have already clocked out"));
+            }
 
-                await attendanceServices.ClockIn(employeeId);
-                return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
-            
+            await attendanceServices.ClockIn(employeeId);
+            return Ok(new ApiResponse(true, $"Clock-in recorded for employee {employeeId} successfully"));
+
         }
 
         [Authorize]
@@ -282,7 +283,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
 
-            if (!int.TryParse(currentUserId, out var employeeId)){
+            if (!int.TryParse(currentUserId, out var employeeId))
+            {
                 return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
 
@@ -312,16 +314,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (currentUserId == null)
             {
-            logger.LogError("User not authenticated.");
-            Console.WriteLine("User not authenticated.");
-            return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                logger.LogError("User not authenticated.");
+                Console.WriteLine("User not authenticated.");
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
 
             if (!int.TryParse(currentUserId, out int currentUserIdInt))
             {
                 Console.WriteLine("User not authenticated.");
-            logger.LogError("Invalid user identifier.");
-            return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                logger.LogError("Invalid user identifier.");
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
 
             bool isAdmin = userRoles.Contains("Admin");
@@ -329,25 +331,25 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 return Forbid(); // 403 Forbidden
             }
-            
+
             try
             {
-            var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
+                var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
 
-            return Ok(attendanceToday);
+                return Ok(attendanceToday);
             }
             catch (KeyNotFoundException ex)
             {
-            return NotFound(new ApiResponse(false, ex.Message));
+                return NotFound(new ApiResponse(false, ex.Message));
             }
             catch (ArgumentException ex)
             {
-            return BadRequest(new ApiResponse(false, ex.Message));
+                return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-            logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
-            return StatusCode(500, new { error = "An internal error occurred" });
+                logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
+                return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
 
@@ -363,18 +365,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (currentUserId == null)
             {
-            logger.LogError("User not authenticated.");
-            Console.WriteLine("User not authenticated.");
-            return Unauthorized(new ApiResponse(false, "User not authenticated."));
+                logger.LogError("User not authenticated.");
+                Console.WriteLine("User not authenticated.");
+                return Unauthorized(new ApiResponse(false, "User not authenticated."));
             }
 
             if (!int.TryParse(currentUserId, out int employeeId))
             {
                 Console.WriteLine("User not authenticated.");
-            logger.LogError("Invalid user identifier.");
-            return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
+                logger.LogError("Invalid user identifier.");
+                return Unauthorized(new ApiResponse(false, "Invalid user identifier."));
             }
-            
+
             try
             {
                 var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
@@ -386,12 +388,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
             catch (ArgumentException ex)
             {
-            return BadRequest(new ApiResponse(false, ex.Message));
+                return BadRequest(new ApiResponse(false, ex.Message));
             }
             catch (Exception ex)
             {
-            logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
-            return StatusCode(500, new { error = "An internal error occurred" });
+                logger.LogError(ex, "Error retrieving daily attendance for employee ID: {id}", employeeId);
+                return StatusCode(500, new { error = "An internal error occurred" });
             }
         }
 
@@ -578,7 +580,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 return Unauthorized(new ApiResponse(false, "You are not authorized to create a certification for another employee."));
             }
-            
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiResponse(false, "Employee Id or Date is required."));
@@ -804,6 +806,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return StatusCode(500, "An internal server error occurred.");
             }
         }
-        
+
     }
 }
