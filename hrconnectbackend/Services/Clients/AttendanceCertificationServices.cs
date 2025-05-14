@@ -1,8 +1,11 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
@@ -20,7 +23,7 @@ namespace hrconnectbackend.Services.Clients
 
                 if (certification == null)
                 {
-                    throw new KeyNotFoundException("No certification created yet!");
+                    throw new NotFoundException(ErrorCodes.AttendanceNotFound, "No certification created yet!");
                 }
 
                 certification.Status = "Approved";
@@ -53,9 +56,9 @@ namespace hrconnectbackend.Services.Clients
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception("We have to roll back", ex);
+                throw new Exception(ex.Message);
             }
-            
+
         }
 
         public async Task RejectCertification(int id)
@@ -68,7 +71,7 @@ namespace hrconnectbackend.Services.Clients
 
                 if (certification == null)
                 {
-                    throw new KeyNotFoundException("No certification created yet!");
+                    throw new NotFoundException(ErrorCodes.AttendanceNotFound, "No certification created yet!");
                 }
 
                 certification.Status = "Rejected";

@@ -25,7 +25,7 @@ namespace hrconnectbackend.Services.ExternalServices
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             logger.LogInformation($"Sending email to: {toEmail}");
-            
+
             try
             {
                 var smtpClient = new SmtpClient(_smtpSettings.Server)
@@ -52,7 +52,7 @@ namespace hrconnectbackend.Services.ExternalServices
             catch (Exception ex)
             {
                 logger.LogError(ex, $"Error sending email to: {toEmail}");
-                
+
                 throw new Exception(ex.Message);
                 // Handle exception
             }
@@ -68,7 +68,7 @@ namespace hrconnectbackend.Services.ExternalServices
 
             await SendEmailAsync(toEmail, subject, body);
         }
-        
+
 
         public async Task SendResetPasswordEmailAsync(string toEmail, string token)
         {
@@ -76,7 +76,7 @@ namespace hrconnectbackend.Services.ExternalServices
             var companyLogo = "https://hrconnect.vercel.app/hrlogo.png"; // Replace with your actual logo URL
             var resetLink = $"http://localhost:3000/reset-password?token={token}&email={Uri.EscapeDataString(toEmail)}";
             var expiryHours = 24; // Set this to match your actual token expiry time
-    
+
             var subject = $"Reset Your {companyName} Password";
             var body = $@"
         <!DOCTYPE html>

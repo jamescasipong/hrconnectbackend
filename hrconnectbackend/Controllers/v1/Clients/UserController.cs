@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Claims;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
@@ -37,17 +38,24 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (nameIdentifier == null)
             {
-                return Unauthorized(new ApiResponse(false, "User not found."));
+                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "User not authenticated. Please login."));
             }
 
             var employee = await employeeServices.GetByIdAsync(int.Parse(nameIdentifier));
 
             if (employee == null)
             {
-                return Unauthorized(new ApiResponse(false, $"Employee with ID: {nameIdentifier} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, "Employee not found."));
             }
 
-            return Ok(new ApiResponse<dynamic>(true, "Profile retrqieved successfully!", new { Id = nameIdentifier, userName, role }));
+            return Ok(new SuccessResponse<object>(new
+            {
+                employeeId = employee.Id,
+                email = employee.Email,
+                organizationId = employee.OrganizationId,
+                role = role,
+                userName = userName
+            }, $"Profile retrieved successfully."));
         }
 
         [HttpPost("account/send-reset")]
@@ -57,11 +65,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
             }
-
-
-            var sourceEmail = Environment.GetEnvironmentVariable("EmailUsername")!;
-            var sourcePassword = Environment.GetEnvironmentVariable("EmailPassword")!;
-
 
 
             var user = await userAccountServices.GetUserAccountByEmail(verifyResetDto.Email);
@@ -97,35 +100,27 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (string.IsNullOrEmpty(token))
             {
-                return BadRequest(new ApiResponse(success: false, message: "Invalid"));
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid token"));
             }
 
-            try
+            var resetSession = await userAccountServices.GetResetPasswordSession(token);
+
+
+            if (resetSession == null)
             {
-                var resetSession = await userAccountServices.GetResetPasswordSession(token);
+                logger.LogError("Reset session not found.");
 
-
-                if (resetSession == null)
-                {
-                    logger.LogError("Reset session not found.");
-                    return Unauthorized(new ApiResponse(false, $"Reset session not found"));
-                }
-
-                if (resetSession.ExpiresAt < DateTime.Now)
-                {
-                    logger.LogError("Reset session expired.");
-                    return Unauthorized(new ApiResponse(false, $"Reset session expired."));
-                }
-
-                logger.LogInformation("Reset session found.");
-                return Ok(new ApiResponse(true, $"Reset session found."));
+                return Unauthorized(new ErrorResponse(ErrorCodes.UserNotFound, $"Reset session not found."));
             }
-            catch (Exception ex)
+
+            if (resetSession.ExpiresAt < DateTime.Now)
             {
-                var message = ex.Message;
-                logger.LogError("log error: {message}", message);
-                return StatusCode(500, new ApiResponse(false, $"An error occured while resetting the password"));
+                logger.LogError("Reset session expired.");
+                return Unauthorized(new ErrorResponse(ErrorCodes.TokenExpired, $"Reset session expired."));
             }
+
+            return Ok(new SuccessResponse<ResetPasswordSession>(resetSession, $"Reset session found."));
+
         }
 
 
@@ -134,50 +129,42 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (string.IsNullOrEmpty(token))
             {
-                return BadRequest(new ApiResponse(success: false, message: "Invalid"));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid token"));
             }
 
-            try
+            logger.LogInformation("Retrieving token");
+
+            var resetSession = await userAccountServices.GetResetPasswordSession(token);
+
+            logger.LogInformation("Token retrieved: {resetSession}", resetSession);
+
+            if (resetSession == null)
             {
-                logger.LogInformation("Retrieving token");
-
-                var resetSession = await userAccountServices.GetResetPasswordSession(token);
-
-                logger.LogInformation("Token retrieved: {resetSession}", resetSession);
-
-                if (resetSession == null)
-                {
-                    return Unauthorized(new ApiResponse(false, $"Reset session not found"));
-                }
-
-                if (resetSession.ExpiresAt < DateTime.Now)
-                {
-                    return Unauthorized(new ApiResponse(false, $"Reset session expired"));
-                }
-
-                var user = await userAccountServices.GetUserAccountByEmail(resetSession.Email);
-
-                if (user == null)
-                {
-                    return NotFound(new ApiResponse(false, $"User not found"));
-                }
-
-                var password = BCrypt.Net.BCrypt.HashPassword(newPassword.Password);
-
-                user.Password = password;
-
-                await userAccountServices.UpdateAsync(user);
-
-                await userAccountServices.DeleteResetPassword(resetSession.Token);
-
-                return Ok(new ApiResponse(true, $"Successfully reset the password"));
+                return Unauthorized(new ErrorResponse(ErrorCodes.UserNotFound, $"Reset session not found"));
             }
-            catch (Exception ex)
+
+            if (resetSession.ExpiresAt < DateTime.Now)
             {
-                var message = ex.Message;
-                logger.LogError("log error: {message}", message);
-                return StatusCode(500, new ApiResponse(false, $"An error occured while resetting the password"));
+                return Unauthorized(new ErrorResponse(ErrorCodes.TokenExpired, $"Reset session expired"));
             }
+
+            var user = await userAccountServices.GetUserAccountByEmail(resetSession.Email);
+
+            if (user == null)
+            {
+                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User not found"));
+            }
+
+            var password = BCrypt.Net.BCrypt.HashPassword(newPassword.Password);
+
+            user.Password = password;
+
+            await userAccountServices.UpdateAsync(user);
+
+            await userAccountServices.DeleteResetPassword(resetSession.Token);
+
+            return Ok(new ApiResponse(true, $"Successfully reset the password"));
+
         }
 
         [HttpPost("send-code")]
@@ -215,21 +202,19 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (user == null)
             {
-                return NotFound(new ApiResponse(false, "User not found."));
+                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, "User not found."));
             }
 
             var employee = await employeeServices.GetByIdAsync(int.Parse(user));
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, "Employee not found."));
+                return NotFound(new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employe with ID: {user} not found."));
             }
 
             await employeeServices.UpdateAsync(employee);
 
-            // Response.Cookies.Delete("token");
-
-            return Ok(new ApiResponse(true, "User logged out successfully."));
+            return Ok(new SuccessResponse($"Logout successful!"));
         }
 
 
@@ -239,14 +224,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var auth = await userAccountServices.GetByIdAsync(id);
 
-            if (auth == null)
-                return NotFound(new ApiResponse(false, $"User Account with ID: {id} not found."));
+            if (auth == null) return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User Account with ID: {id} does not exist!"));
 
-            if (!ModelState.IsValid) return BadRequest(new ApiResponse(success: false, message: ModelState.IsValid.ToString()));
+            if (!ModelState.IsValid) return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid model state."));
 
             var authDto = mapper.Map<UserAccountDto>(auth);
 
-            return Ok(new ApiResponse<UserAccountDto?>(success: true, message: $"User Account with ID: {id} has been retrieved successfully!", authDto));
+            return Ok(new SuccessResponse<UserAccountDto>(authDto, $"User Account with ID: {id} retrieved successfully!"));
         }
 
 
@@ -257,28 +241,23 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var userAccounts = await userAccountServices.GetAllAsync();
 
-            return Ok(userAccounts);
+            return Ok(new SuccessResponse<List<UserAccount>>(userAccounts, $"User Accounts retrieved successfully!"));
         }
 
         [Authorize(Roles = "HR, Department")]
         [HttpDelete("account/{userId:int}")]
         public async Task<IActionResult> DeleteAccount(int userId)
         {
-            try
-            {
-                var userAccount = await userAccountServices.GetByIdAsync(userId);
 
-                if (userAccount == null)
-                {
-                    return NotFound(new ApiResponse(false, $"User Account with id: {userId} does not exist."));
-                }
+            var userAccount = await userAccountServices.GetByIdAsync(userId);
 
-                return Ok(new ApiResponse(true, $"User Account with id: {userId} deleted succcessfully."));
-            }
-            catch (Exception)
+            if (userAccount == null)
             {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
+                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User Account with id: {userId} not found."));
             }
+
+            return Ok(new SuccessResponse($"User Account with id: {userId} deleted successfully!"));
+
         }
 
         [Authorize]
@@ -304,54 +283,29 @@ namespace hrconnectbackend.Controllers.v1.Clients
             await userAccountServices.UpdateEmail(employeeId, email);
             await employeeServices.UpdateAsync(employee);
 
-            return Ok(new ApiResponse(true, $"User account with id: {employeeId} successfully updated its email"));
+            return Ok(new SuccessResponse($"Email updated successfully!"));
         }
 
         [Authorize]
         [HttpPost("settings/{employeeId}")]
         public async Task<IActionResult> AddUserSetting(int employeeId)
         {
-            try
-            {
-                await userSettingsServices.CreateDefaultSettings(employeeId);
-                return Ok(new ApiResponse(true, "Success!"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+
+            await userSettingsServices.CreateDefaultSettings(employeeId);
+
+            return Ok(new SuccessResponse($"User settings created successfully!"));
+
         }
 
         [Authorize]
         [HttpPut("settings/{employeeId}")]
         public async Task<IActionResult> ResetSettings(int employeeId)
         {
-            try
-            {
-                await userSettingsServices.ResetSettings(employeeId);
 
-                return Ok(new ApiResponse(true, "Success!"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            await userSettingsServices.ResetSettings(employeeId);
+
+            return Ok(new SuccessResponse($"User settings reset successfully!"));
+
         }
 
         [Authorize]
@@ -361,14 +315,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (patchDoc == null)
             {
                 logger.LogWarning("Patch document is null for employee ID: {EmployeeId}.", employeeId);
-                return BadRequest(new ApiResponse(false, "Invalid patch document."));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Patch document is null."));
             }
 
             var userSettings = await userSettingsServices.GetByIdAsync(employeeId);
             if (userSettings == null)
             {
                 logger.LogWarning("User settings for employee ID: {EmployeeId} not found.", employeeId);
-                return NotFound(new ApiResponse(false, $"User settings for employee ID: {employeeId} not found."));
+                return NotFound(new ErrorResponse(ErrorCodes.UserSettingsNotFound, $"User settings for employee ID: {employeeId} not found."));
             }
 
             // Map the entity model to the DTO model if necessary
@@ -388,45 +342,32 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return BadRequest(new ApiResponse(false, "Invalid model state."));
             }
 
-            try
-            {
-                // Map the DTO back to the original entity model and save the updates
-                var updatedUserSettings = mapper.Map(userSettingsDto, userSettings);
+            var updatedUserSettings = mapper.Map(userSettingsDto, userSettings);
 
-                await userSettingsServices.UpdateAsync(updatedUserSettings);
-                logger.LogInformation("User settings updated successfully for employee ID: {EmployeeId}.", employeeId);
-                return Ok(new ApiResponse(true, "User settings updated successfully."));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred while updating user settings for employee ID: {EmployeeId}.", employeeId);
-                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse(false, "An error occurred while updating the settings."));
-            }
+            await userSettingsServices.UpdateAsync(updatedUserSettings);
+            logger.LogInformation("User settings updated successfully for employee ID: {EmployeeId}.", employeeId);
+            return Ok(new SuccessResponse($"User settings updated successfully!"));
+
         }
 
         [Authorize]
         [HttpGet("notifications")]
         public async Task<IActionResult> RetrieveNotification(int userId, int? pageIndex, int? pageSize)
         {
-            try
+
+            var employee = await employeeServices.GetByIdAsync(userId);
+
+            if (employee == null)
             {
-                var employee = await employeeServices.GetByIdAsync(userId);
-
-                if (employee == null)
-                {
-                    return NotFound(new ApiResponse(false, "Employee not found."));
-                }
-
-                var userNotifications = await notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageIndex);
-
-                var mappedUserNotification = mapper.Map<List<ReadUserNotificationDto>>(userNotifications);
-
-                return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, "Notifications retrieved successfully!", mappedUserNotification));
+                return NotFound(new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
             }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+
+            var userNotifications = await notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageIndex);
+
+            var mappedUserNotification = mapper.Map<List<ReadUserNotificationDto>>(userNotifications);
+
+            return Ok(new SuccessResponse<List<ReadUserNotificationDto>>(mappedUserNotification, $"Notifications retrieved successfully!"));
+
         }
     }
 

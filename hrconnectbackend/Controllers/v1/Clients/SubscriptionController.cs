@@ -1,6 +1,8 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
+using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -95,11 +97,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> ChangeSubscriptionPlan(int id, ChangePlanDto model)
         {
             if (id != model.SubscriptionId)
-                return BadRequest();
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
 
             var result = await _subscriptionService.ChangeSubscriptionPlanAsync(id, model.NewPlanId);
+
             if (!result)
-                return NotFound();
+            {
+                return NotFound(new ErrorResponse(ErrorCodes.SubscriptionNotFound, "Subscription not found"));
+            }
 
             return NoContent();
         }
@@ -109,22 +114,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<ActionResult<PaymentDto>> ProcessPayment(int id, ProcessPaymentDto model)
         {
             if (id != model.SubscriptionId)
-                return BadRequest();
-
-            try
             {
-                var payment = await _paymentService.ProcessPaymentAsync(
-                    model.SubscriptionId,
-                    model.Amount,
-                    model.TransactionId,
-                    model.PaymentMethod);
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
+            }
 
-                return Ok(payment);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var payment = await _paymentService.ProcessPaymentAsync(
+                model.SubscriptionId,
+                model.Amount,
+                model.TransactionId,
+                model.PaymentMethod);
+
+            return Ok(new SuccessResponse<PaymentDto>(payment, "Payment processed successfully"));
+
         }
 
         // GET: api/subscriptions/{id}/payments
@@ -133,7 +134,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var payments = await _paymentService.GetPaymentsBySubscriptionIdAsync(id);
             if (payments == null)
-                return NotFound();
+            {
+                return NotFound(new ErrorResponse(ErrorCodes.SubscriptionNotFound, "Subscription not found"));
+            }
 
             return Ok(payments);
         }
@@ -143,21 +146,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> RecordUsage(int id, RecordUsageDto model)
         {
             if (id != model.SubscriptionId)
-                return BadRequest();
-
-            try
             {
-                await _subscriptionService.RecordUsageAsync(
-                    model.SubscriptionId,
-                    model.ResourceType,
-                    model.Quantity);
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
+            }
 
-                return NoContent();
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _subscriptionService.RecordUsageAsync(
+                model.SubscriptionId,
+                model.ResourceType,
+                model.Quantity);
+
+            return Ok(new SuccessResponse("Usage recorded successfully"));
+
         }
     }
 }

@@ -89,9 +89,14 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Department?> GetDepartmentByGuid(Guid guid)
+    public async Task<Department> GetDepartmentByGuid(Guid guid)
     {
         var department = await _context.Departments.FirstOrDefaultAsync(a => a.DepartmentGuid == guid);
+
+        if (department == null)
+        {
+            throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"Department with GUID: {guid} not found.");
+        }
 
         return department;
     }

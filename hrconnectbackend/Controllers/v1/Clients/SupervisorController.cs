@@ -115,24 +115,12 @@ public class SupervisorController(
     [HttpGet("employee/{employeeId:int}")]
     public async Task<IActionResult> RetrieveEmployeeSupervisor(int employeeId)
     {
-        try
-        {
-            var employeeSupervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
 
-            return Ok(new ApiResponse<ReadSupervisorDto?>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDto>(employeeSupervisor)));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new ApiResponse(false, ex.Message));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new ApiResponse(false, ex.Message));
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-        }
+        var employeeSupervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
+
+        return Ok(new ApiResponse<ReadSupervisorDto?>(false, $"Employee with id: {employeeId} retrieve its supervisor successfully.", mapper.Map<ReadSupervisorDto>(employeeSupervisor)));
+
+
     }
 
 

@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using AutoMapper;
 using Azure;
 using hrconnectbackend.Config.Settings;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
@@ -34,9 +35,9 @@ public class AuthService(
     public async Task<AuthResponse?> Signin(string email, string password, bool remember)
     {
         var user = await context.UserAccounts.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Email == email);
-        
+
         if (user == null) return null;
-        
+
 
         if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
@@ -53,7 +54,7 @@ public class AuthService(
 
         // var aes = new AES256Encrpytion(configuration.GetValue<string>("EncryptionSettings:Key")!);
         // var encrypted = aes.Encrypt(accessToken);
-        
+
         return new AuthResponse(accessToken, refreshToken);
     }
 
@@ -83,32 +84,39 @@ public class AuthService(
         }
     }
 
-    public async Task<UserAccount?> SignUpEmployee(CreateUser user)
+    public async Task<UserAccount> SignUpEmployee(CreateUser user)
     {
-        var employee = new UserAccount
+        try
         {
-            // UserId = GenerateRandomNumber(0, int.MaxValue),
-            UserName = user.UserName,
-            Email = user.Email,
-            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
-            EmailVerified = false,
-            SmsVerified = false,
-            OrganizationId = user.OrganizationId,
-            ChangePassword = false,
-            Role = "Employee"
-        };
-        
-        await context.UserAccounts.AddAsync(employee);
-        await context.SaveChangesAsync();
+            var employee = new UserAccount
+            {
+                // UserId = GenerateRandomNumber(0, int.MaxValue),
+                UserName = user.UserName,
+                Email = user.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
+                EmailVerified = false,
+                SmsVerified = false,
+                OrganizationId = user.OrganizationId,
+                ChangePassword = false,
+                Role = "Employee"
+            };
 
-        return employee;
+            await context.UserAccounts.AddAsync(employee);
+            await context.SaveChangesAsync();
+
+            return employee;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error creating user account: {ex.Message}", ex);
+        }
+
     }
 
-    public async Task<UserAccount?> SignUpOperator(CreateUserOperator user)
+    public async Task<UserAccount> SignUpOperator(CreateUserOperator user)
     {
-        var employee = new UserAccount
+        var userAccount = new UserAccount
         {
-            // UserId = GenerateRandomNumber(0, int.MaxValue),
             UserName = user.UserName,
             Email = user.Email,
             Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
@@ -118,27 +126,28 @@ public class AuthService(
             ChangePassword = false,
             Role = "Operator"
         };
-        
-        if (employee == null) return null;
 
-        await context.UserAccounts.AddAsync(employee);
+        await context.UserAccounts.AddAsync(userAccount);
         await context.SaveChangesAsync();
 
-        return employee;
+        return userAccount;
     }
 
     public async Task<bool> ChangePassword(string email, string password)
     {
         var userAccount = await context.UserAccounts.FirstOrDefaultAsync(a => a.Email == email);
-        
-        if (userAccount == null) return false;
-        
+
+        if (userAccount == null)
+        {
+            throw new NotFoundException(ErrorCodes.UserNotFound, $"User with email {email} not found");
+        }
+
         userAccount.Password = BCrypt.Net.BCrypt.HashPassword(password);
-        
+
         // context.Entry(userAccount).State = EntityState.Modified;
         context.UserAccounts.Update(userAccount);
         await context.SaveChangesAsync();
-        
+
         return true;
     }
 
@@ -174,16 +183,16 @@ public class AuthService(
             logger.LogWarning($"Employee is missing");
         }
 
-            // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
-            //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
-            //     .Select(a => a.Department).FirstOrDefaultAsync();
-            //
-            // if (empDept != null)
-            // {
-            //     claims.Add(new Claim("Department", empDept.DeptName));
-            // }
+        // var empDept = await context.Employees.Include(a => a.EmployeeDepartment)
+        //     .Where(a => a.UserId == user.UserId).Select(a => a.EmployeeDepartment).Include(a => a.Department)
+        //     .Select(a => a.Department).FirstOrDefaultAsync();
+        //
+        // if (empDept != null)
+        // {
+        //     claims.Add(new Claim("Department", empDept.DeptName));
+        // }
 
-            return Task.FromResult(claims);
+        return Task.FromResult(claims);
     }
 
     public ClaimsPrincipal? GetPrincipalFromAccessToken(string token)
@@ -221,7 +230,7 @@ public class AuthService(
     public async Task<string> GenerateAccessToken(string refreshToken)
     {
         var user = await accountServices.GetUserAccountByRefreshToken(refreshToken);
-        
+
         if (user == null) return string.Empty;
 
         var isTokenActive = user.RefreshTokens!.FirstOrDefault(x => x.RefreshTokenId == refreshToken && x.IsActive);
@@ -229,19 +238,19 @@ public class AuthService(
         if (isTokenActive == null)
         {
             return string.Empty;
-        }        
-        
+        }
+
         DateTime exp = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessExpiration);
-        
+
         logger.LogInformation($"Date: {exp}");
-        
+
         string token = GenerateAcessToken(user, exp);
-        
+
         logger.LogInformation($"token: {token}");
 
         return token;
     }
-    
+
     private string GenerateAcessToken(UserAccount user, DateTime dateTime)
     {
         var userDto = mapper.Map<UserAccountDto>(user);
@@ -249,7 +258,7 @@ public class AuthService(
         var userClaims = GetUserClaims(userDto).Result;
 
         JwtService jwtService = new JwtService(_jwtSettings.Key, _jwtSettings.Issuer, _jwtSettings.Audience);
-    
+
         var token = jwtService.GenerateToken(userClaims, dateTime);
         return token;
     }
@@ -296,7 +305,7 @@ public class AuthService(
     private async Task<string> GenerateRefreshToken(UserAccount user, bool remember)
     {
         string refreshToken = Guid.NewGuid().ToString();
-        
+
         var transaction = await context.Database.BeginTransactionAsync();
 
         try
@@ -314,18 +323,18 @@ public class AuthService(
                     ? DateTime.UtcNow.AddMinutes(_jwtSettings.RefreshExpirationRemember)
                     : DateTime.UtcNow.AddMinutes(_jwtSettings.RefreshExpiration)
             };
-        
+
             await context.RefreshTokens.AddAsync(newRefreshToken);
             await context.SaveChangesAsync();
-            
+
             await transaction.CommitAsync();
-        
+
             return refreshToken;
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            
+
             throw new TransactionException("Something went wrong", ex);
         }
     }
@@ -333,20 +342,20 @@ public class AuthService(
     public async Task<RefreshToken?> GetRefreshToken(int userId)
     {
         var refresh = await context.RefreshTokens.OrderByDescending(a => a.CreateAt).FirstOrDefaultAsync(a => a.UserId == userId);
-        
+
         return refresh;
     }
 
     public async Task<RefreshToken?> LogoutRefreshToken(string refreshToken)
     {
         var refresh = await context.RefreshTokens.FirstOrDefaultAsync(a => a.RefreshTokenId == refreshToken);
-        
+
         if (refresh == null) return null;
-        
+
         refresh.IsActive = false;
         context.RefreshTokens.Update(refresh);
         await context.SaveChangesAsync();
-        
+
         return refresh;
     }
 

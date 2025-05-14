@@ -1,10 +1,12 @@
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Config.Settings;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
 using hrconnectbackend.Models.Response;
 using hrconnectbackend.Services.Clients;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
@@ -34,50 +36,43 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (!ModelState.IsValid)
             {
                 logger.LogWarning("Invalid model state for signin attempt.");
-                return BadRequest(ModelState);
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
             }
 
             if (auth == null)
             {
                 logger.LogWarning("Invalid login or password for email: {Email}", signinBody.Email);
-                return StatusCode(401, new ApiResponse(false, "Invalid login or password"));
+                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Invalid login or password."));
             }
 
-            try
+            logger.LogInformation("Signin successful for email: {Email}", signinBody.Email);
+
+            // Append access token to response cookies
+            Response.Cookies.Append("at_session", auth.AccessToken, new CookieOptions
             {
-                logger.LogInformation("Signin successful for email: {Email}", signinBody.Email);
+                HttpOnly = true,  // Secure from JavaScript (prevent XSS)
+                SameSite = SameSiteMode.None, // Prevent CSRF attacks
+                Secure = true,
+                Path = "/",
+                Expires = DateTime.Now.AddMinutes(_jwtSettings.AccessExpiration)
+            });
 
-                // Append access token to response cookies
-                Response.Cookies.Append("at_session", auth.AccessToken, new CookieOptions
-                {
-                    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                    SameSite = SameSiteMode.None, // Prevent CSRF attacks
-                    Secure = true,
-                    Path = "/",
-                    Expires = DateTime.Now.AddMinutes(_jwtSettings.AccessExpiration)
-                });
-
-                // Append refresh token to response cookies
-                Response.Cookies.Append("backend_rt", auth.RefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,  // Secure from JavaScript (prevent XSS)
-                    SameSite = SameSiteMode.None, // Prevent CSRF attacks
-                    Secure = true,
-                    Path = "/",
-                    Expires = rememberMe ? DateTime.Now.AddMinutes(_jwtSettings.RefreshExpirationRemember) : DateTime.Now.AddMinutes(_jwtSettings.RefreshExpiration)
-                });
-
-                Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline';";
-
-                logger.LogInformation("Tokens generated and sent to client for email: {Email}", signinBody.Email);
-
-                return Ok(new ApiResponse(true, "Successfully logged in"));
-            }
-            catch (Exception ex)
+            // Append refresh token to response cookies
+            Response.Cookies.Append("backend_rt", auth.RefreshToken, new CookieOptions
             {
-                logger.LogError(ex, "Error during signin process for email: {Email}", signinBody.Email);
-                return StatusCode(500, new ApiResponse(false, ex.Message));
-            }
+                HttpOnly = true,  // Secure from JavaScript (prevent XSS)
+                SameSite = SameSiteMode.None, // Prevent CSRF attacks
+                Secure = true,
+                Path = "/",
+                Expires = rememberMe ? DateTime.Now.AddMinutes(_jwtSettings.RefreshExpirationRemember) : DateTime.Now.AddMinutes(_jwtSettings.RefreshExpiration)
+            });
+
+            Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline';";
+
+            logger.LogInformation("Tokens generated and sent to client for email: {Email}", signinBody.Email);
+
+            return Ok(new SuccessResponse("Signin Successful"));
+
         }
 
         [HttpGet("session")]
@@ -93,7 +88,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var userAccount = await userAccountServices.GetByIdAsync(int.Parse(user));
 
-            return Ok(new ApiResponse<UserAccount>(true, "User account found", userAccount));
+            if (userAccount == null)
+            {
+                logger.LogWarning("User account not found for ID: {UserId}", user);
+                return StatusCode(404, new ErrorResponse(ErrorCodes.UserNotFound, "User account not found."));
+            }
+
+            return Ok(new SuccessResponse<UserAccount>(userAccount, "User account found"));
         }
 
         [HttpPost("signup")]
@@ -101,27 +102,27 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
             }
 
-            try
+            var newUser = new UserAccount
             {
-                var newUser = new UserAccount
-                {
-                    UserName = userAccount.UserName,
-                    Password = userAccount.Password,
-                    Email = userAccount.Email,
-                    OrganizationId = null,
-                    Role = "Admin",
-                };
-                var createdUser = await authService.SignUpAdmin(newUser);
-                return Ok(new ApiResponse<UserAccount>(true, $"User account created successfully", createdUser));
-            }
-            catch (Exception ex)
+                UserName = userAccount.UserName,
+                Password = userAccount.Password,
+                Email = userAccount.Email,
+                OrganizationId = null,
+                Role = "Admin",
+            };
+
+            var createdUser = await authService.SignUpAdmin(newUser);
+
+            if (createdUser == null)
             {
-                logger.LogError(ex, "An error occurred while creating the user account.");
-                return StatusCode(500, new ApiResponse(false, $"An error occurred while creating the user account: {ex.Message}"));
+                return StatusCode(400, new ErrorResponse(ErrorCodes.UserAlreadyExists, "User account already exists."));
             }
+
+            return Ok(new SuccessResponse<UserAccount>(createdUser, "User account created successfully"));
+
         }
 
         [HttpPost("signin/email")]
@@ -141,11 +142,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> SignupOperator(CreateUserOperator user)
         {
             var userAccount = await authService.SignUpOperator(user);
-
-            if (userAccount == null) return BadRequest(new
-            {
-                Message = "Invalid request",
-            });
 
             return Ok(userAccount);
         }
@@ -170,31 +166,24 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var userAccount = await authService.SignUpEmployee(user);
 
-            if (userAccount == null)
-                return BadRequest(new
-                {
-                    Message = "Invalid Request",
-                });
-
-            return Ok(userAccount);
+            return Ok(new SuccessResponse("User account created successfully"));
         }
 
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest user)
         {
-            var userAccount = await authService.ChangePassword(user.Email, user.Password);
+            await authService.ChangePassword(user.Email, user.Password);
 
-            if (!userAccount) return BadRequest();
-
-            return Ok();
+            return Ok(new SuccessResponse("Password changed successfully"));
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetUsersAccountByOrg(int orgId)
         {
             var users = await authService.GetUsers(orgId);
-            // var org = HttpContext.Items["orgId"];
-            return Ok(users);
+
+            return Ok(new SuccessResponse<IEnumerable<UserAccount>>(users, "User accounts found"));
         }
 
         [HttpPost("refresh-token")]
@@ -206,16 +195,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (refreshToken == null)
             {
-                logger.LogWarning("No refresh token found in request.");
-                return Unauthorized();
+                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Refresh token not found."));
             }
 
             var generateAccessToken = await authService.GenerateAccessToken(refreshToken);
 
             if (string.IsNullOrEmpty(generateAccessToken))
             {
-                logger.LogWarning("Failed to generate access token using the provided refresh token.");
-                return Unauthorized();
+                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Invalid refresh token."));
             }
 
             var exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
@@ -242,36 +229,29 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (Request.Cookies.TryGetValue("backend_rt", out var value))
             {
-                try
+
+                await authService.UpdateRefreshToken(async (context) =>
                 {
-                    await authService.UpdateRefreshToken(async (context) =>
+                    var refresh = context.RefreshTokens.FirstOrDefault(a => a.RefreshTokenId == value);
+                    if (refresh != null)
                     {
-                        var refresh = context.RefreshTokens.FirstOrDefault(a => a.RefreshTokenId == value);
-                        if (refresh != null)
-                        {
-                            context.RefreshTokens.Remove(refresh);
-                        }
+                        context.RefreshTokens.Remove(refresh);
+                    }
 
-                        await context.SaveChangesAsync(); // ✅ Await here
-                    });
+                    await context.SaveChangesAsync(); // ✅ Await here
+                });
 
-                    Response.Cookies.Delete("at_session");
-                    Response.Cookies.Delete("backend_rt");
+                Response.Cookies.Delete("at_session");
+                Response.Cookies.Delete("backend_rt");
 
-                    logger.LogInformation("Tokens invalidated successfully for refresh token: {RefreshToken}", value);
+                logger.LogInformation("Tokens invalidated successfully for refresh token: {RefreshToken}", value);
 
-                    return Ok("Successfully logged out");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error during logout process.");
-                    return NotFound();
-                }
+                return Ok(new SuccessResponse("Successfully logged out"));
             }
             else
             {
-                logger.LogWarning("No refresh token found for logout.");
-                return NotFound();
+                logger.LogWarning("Refresh token not found in cookies.");
+                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Refresh token not found."));
             }
         }
     }

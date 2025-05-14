@@ -34,15 +34,8 @@ namespace hrconnectbackend.Services.Clients
                 TwoFactorSecret = null,
             };
 
-            // Add the new settings to the database
-            try
-            {
-                await AddAsync(newSetting);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error creating default settings: {ex.Message}");
-            }
+            await AddAsync(newSetting);
+
         }
 
         public async Task ResetSettings(int employeeId)
@@ -74,14 +67,9 @@ namespace hrconnectbackend.Services.Clients
             setting.TwoFactorMethod = "email";  // Default method for 2FA
             setting.TwoFactorSecret = null;
 
-            try
-            {
-                await UpdateAsync(setting);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error resetting settings: {ex.Message}");
-            }
+            await UpdateAsync(setting);
+
+
         }
     }
 }

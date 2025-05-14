@@ -9,9 +9,15 @@
         public const string TokenExpired = "TOKEN_EXPIRED";
         public const string AccessDenied = "ACCESS_DENIED";
 
+        // Subscription Errors
+        public const string SubscriptionNotFound = "SUBSCRIPTION_NOT_FOUND";
+        public const string SubscriptionAlreadyExists = "SUBSCRIPTION_ALREADY_EXISTS";
+        public const string SubscriptionNotActive = "SUBSCRIPTION_NOT_ACTIVE";
+        public const string SubscriptionExpired = "SUBSCRIPTION_EXPIRED";
 
         // User Errors
         public const string UserNotFound = "USER_NOT_FOUND";
+        public const string UserSettingsNotFound = "USER_SETTINGS_NOT_FOUND";
         public const string UserAlreadyExists = "USER_ALREADY_EXISTS";
 
         // Employee Errors
@@ -42,6 +48,7 @@
         public const string NotificationNotFound = "NOTIFICATION_NOT_FOUND";
 
         // Department Errors
+        public const string EmployeeDepartmentNotFound = "EMPLOYEE_DEPARTMENT_NOT_FOUND";
         public const string DepartmentNotFound = "DEPARTMENT_NOT_FOUND";
         public const string DepartmentAlreadyExists = "DEPARTMENT_ALREADY_EXISTS";
         public const string InvalidDepartmentData = "INVALID_DEPARTMENT_DATA";
@@ -81,6 +88,9 @@
         // Organization Errors
         public const string OrganizationNotFound = "ORGANIZATION_NOT_FOUND";
 
+        // Request Model Errors
+        public const string InvalidRequestModel = "INVALID_REQUEST_MODEL";
+        public const string InvalidRequestModelFormat = "INVALID_REQUEST_MODEL_FORMAT";
 
     }
 }

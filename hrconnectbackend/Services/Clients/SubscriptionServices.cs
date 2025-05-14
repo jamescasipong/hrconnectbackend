@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
@@ -150,8 +152,11 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
     public async Task RecordUsageAsync(int subscriptionId, string resourceType, int quantity)
     {
         var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
-        if (subscription == null || subscription.Status != SubscriptionStatus.Active)
-            throw new ArgumentException("Active subscription not found");
+        if (subscription == null)
+            throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with id {subscriptionId} not found");
+
+        if (subscription.Status != SubscriptionStatus.Active)
+            throw new ForbiddenException(ErrorCodes.SubscriptionNotActive, "Cannot record usage for an inactive subscription");
 
         var usageRecord = new UsageRecord
         {

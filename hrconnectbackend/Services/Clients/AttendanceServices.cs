@@ -147,8 +147,7 @@ namespace hrconnectbackend.Services.Clients
         {
             var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee).ToListAsync();
 
-            if (employees == null || !employees.Any()) throw new KeyNotFoundException($"Employee with ID {shiftId} not found.");
-
+            if (employees == null || !employees.Any()) throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employees found for shift ID {shiftId}.");
 
             return await EmployeeAttendanceStats(employees, specificDate);
         }

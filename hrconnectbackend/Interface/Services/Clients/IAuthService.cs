@@ -10,8 +10,8 @@ public interface IAuthService
 {
     Task<AuthResponse?> Signin(string email, string password, bool rememberMe);
     Task<UserAccount?> SignUpAdmin(UserAccount user);
-    Task<UserAccount?> SignUpEmployee(CreateUser user);
-    Task<UserAccount?> SignUpOperator(CreateUserOperator user);
+    Task<UserAccount> SignUpEmployee(CreateUser user);
+    Task<UserAccount> SignUpOperator(CreateUserOperator user);
     Task<bool> ChangePassword(string email, string password);
     Task<IEnumerable<UserAccount>> GetUsers(int tenantId);
     Task<RefreshToken?> GetRefreshToken(int userId);

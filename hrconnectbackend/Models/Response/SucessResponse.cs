@@ -16,9 +16,11 @@ namespace hrconnectbackend.Models.Response
     public class SuccessResponse
     {
         public bool Success { get; } = true;
+        public string? Message { get; } = null;
 
-        public SuccessResponse()
+        public SuccessResponse(string? message = null)
         {
+            Message = message;
         }
     }
 }
