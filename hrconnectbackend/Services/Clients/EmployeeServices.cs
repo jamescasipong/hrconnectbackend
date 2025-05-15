@@ -272,6 +272,12 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<List<Employee>> RetrieveEmployees(int? pageIndex, int? pageSize)
         {
+            if (pageIndex.HasValue && pageIndex.Value <= 0)
+                throw new BadRequestException(ErrorCodes.InvalidPageNumber, "Page number must be greater than zero.");
+
+            if (pageSize.HasValue && pageSize.Value <= 0)
+                throw new BadRequestException(ErrorCodes.InvalidPageSize, "Quantity must be greater than zero.");
+
             var employees = await _context.Employees.Include(e => e.AboutEmployee).Include(e => e.AboutEmployee!.EducationBackground).Include(d => d.EmployeeDepartment).ToListAsync();
 
             var employeesPagination = GetEmployeesPagination(employees, pageIndex, pageSize);

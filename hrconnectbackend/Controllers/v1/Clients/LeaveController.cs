@@ -29,15 +29,7 @@ public class LeaveController(
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
-        }
-
-
-        var validateUser = authenticationServices.ValidateUser(User, leaveRequest.EmployeeId);
-
-        if (validateUser != null)
-        {
-            return validateUser;
+            return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid leave application data."));
         }
 
         var newLeaveApplication = new LeaveApplication
@@ -52,7 +44,7 @@ public class LeaveController(
 
         await leaveServices.RequestLeave(newLeaveApplication);
 
-        return Ok(new ApiResponse(true, $"Leave application created successfully!"));
+        return Ok(new SuccessResponse("Leave application created successfully!"));
 
     }
 
@@ -74,12 +66,12 @@ public class LeaveController(
             // Validate pageIndex and pageSize
             if (pageIndex <= 0)
             {
-                return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidPageNumber, "Page index must be greater than 0"));
             }
 
             if (pageSize <= 0)
             {
-                return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidPageSize, "Page size must be greater than 0"));
             }
 
             // Fetch all leaves and apply pagination
@@ -92,127 +84,73 @@ public class LeaveController(
         // If no leaves are found, return an empty list
         if (!leaves.Any())
         {
-            return Ok(new ApiResponse<List<LeaveApplication>?>(true, "No leave applications found.", new List<LeaveApplication>()));
+            return Ok(new SuccessResponse<List<LeaveApplication>?>(new List<LeaveApplication>(), "No leave applications found."));
         }
 
         // Map the leave data to DTOs
         var leaveDto = mapper.Map<List<ReadLeaveApplicationDto>>(leaves);
 
         // Return the leave data in the response
-        return Ok(new ApiResponse<List<ReadLeaveApplicationDto>?>(true, "Leave applications retrieved successfully!", leaveDto));
+        return Ok(new SuccessResponse<List<ReadLeaveApplicationDto>?>(leaveDto, "Leave applications retrieved successfully!"));
 
     }
 
 
-    [Authorize]
+    [Authorize(Roles = "Admin,HR")]
     [HttpGet("applications/{id:int}")]
     public async Task<IActionResult> GetLeaveById(int id)
     {
-        try
-        {
-            var admins = new List<string> {
-                "Admin", "HR"
-            };
+        var leave = await leaveServices.GetByIdAsync(id);
 
-            var leave = await leaveServices.GetByIdAsync(id);
+        if (leave == null)
+            return NotFound(new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
 
-            if (leave == null)
-                return NotFound(new ApiResponse(false, $"Leave application with ID: {id} not found."));
+        var leaveDto = mapper.Map<ReadLeaveApplicationDto>(leave);
 
-            var validateUser = authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
+        return Ok(new SuccessResponse<ReadLeaveApplicationDto?>(leaveDto, $"Leave application with ID: {id} retrieved successfully!"));
 
-            if (validateUser != null)
-            {
-                return validateUser;
-            }
-
-
-            var leaveDto = mapper.Map<ReadLeaveApplicationDto>(leave);
-
-            return Ok(new ApiResponse<ReadLeaveApplicationDto?>(true, $"Leave application with ID: {id} retrieved successfully!", leaveDto));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error retrieving a leave application with ID: {id}", id);
-            return StatusCode(500, "Internal server error");
-        }
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin,HR")]
     [HttpPut("applications/{id:int}")]
     public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDto leaveRequest)
     {
-        var admins = new List<string>{
-            "Admin", "HR"
-        };
 
-        if (leaveRequest == null)
-            return BadRequest("Body request not found.");
+        if (leaveRequest == null) return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid leave application data."));
 
-        try
+
+        var leaveApplication = await leaveServices.GetByIdAsync(id);
+
+        if (leaveApplication == null)
         {
-            var leaveApplication = await leaveServices.GetByIdAsync(id);
-
-            if (leaveApplication == null)
-            {
-                return NotFound(new ApiResponse(false, $"Leave application with ID: {id} not found."));
-            }
-
-            var validateUser = authenticationServices.ValidateUser(User, leaveApplication.EmployeeId, admins);
-
-            if (validateUser != null)
-            {
-                return validateUser;
-            }
-
-            leaveApplication.Type = leaveRequest.Type;
-            leaveApplication.Status = leaveRequest.Status;
-            leaveApplication.Reason = leaveRequest.Reason;
-            leaveApplication.StartDate = leaveApplication.StartDate;
-
-            await leaveServices.UpdateAsync(leaveApplication);
-
-            return Ok(new ApiResponse(true, $"Leave application with ID: {id} updated successfully!"));
+            return StatusCode(404, new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error updating a leave application with ID: {id}", id);
-            return StatusCode(500, new ErrorResponse(ErrorCodes.InternalServerError, "Internal server error", ex.Message));
-        }
+
+        leaveApplication.Type = leaveRequest.Type;
+        leaveApplication.Status = leaveRequest.Status;
+        leaveApplication.Reason = leaveRequest.Reason;
+        leaveApplication.StartDate = leaveApplication.StartDate;
+
+        await leaveServices.UpdateAsync(leaveApplication);
+
+        return Ok(new ApiResponse(true, $"Leave application with ID: {id} updated successfully!"));
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin,HR")]
     [HttpDelete("applications/{id:int}")]
     public async Task<IActionResult> DeleteLeave(int id)
     {
-        var admins = new[]{
-            "Admin", "HR"
-        };
-        try
+        var leave = await leaveServices.GetByIdAsync(id);
+
+        if (leave == null)
         {
-            var leave = await leaveServices.GetByIdAsync(id);
-
-            if (leave == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
-            }
-
-            var validateUser = authenticationServices.ValidateUser(User, leave.EmployeeId, admins);
-
-            if (validateUser != null)
-            {
-                return validateUser;
-            }
-
-            await leaveServices.DeleteAsync(leave);
-
-            return Ok(new ApiResponse(true, $"Leave application with ID: {id} deleted successfully!"));
+            return StatusCode(404, new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error deleting a leave application with ID: {id}", id);
-            return StatusCode(500, new ErrorResponse(ErrorCodes.InternalServerError, "Internal server error", ex.Message));
-        }
+
+        await leaveServices.DeleteAsync(leave);
+
+        return Ok(new ApiResponse(true, $"Leave application with ID: {id} deleted successfully!"));
+
     }
 
     [Authorize(Roles = "Admin,HR")]
@@ -260,21 +198,11 @@ public class LeaveController(
     [HttpPut("applications/approve/{id:int}")]
     public async Task<IActionResult> ApproveLeave(int id)
     {
-        try
-        {
-            await leaveServices.ApproveLeave(id);
 
-            return Ok(new ApiResponse(true, $"Leave application with ID: {id} approved successfully!"));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new ApiResponse(false, ex.Message));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error approving a leave application with ID: {id}", id);
-            return StatusCode(500, "Internal server error");
-        }
+        await leaveServices.ApproveLeave(id);
+
+        return Ok(new ApiResponse(true, $"Leave application with ID: {id} approved successfully!"));
+
     }
     [Authorize(Roles = "HR,Admin")]
     [HttpPut("applications/reject/{id:int}")]

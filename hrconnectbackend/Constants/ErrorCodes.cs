@@ -92,5 +92,9 @@
         public const string InvalidRequestModel = "INVALID_REQUEST_MODEL";
         public const string InvalidRequestModelFormat = "INVALID_REQUEST_MODEL_FORMAT";
 
+        // Pagination Errors
+        public const string InvalidPageNumber = "INVALID_PAGE_NUMBER";
+        public const string InvalidPageSize = "INVALID_PAGE_SIZE";
+
     }
 }

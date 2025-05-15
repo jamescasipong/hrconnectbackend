@@ -86,137 +86,98 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         }
 
-        // [Authorize(Roles ="Admin, HR")]
+        [Authorize(Roles = "Admin, HR")]
         // [UserRole("Owner")]
         [HttpGet]
         public async Task<IActionResult> GetEmployees([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
-            var user = User;
+            var employees = new List<Employee>();
 
-            if (user == null)
+            logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
+            // Check if pagination parameters are provided
+            if (pageIndex == null || pageSize == null)
             {
-                logger.LogWarning("User is unauthenticated.");
-                return Unauthorized();
+                logger.LogWarning("Page index and Page size are required.");
+                employees = await employeeService.GetAllAsync();
             }
-
-            if (!user.IsInRole("HR") && !user.IsInRole("Admin") && !user.IsInRole("Operator"))
+            else
             {
-                logger.LogWarning("User is not in role 'HR' or in role 'Admin', 'Operator'.");
-                return Forbid();
-            }
 
-            try
-            {
-                var employees = new List<Employee>();
+                // Apply pagination only if pageIndex and pageSize are not null
                 logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
-                // Check if pagination parameters are provided
-                if (pageIndex == null || pageSize == null)
-                {
-                    logger.LogWarning("Page index and Page size are required.");
-                    employees = await employeeService.GetAllAsync();
-                }
-                else
-                {
-                    if (pageIndex <= 0)
-                    {
-                        logger.LogWarning("Page index is less than zero.");
-                        return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
-                    }
+                employees = await employeeService.RetrieveEmployees(pageIndex, pageSize);
 
-                    if (pageSize <= 0)
-                    {
-                        logger.LogWarning("Page size is less than zero.");
-                        return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
-                    }
-
-                    // Apply pagination only if pageIndex and pageSize are not null
-                    logger.LogInformation($"Getting employees for {pageIndex} and {pageSize}.");
-                    employees = await employeeService.RetrieveEmployees(pageIndex, pageSize);
-
-                }
-
-                if (!employees.Any())
-                {
-                    logger.LogWarning("No employees found.");
-                    return NotFound(new ApiResponse(false, $"No employees exist"));
-                }
-
-                var employeesDto = mapper.Map<List<ReadEmployeeDto>>(employees);
-
-                return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, $"Employees retrieved successfully!", employeesDto));
             }
-            catch (Exception ex)
+
+            if (!employees.Any())
             {
-                logger.LogError(ex, "Error retrieving employees");
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+                logger.LogWarning("No employees found.");
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, "No employees found."));
             }
+
+            var employeesDto = mapper.Map<List<ReadEmployeeDto>>(employees);
+
+            return Ok(new SuccessResponse<List<ReadEmployeeDto>>(employeesDto, $"Employees retrieved successfully!"));
+
         }
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetEmployee()
         {
-            var userId = User.FindFirstValue("EmployeeId");
-
-            if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+            var userId = User.RetrieveSpecificUser("EmployeeId");
 
             var employee = await employeeService.GetEmployeeById(int.Parse(userId));
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee with an ID: {userId} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
             }
 
             var userAccount = await userAccountServices.GetByIdAsync(int.Parse(userId));
 
             if (userAccount == null)
             {
-                return Ok(new ApiResponse(false, $"Employee account with an ID: {userId} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.UserNotFound, $"User account with an ID: {userId} not found."));
             }
 
             // var aboutEmployeeDTO = _mapper.Map<ReadAboutEmployeeDTO>(employee.AboutEmployee);
 
             var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-            // employeeDTO.AboutEmployee = aboutEmployeeDTO;
 
-
-            return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new SuccessResponse<ReadEmployeeDto?>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
         }
         [Authorize]
         [HttpGet("education/me")]
         public async Task<IActionResult> GetEducation()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
-            if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+            if (userId == null) return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "User not authenticated"));
 
             var employee = await aboutEmployeeServices.GetEmployeeEducationBackgroundAsync(int.Parse(userId));
 
-
             var employeeDTO = mapper.Map<List<EducationBackgroundDto>>(employee);
 
-
-            return Ok(new ApiResponse<List<EducationBackgroundDto>?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new SuccessResponse<List<EducationBackgroundDto>>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
         }
 
         [Authorize]
         [HttpGet("about/me")]
         public async Task<IActionResult> GetAboutMe()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (userId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+            var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
             var employee = await aboutEmployeeServices.GetByIdAsync(int.Parse(userId));
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee with an ID: {userId} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
             }
 
             var employeeDTO = mapper.Map<CreateAboutEmployeeDto>(employee);
 
-            return Ok(new ApiResponse<CreateAboutEmployeeDto?>(true, $"Employee with an ID: {userId} retrieved successfully!", employeeDTO));
+            return Ok(new SuccessResponse<CreateAboutEmployeeDto?>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
         }
 
         [Authorize(Roles = "Admin,HR")]
@@ -227,20 +188,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
-            if (currentUserId == null) return Unauthorized(new ApiResponse(false, $"User not authenticated"));
+            if (currentUserId == null) return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "User not authenticated"));
 
             var employee = await employeeService.GetByIdAsync(id);
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
             }
 
             var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-            return Ok(new ApiResponse<ReadEmployeeDto?>(true, $"Employee with an ID: {id} retrieved successfully!", employeeDTO));
-
-
+            return Ok(new SuccessResponse<ReadEmployeeDto?>(employeeDTO, $"Employee with an ID: {id} retrieved successfully!"));
         }
 
         [Authorize(Roles = "Admin,HR")]
@@ -251,12 +210,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee with an ID: {id} not found."));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
             }
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidEmployeeData, "Invalid employee data."));
             }
 
             // employee.FirstName = employee.FirstName;
@@ -275,22 +234,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var employee = await employeeService.GetByIdAsync(id);
 
-            try
-            {
-                if (employee == null)
-                {
-                    return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
-                }
 
-                await employeeService.DeleteAsync(employee);
-
-                return Ok(new ApiResponse(true, $"Employee with ID: {id} deleted successfully!"));
-            }
-            catch (Exception ex)
+            if (employee == null)
             {
-                logger.LogError(ex, "Error deleting an employee with ID {id}", id);
-                return StatusCode(500, new ErrorResponse(ErrorCodes.InternalServerError, "Internal server error"));
+                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
             }
+
+            await employeeService.DeleteAsync(employee);
+
+            return Ok(new SuccessResponse($"Employee with ID: {id} deleted successfully!"));
         }
 
         [Authorize]
@@ -315,7 +267,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(employeeId, out var parsedEmployeeId))
             {
-                return Unauthorized();
+                return StatusCode(400, new ErrorResponse(ErrorCodes.EmployeeNotFound, "Invalid employee ID."));
             }
 
 
@@ -323,7 +275,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var subordinateRead = mapper.Map<List<ReadEmployeeDto>>(subordinates);
 
-            return Ok(subordinateRead);
+            return Ok(new SuccessResponse<List<ReadEmployeeDto>>(subordinateRead, $"Subordinates retrieved successfully"));
 
         }
 
@@ -335,12 +287,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             try
             {
-                if (user == null) return NotFound(new ApiResponse(false, $"Employee account with account ID: {accountId} not found."));
+                if (user == null) return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"Employee account with account ID: {accountId} not found."));
 
                 user.UserName = name;
 
                 await userAccountServices.UpdateAsync(user);
-                return Ok(new ApiResponse(true, $"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
+                return Ok(new SuccessResponse($"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
 
             }
             catch (Exception ex)
