@@ -27,7 +27,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var validate = TryValidateModel(organization);
 
-            if (!validate) return BadRequest(ModelState);
+            if (!validate) return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization data."));
 
             var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
@@ -56,16 +56,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
             AuthResponse authResponse = await authServices.GenerateTokens(user);
             authServices.SetAccessTokenCookie(authResponse, Response);
 
-            return Ok(new ApiResponse<Organization>(true, $"Account created successfully", createdOrganization));
-
-
+            return Ok(new SuccessResponse("Organization created successfully!"));
         }
 
         [UserRole("Admin,Operator")]
         [HttpPatch("{organizationId}")]
         public async Task<IActionResult> Patch(int organizationId, [FromBody] JsonPatchDocument<Organization> patch)
         {
-
 
             // Call the service to apply the patch to the Organization entity
             var (original, patched, isValid) = await organizationServices.ApplyPatchAsync(organizationId, patch);
@@ -96,7 +93,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // If ModelState is invalid, return a BadRequest with validation errors
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState); // Return validation errors
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization data"));
             }
 
             // Save changes to the database
@@ -109,7 +106,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 patched
             };
 
-            return Ok(new ApiResponse<object>(true, $"Organization with id {organizationId} updated successfully", model));
+            return Ok(new SuccessResponse<object>(model, "Organization updated successfully!"));
         }
 
         [HttpGet("{organizationId}/storage-usage")]
@@ -134,7 +131,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var mappedOrg = mapper.Map<OrganizationsDto>(org);
 
-            return Ok(new ApiResponse<OrganizationsDto>(true, $"Organization found", mappedOrg));
+            return Ok(new SuccessResponse<OrganizationsDto>(mappedOrg, $"Organization found"));
         }
 
         [UserRole("Operator")]
@@ -145,7 +142,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var mappedOrgs = mapper.Map<List<OrganizationsDto>>(orgs);
 
-            return Ok(new ApiResponse<List<OrganizationsDto>>(true, $"Organizations found", mappedOrgs));
+            return Ok(new SuccessResponse<List<OrganizationsDto>>(mappedOrgs, $"Organizations retrieved successfully"));
         }
 
         [UserRole("Operator")]
@@ -158,7 +155,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await organizationServices.DeleteAsync(org);
 
-            return Ok(new ApiResponse<Organization>(true, $"Organization with id {organizationId} deleted successfully"));
+            return Ok(new SuccessResponse($"Organization with id {organizationId} deleted successfully!"));
         }
     }
 }

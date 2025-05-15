@@ -1,14 +1,16 @@
+using AutoMapper;
 using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
+using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Repository;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class NotificationServices(DataContext context)
+public class NotificationServices(DataContext context, IMapper mapper)
     : GenericRepository<Notifications>(context), INotificationServices
 {
     public async Task<List<UserNotification>> GetNotificationsByEmployeeId(int id, int? pageIndex, int? pageSize)
@@ -70,5 +72,42 @@ public class NotificationServices(DataContext context)
             return notifications;
         }
         return notifications.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
+    }
+
+    public async Task CreateUserNotification(CreateNotificationDto createNotificationDto, int organizationId, int employeeId)
+    {
+        // Start a transaction
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var notification = new Notifications
+                {
+                    Title = createNotificationDto.Title,
+                    Message = createNotificationDto.Message,
+                    CreatedAt = DateTime.UtcNow,
+                    OrganizationId = organizationId,
+                };
+
+                await _context.Notifications.AddAsync(notification);
+                await _context.SaveChangesAsync();
+
+                var userNotifications = await _context.UserNotifications.AddAsync(new UserNotification
+                {
+                    NotificationId = notification.Id,
+                    EmployeeId = employeeId,
+                    IsRead = false,
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception("An error occurred while creating the notification.", ex);
+            }
+        }
     }
 }

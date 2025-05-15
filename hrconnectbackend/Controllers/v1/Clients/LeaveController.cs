@@ -133,7 +133,7 @@ public class LeaveController(
 
         await leaveServices.UpdateAsync(leaveApplication);
 
-        return Ok(new ApiResponse(true, $"Leave application with ID: {id} updated successfully!"));
+        return Ok(new SuccessResponse($"Leave application with ID: {id} updated successfully!"));
     }
 
     [Authorize(Roles = "Admin,HR")]
@@ -149,7 +149,7 @@ public class LeaveController(
 
         await leaveServices.DeleteAsync(leave);
 
-        return Ok(new ApiResponse(true, $"Leave application with ID: {id} deleted successfully!"));
+        return Ok(new SuccessResponse($"Leave application with ID: {id} deleted successfully!"));
 
     }
 
@@ -170,12 +170,12 @@ public class LeaveController(
             // Validate pageIndex and pageSize
             if (pageIndex <= 0)
             {
-                return BadRequest(new ApiResponse(false, "Page index must be greater than 0"));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidPageNumber, "Page index must be greater than 0"));
             }
 
             if (pageSize <= 0)
             {
-                return BadRequest(new ApiResponse(false, "Page size must be greater than 0"));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidPageSize, "Page index must be greater than 0"));
             }
 
             // Fetch leave applications with pagination
@@ -189,7 +189,7 @@ public class LeaveController(
         // Map the data to the DTO
         var employeeLeaveApplicationDto = mapper.Map<List<ReadLeaveApplicationDto>>(employeeLeaveApplication);
 
-        return Ok(new ApiResponse<List<ReadLeaveApplicationDto>?>(true, $"Leave application by employee with ID: {employeeId} retrieved successfully!", employeeLeaveApplicationDto));
+        return Ok(new SuccessResponse<List<ReadLeaveApplicationDto>?>(employeeLeaveApplicationDto, $"Leave applications for employee with ID: {employeeId} retrieved successfully!"));
 
     }
 
@@ -198,10 +198,9 @@ public class LeaveController(
     [HttpPut("applications/approve/{id:int}")]
     public async Task<IActionResult> ApproveLeave(int id)
     {
-
         await leaveServices.ApproveLeave(id);
 
-        return Ok(new ApiResponse(true, $"Leave application with ID: {id} approved successfully!"));
+        return Ok(new SuccessResponse($"Leave application with ID: {id} approved successfully!"));
 
     }
     [Authorize(Roles = "HR,Admin")]
@@ -210,14 +209,13 @@ public class LeaveController(
     {
         await leaveServices.RejectLeave(id);
 
-        return Ok(new ApiResponse(false, $"Leave application with ID: {id} rejected successfully!"));
+        return Ok(new SuccessResponse($"Leave application with ID: {id} rejected successfully!"));
     }
 
     [Authorize("Admin,HR")]
     [HttpGet("balances")]
     public async Task<IActionResult> GetAllLeaveBalances([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
     {
-
         // Fetch all leave balances
         var leaves = await leaveBalanceServices.GetAllAsync();
 
@@ -232,11 +230,11 @@ public class LeaveController(
         // If no leave balances are found
         if (!leaves.Any())
         {
-            return Ok(new ApiResponse<List<LeaveBalance>?>(true, "No leave balances found.", new List<LeaveBalance>()));
+            return Ok(new SuccessResponse<List<LeaveBalance>?>(new List<LeaveBalance>(), "No leave balances found."));
         }
 
         // Return the leave balances
-        return Ok(new ApiResponse<List<LeaveBalance>?>(success: true, message: "Leave balances retrieved successfully!", data: leaves));
+        return Ok(new SuccessResponse<List<LeaveBalance>?>(leaves, "Leave balances retrieved successfully!"));
 
     }
 
@@ -245,12 +243,11 @@ public class LeaveController(
     [HttpGet("balances/{employeeId}")]
     public async Task<IActionResult> GetLeaveBalanceByEmployeeId(int employeeId)
     {
-
         var balances = await leaveBalanceServices.GetLeaveBalanceByEmployeeId(employeeId);
 
-        if (!balances.Any()) return Ok(new ApiResponse<List<LeaveBalance>?>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
+        if (!balances.Any()) return Ok(new SuccessResponse<List<LeaveBalance>?>(new List<LeaveBalance>(), $"No leave balances found for employee with ID: {employeeId}."));
 
-        return Ok(new ApiResponse<List<LeaveBalance>?>(true, $"Leave balances by employee with ID: {employeeId} retrieved successfully!", balances));
+        return Ok(new SuccessResponse<List<LeaveBalance>?>(balances, $"Leave balances for employee with ID: {employeeId} retrieved successfully!"));
 
     }
 
@@ -260,6 +257,6 @@ public class LeaveController(
     {
         await leaveBalanceServices.AddOrUpdateLeaveBalance(leaveBalance);
 
-        return Ok(new ApiResponse(true, $"Leave balance for employee with ID: {leaveBalance.EmployeeId} added/updated successfully!"));
+        return Ok(new SuccessResponse($"Leave balance for employee with ID: {leaveBalance.EmployeeId} added/updated successfully!"));
     }
 }

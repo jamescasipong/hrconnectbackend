@@ -2,6 +2,7 @@
 using AutoMapper;
 using hrconnectbackend.Claims;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
@@ -63,14 +64,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new ApiResponse(false, $"Your body request is invalid."));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid model state."));
             }
 
 
             var user = await userAccountServices.GetUserAccountByEmail(verifyResetDto.Email);
             if (user == null)
             {
-                return NotFound(new ApiResponse(false, $"This user does not exist"));
+                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User with email: {verifyResetDto.Email} not found."));
             }
 
             var key = configuration.GetValue<string>("JWT:Key")!;
@@ -92,7 +93,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             await emailServices.SendResetPasswordEmailAsync(resetSession.Email, token);
 
 
-            return Ok(new ApiResponse(true, $"Email sent successfully"));
+            return Ok(new SuccessResponse($"Reset password email sent successfully to {verifyResetDto.Email}."));
         }
 
         [HttpGet("account/reset-password")]
@@ -163,26 +164,20 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await userAccountServices.DeleteResetPassword(resetSession.Token);
 
-            return Ok(new ApiResponse(true, $"Successfully reset the password"));
+            return Ok(new SuccessResponse($"Password reset successfully!"));
 
         }
 
         [HttpPost("send-code")]
         public async Task<IActionResult> SendVerificationCode(string email, string code, string? expiryDate)
         {
-            try
-            {
-                var thirtyMinutes = expiryDate != null ? DateTime.Parse(expiryDate) : DateTime.Now.AddMinutes(5);
 
-                await emailServices.SendAuthenticationCodeAsync(email, code, thirtyMinutes);
+            var thirtyMinutes = expiryDate != null ? DateTime.Parse(expiryDate) : DateTime.Now.AddMinutes(5);
 
-                return Ok(new ApiResponse<dynamic>(true, "Email sent successfully!"));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred while sending email.");
-                return StatusCode(500, new ApiResponse(false, "An error occurred while sending email."));
-            }
+            await emailServices.SendAuthenticationCodeAsync(email, code, thirtyMinutes);
+
+            return Ok(new SuccessResponse($"Verification code sent successfully to {email}."));
+
         }
 
 
@@ -268,14 +263,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (userAccount == null)
             {
-                return NotFound(new ApiResponse(false, $"User account with id: {employeeId} not found."));
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"User Account with ID: {employeeId} not found.");
             }
 
             var employee = await employeeServices.GetByIdAsync(employeeId);
 
             if (employee == null)
             {
-                return NotFound(new ApiResponse(false, $"Employee with id: {employeeId} not found"));
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID: {employeeId} not found.");
             }
 
             employee.Email = email;
@@ -315,14 +310,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (patchDoc == null)
             {
                 logger.LogWarning("Patch document is null for employee ID: {EmployeeId}.", employeeId);
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Patch document is null."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid patch document.");
             }
 
             var userSettings = await userSettingsServices.GetByIdAsync(employeeId);
             if (userSettings == null)
             {
                 logger.LogWarning("User settings for employee ID: {EmployeeId} not found.", employeeId);
-                return NotFound(new ErrorResponse(ErrorCodes.UserSettingsNotFound, $"User settings for employee ID: {employeeId} not found."));
+                throw new NotFoundException(ErrorCodes.UserSettingsNotFound, $"User settings for employee ID: {employeeId} not found.");
             }
 
             // Map the entity model to the DTO model if necessary
@@ -339,7 +334,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (!ModelState.IsValid)
             {
                 logger.LogError("Invalid model state for employee ID: {EmployeeId}.", employeeId);
-                return BadRequest(new ApiResponse(false, "Invalid model state."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid model state.");
             }
 
             var updatedUserSettings = mapper.Map(userSettingsDto, userSettings);
@@ -359,7 +354,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (employee == null)
             {
-                return NotFound(new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found.");
             }
 
             var userNotifications = await notificationServices.GetNotificationsByEmployeeId(userId, pageIndex, pageIndex);

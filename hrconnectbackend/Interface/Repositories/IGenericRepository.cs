@@ -10,4 +10,5 @@ public interface IGenericRepository<T> where T : class
     Task UpdateAsync(T entity);
     Task DeleteAsync(T entity);
     Task UpdatePartialAsync(T entity, JsonPatchDocument patchDoc);
+    Task SaveChangesAsync();
 }

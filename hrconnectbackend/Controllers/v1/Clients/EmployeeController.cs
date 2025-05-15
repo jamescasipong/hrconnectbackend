@@ -49,7 +49,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // Call the CreateEmployeeAsync method
             await employeeService.CreateEmployee(employee, organizationIdInt, createAccount);
 
-            return Ok(new ApiResponse(true, $"Employee created successfully!"));  // Return a success message
+            return Ok(new SuccessResponse("Employee created successfully"));  // Return a success message
 
         }
 
@@ -58,13 +58,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GenerateEmployees([FromBody] List<GenerateEmployeeDto> employees)
         {
             var organizationId = User.RetrieveSpecificUser("organizationId");
+
             int organizationIdInt = TypeConverter.StringToInt(organizationId);
 
             var emp = await employeeService.GenerateEmployeesWithEmail(employees, organizationIdInt);
 
             var empDto = mapper.Map<List<ReadEmployeeDto>>(emp);
 
-            return Ok(new ApiResponse<List<ReadEmployeeDto>?>(true, "Employees generated successfully", empDto));
+            return Ok(new SuccessResponse<List<ReadEmployeeDto>>(empDto, "Employees created successfully"));
 
         }
 
@@ -82,7 +83,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var user = await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
 
-            return Ok(new ApiResponse(true, "User account created successfully"));
+            return Ok(new SuccessResponse("User account created successfully!"));
 
         }
 
@@ -225,7 +226,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await employeeService.UpdateAsync(employee);
 
-            return Ok(new ApiResponse(true, $"Employee with an ID: {id} updated successfully"));
+            return Ok(new SuccessResponse($"Employee with ID: {id} updated successfully!"));
 
         }
 
@@ -254,7 +255,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employeesMapped = mapper.Map<List<ReadEmployeeDto>>(employeesByDept);
 
-            return Ok(new ApiResponse<List<ReadEmployeeDto>?>(false, $"Employees under a department {departmentId} retrieved successfully.", employeesMapped));
+            return Ok(new SuccessResponse<List<ReadEmployeeDto>>(employeesMapped, $"Employees in department with ID: {departmentId} retrieved successfully!"));
 
         }
 
@@ -285,21 +286,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var user = await userAccountServices.GetByIdAsync(accountId);
 
-            try
-            {
-                if (user == null) return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"Employee account with account ID: {accountId} not found."));
+            if (user == null) throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with ID: {accountId} not found.");
 
-                user.UserName = name;
+            user.UserName = name;
 
-                await userAccountServices.UpdateAsync(user);
-                return Ok(new SuccessResponse($"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
+            await userAccountServices.UpdateAsync(user);
+            return Ok(new SuccessResponse($"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
 
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error updating an employee's account username with account ID {id}", accountId);
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+
         }
 
     }

@@ -1,4 +1,6 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
@@ -11,7 +13,10 @@ namespace hrconnectbackend.Services.Clients
         public async Task<Payroll?> UpdatePayrollStatus(int id, string status)
         {
             var payroll = await _context.Payrolls.FindAsync(id);
-            if (payroll == null) return null;
+            if (payroll == null)
+            {
+                throw new NotFoundException(ErrorCodes.PayrollNotFound, $"Payroll with id: {id} not found.");
+            }
 
             payroll.PaymentStatus = status;
             await _context.SaveChangesAsync();
@@ -37,7 +42,7 @@ namespace hrconnectbackend.Services.Clients
 
                         if (payroll1 == null)
                         {
-                            throw new InvalidOperationException($"Error calculating payroll for employee with id {employee.Id}");
+                            throw new InternalServerErrorException(ErrorCodes.PayrollCalculationFailed, $"Failed to calculate payroll for employee with id: {employee.Id}");
                         }
 
                         payroll1.PayPeriod = $"{period1:dd MMM} - {period2:dd MMM}";
@@ -62,13 +67,13 @@ namespace hrconnectbackend.Services.Clients
             var attendanceRecords = await _context.Attendances
                 .Where(a => a.EmployeeId == employeeId && a.DateToday >= startDate && a.DateToday <= endDate)
                 .ToListAsync();
-            
+
 
             var employee = await _context.Employees.FindAsync(employeeId);
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} not found.");
             }
 
             decimal totalHoursWorked = 0;
@@ -84,7 +89,7 @@ namespace hrconnectbackend.Services.Clients
 
                 if (overtime != null)
                 {
-                   totalHoursWorked += (decimal)(overtime.StartTime - overtime.EndTime).TotalHours;
+                    totalHoursWorked += (decimal)(overtime.StartTime - overtime.EndTime).TotalHours;
                 }
 
                 if (attendance.ClockIn > new TimeSpan(9, 0, 0))

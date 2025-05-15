@@ -25,11 +25,11 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
     {
         var user = await _context.Organizations.FindAsync(organizationId);
         if (user == null)
-            throw new ArgumentException("User not found");
+            throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"User with id {organizationId} not found");
 
         var plan = await _context.Plans.FindAsync(planId);
         if (plan == null || !plan.IsActive)
-            throw new ArgumentException("Plan not found or inactive");
+            throw new NotFoundException(ErrorCodes.PlanNotFound, $"Plan with id {planId} not found or inactive");
 
         var now = DateTime.UtcNow;
         var subscription = new Subscription
@@ -74,8 +74,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
     public async Task<bool> CancelSubscriptionAsync(int subscriptionId)
     {
         var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
-        if (subscription == null)
-            return false;
+        if (subscription == null) throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with id {subscriptionId} not found");
 
         subscription.Status = SubscriptionStatus.Cancelled;
         subscription.EndDate = DateTime.UtcNow;
@@ -88,7 +87,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
     {
         var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
         if (subscription == null)
-            return false;
+            throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with id {subscriptionId} not found");
 
         var newPlan = await _context.Plans.FindAsync(newPlanId);
         if (newPlan == null || !newPlan.IsActive)
@@ -109,7 +108,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
             .FirstOrDefaultAsync(s => s.SubscriptionId == subscriptionId);
 
         if (subscription == null)
-            return null;
+            throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with id {subscriptionId} not found");
 
         return new SubscriptionDto
         {
@@ -128,8 +127,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
     public async Task<IEnumerable<SubscriptionDto>> GetSubscriptionsByUserIdAsync(int organizationId)
     {
         var user = await _context.Organizations.FindAsync(organizationId);
-        if (user == null)
-            return null;
+        if (user == null) throw new NotFoundException(ErrorCodes.UserNotFound, $"User with id {organizationId} not found");
 
         return await _context.Subscriptions
             .Include(s => s.Plan)

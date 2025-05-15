@@ -1,6 +1,9 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
@@ -42,7 +45,7 @@ namespace hrconnectbackend.Services.Clients
                 .FirstOrDefaultAsync(p => p.PlanId == planId);
 
             if (plan == null)
-                return null;
+                throw new NotFoundException(ErrorCodes.PlanNotFound, $"Plan with ID {planId} not found.");
 
             return new PlanDto
             {

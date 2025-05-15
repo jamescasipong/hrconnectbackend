@@ -65,17 +65,17 @@ namespace hrconnectbackend.Services.Clients
 
                 throw new Exception("Database update error occurred while creating user account.", ex);
             }
-            catch (NotFoundException ex)
+            catch (NotFoundException)
             {
                 await transaction.RollbackAsync();
 
-                throw new Exception($"Employee not found: {ex.Message}", ex);
+                throw;
             }
-            catch (ConflictException ex)
+            catch (ConflictException)
             {
                 await transaction.RollbackAsync();
 
-                throw new Exception($"Conflict error: {ex.Message}", ex);
+                throw;
             }
             catch (Exception)
             {

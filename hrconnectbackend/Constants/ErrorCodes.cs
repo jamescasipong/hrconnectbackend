@@ -9,6 +9,26 @@
         public const string TokenExpired = "TOKEN_EXPIRED";
         public const string AccessDenied = "ACCESS_DENIED";
 
+        // Shift Errors
+        public const string ShiftNotFound = "SHIFT_NOT_FOUND";
+        public const string ShiftAlreadyExists = "SHIFT_ALREADY_EXISTS";
+
+        // Plan Errors
+        public const string PlanNotFound = "PLAN_NOT_FOUND";
+
+        // Payroll Errors
+        public const string PayrollNotFound = "PAYROLL_NOT_FOUND";
+        public const string PayrollAlreadyExists = "PAYROLL_ALREADY_EXISTS";
+        public const string PayrollCalculationFailed = "PAYROLL_CALCULATION_FAILED";
+
+        // Payment Errors
+        public const string PaymentNotFound = "PAYMENT_NOT_FOUND";
+        public const string PaymentFailed = "PAYMENT_FAILED";
+        public const string PaymentAlreadyExists = "PAYMENT_ALREADY_EXISTS";
+
+        // Overtime Errors
+        public const string OTApplicationNotFound = "OVERTIME_NOT_FOUND";
+
         // Subscription Errors
         public const string SubscriptionNotFound = "SUBSCRIPTION_NOT_FOUND";
         public const string SubscriptionAlreadyExists = "SUBSCRIPTION_ALREADY_EXISTS";
@@ -33,6 +53,7 @@
         // Attendance Errors
         public const string AttendanceNotClockedIn = "ATTENDANCE_NOT_CLOCKED_IN";
         public const string AlreadyClockedIn = "ALREADY_CLOCKED_IN";
+        public const string AlreadyClockedOut = "ALREADY_CLOCKED_OUT";
         public const string AttendanceNotFound = "ATTENDANCE_NOT_FOUND";
         public const string InvalidAttendanceData = "INVALID_ATTENDANCE_DATA";
 

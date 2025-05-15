@@ -1,8 +1,10 @@
 using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Repository;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
@@ -16,19 +18,19 @@ public class ShiftServices(DataContext context) : GenericRepository<Shift>(conte
 
         if (employee == null)
         {
-            throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+            throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No employee found with an id {employeeId}");
         }
 
         if (employee.OrganizationId != orgId)
         {
-            throw new UnauthorizedAccessException($"Employee with id {employeeId} does not belong to the organization with id {orgId}");
+            throw new UnauthorizedException(ErrorCodes.Unauthorized, $"Employee with id {employeeId} does not belong to the organization with id {orgId}");
         }
 
         var employeeShifts = await _context.Shifts.Where(a => a.EmployeeShiftId == employeeId).ToListAsync();
 
         if (!employeeShifts.Any())
         {
-            throw new KeyNotFoundException($"No shift found for an employee with an id {employeeId}");
+            throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shift found for an employee with an id {employeeId}");
         }
 
         return employeeShifts;
@@ -41,7 +43,7 @@ public class ShiftServices(DataContext context) : GenericRepository<Shift>(conte
 
         if (shifts.Count == 0)
         {
-            throw new KeyNotFoundException($"No shift today found for an employee with an id {employeeId}");
+            throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shifts found");
         }
 
         var shiftsForEmployee = await _context.Shifts.Where(s => s.EmployeeShiftId == employeeId).ToListAsync();
@@ -63,7 +65,7 @@ public class ShiftServices(DataContext context) : GenericRepository<Shift>(conte
 
         if (employee == null)
         {
-            throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+            throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No employee found with an id {employeeId}");
         }
 
         List<Shift> shifts = new List<Shift>();

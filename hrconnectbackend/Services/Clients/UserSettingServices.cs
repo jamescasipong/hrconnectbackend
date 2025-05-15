@@ -1,6 +1,9 @@
-﻿using hrconnectbackend.Data;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Repository;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace hrconnectbackend.Services.Clients
 {
@@ -14,7 +17,7 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employee found with an id {employeeId}");
             }
 
             var newSetting = new UserSettings
@@ -44,14 +47,14 @@ namespace hrconnectbackend.Services.Clients
 
             if (employee == null)
             {
-                throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employee found with an id {employeeId}");
             }
 
             var setting = await GetByIdAsync(employeeId);
 
             if (setting == null)
             {
-                throw new KeyNotFoundException($"No setting found for employee with id {employeeId}");
+                throw new NotFoundException(ErrorCodes.UserSettingsNotFound, $"No setting found for employee with id {employeeId}");
             }
 
             // Reset settings to defaults

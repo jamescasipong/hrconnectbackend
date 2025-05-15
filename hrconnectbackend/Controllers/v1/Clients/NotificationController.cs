@@ -32,46 +32,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost("{employeeId:int}")]
         public async Task<IActionResult> CreateNotification(int employeeId, CreateNotificationDto notificationDTO)
         {
-            try
-            {
-                var notification = mapper.Map<Notifications>(notificationDTO);
-
-                var newNotification = await notificationServices.AddAsync(notification);
-
-                var createUserNotificationDTO = new CreateUserNotificationDto
-                {
-                    EmployeeId = employeeId,
-                    NotificationId = newNotification.Id,
-                    IsRead = false,
-                    Status = "Unread"
-                };
-
-                var usernotification = mapper.Map<UserNotification>(createUserNotificationDTO);
-
-                var userNotifications = await userNotificationServices.AddAsync(usernotification);
-
-                return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(newNotification)));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError($"Error in {nameof(CreateNotification)}: " + ex.Message);
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost("assing-notification/{employeeId:int}")]
-        public async Task<IActionResult> CreateNotification(int employeeId, int notificationId, CreateNotificationDto notificationDTO)
-        {
 
             var notification = mapper.Map<Notifications>(notificationDTO);
 
-            await notificationServices.AddAsync(notification);
+            var newNotification = await notificationServices.AddAsync(notification);
 
             var createUserNotificationDTO = new CreateUserNotificationDto
             {
                 EmployeeId = employeeId,
-                NotificationId = notification.Id,
+                NotificationId = newNotification.Id,
                 IsRead = false,
                 Status = "Unread"
             };
@@ -80,8 +49,19 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await userNotificationServices.AddAsync(usernotification);
 
-            return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification created successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+            return Ok(new SuccessResponse("Notification created successfully."));
 
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("assing-notification/{employeeId:int}")]
+        public async Task<IActionResult> CreateUserNotification(int employeeId, CreateNotificationDto notificationDTO)
+        {
+            var orgId = User.RetrieveSpecificUser("OrganizationId");
+
+            await notificationServices.CreateUserNotification(notificationDTO, int.Parse(orgId), employeeId);
+
+            return Ok(new SuccessResponse($"Notification created successfully."));
         }
 
         [Authorize]
@@ -95,7 +75,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var notifications = await userNotificationServices.GetNotificationByUserId(employeeIdInt);
 
-            return Ok(new ApiResponse<List<ReadUserNotificationDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadUserNotificationDto>>(notifications)));
+            return Ok(new SuccessResponse<List<ReadUserNotificationDto>?>(mapper.Map<List<ReadUserNotificationDto>>(notifications), $"Notifications retrieved successfully."));
 
         }
 
@@ -110,7 +90,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await userNotificationServices.UpdateAsync(notification);
 
-            return Ok(new ApiResponse<ReadUserNotificationDto?>(true, $"User Notification with id: {notificationId} updated successfully.", mapper.Map<ReadUserNotificationDto>(notification)));
+            return Ok(new SuccessResponse<ReadUserNotificationDto?>(mapper.Map<ReadUserNotificationDto>(notification), $"Notification with id: {notificationId} marked as read successfully."));
         }
 
         [HttpGet("{notificationId:int}")]
@@ -121,7 +101,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (notification == null) return StatusCode(404, new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
 
-            return Ok(new ApiResponse<ReadNotificationsDto?>(true, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+            return Ok(new SuccessResponse<ReadNotificationsDto?>(mapper.Map<ReadNotificationsDto>(notification), $"Notification with id: {notificationId} retrieved successfully."));
 
         }
 
@@ -133,7 +113,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var paginationaNotifications = notificationServices.NotificationPagination(notifications, pageIndex, pageSize);
 
-            return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications retrieved successfully.", mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications)));
+            return Ok(new SuccessResponse<List<ReadNotificationsDto>?>(mapper.Map<List<ReadNotificationsDto>>(paginationaNotifications), $"Notifications retrieved successfully."));
 
         }
 
@@ -148,7 +128,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 return NotFound(new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
             }
 
-            return Ok(new ApiResponse<ReadNotificationsDto?>(false, $"Notification with id: {notificationId} retrieved successfully.", mapper.Map<ReadNotificationsDto>(notification)));
+            return Ok(new SuccessResponse<ReadNotificationsDto?>(mapper.Map<ReadNotificationsDto>(notification), $"Notification with id: {notificationId} updated successfully."));
 
         }
 
@@ -159,7 +139,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var mappedNotifications = mapper.Map<List<ReadNotificationsDto>>(employeeNotifications);
 
-            return Ok(new ApiResponse<List<ReadNotificationsDto>?>(true, $"Notifications by employee with id: {employeeId} retrieved successfully.", mappedNotifications));
+            return Ok(new SuccessResponse<List<ReadNotificationsDto>?>(mappedNotifications, $"Notifications retrieved successfully."));
 
         }
 
@@ -176,7 +156,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             await notificationServices.DeleteAsync(notification);
 
-            return Ok(new ApiResponse(true, $"Notification with id: {notificationId} deleted successfully"));
+            return Ok(new SuccessResponse($"Notification with id: {notificationId} deleted successfully."));
 
 
         }

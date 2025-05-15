@@ -4,6 +4,8 @@ using hrconnectbackend.Repository;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models.Requests;
 using Microsoft.EntityFrameworkCore;
+using hrconnectbackend.Exceptions;
+using hrconnectbackend.Constants;
 
 namespace hrconnectbackend.Services.Clients;
 
@@ -16,7 +18,7 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
         if (otApplication == null)
         {
             logger.LogWarning($"OT Application with id: {id} not found.");
-            throw new KeyNotFoundException($"OT Application with id: {id} not found.");
+            throw new NotFoundException(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {id} not found.");
         }
 
         otApplication.Status = "Approved";
@@ -29,7 +31,7 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
         if (otApplication == null)
         {
             logger.LogWarning($"OT Application with id: {id} not found.");
-            throw new KeyNotFoundException($"OT Application with id: {id} not found.");
+            throw new NotFoundException(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {id} not found.");
         }
 
         otApplication.Status = "Rejected";
@@ -47,7 +49,7 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
 
         if (!otApplications.Any())
         {
-            throw new KeyNotFoundException("OT Application not found.");
+            throw new NotFoundException(ErrorCodes.OTApplicationNotFound, $"No OT applications found between {startDate} and {endDate}.");
         }
 
         if (pageIndex != null && pageSize != null && otApplications.Count < pageSize)
@@ -64,9 +66,9 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
 
         if (otApplication == null || otApplication.Count == 0)
         {
-            throw new KeyNotFoundException($"Unable to process. Supervisor with id: {supervisorId} not found.");
+            throw new NotFoundException(ErrorCodes.OTApplicationNotFound, $"No OT applications found for supervisor with id: {supervisorId}");
         }
-        
+
         var supervisorOT = otApplication.Where(ot => ot.SupervisorId == supervisorId).ToList();
 
         if (pageIndex != null && pageSize != null && otApplication.Count < pageSize)
@@ -84,7 +86,7 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
 
         if (employee == null)
         {
-            throw new KeyNotFoundException($"No employee found with an id {employeeId}");
+            throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} not found.");
         }
 
         if (pageIndex != null && pageSize != null && otApplication.Count < pageSize)
@@ -99,12 +101,12 @@ public class OtApplicationServices(DataContext context, ILogger<OtApplicationSer
     {
         if (pageSize < 0)
         {
-            throw new ArgumentException($"Page index must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidPageNumber, $"Page index must be higher than 0");
         }
 
         if (pageIndex < 0)
         {
-            throw new ArgumentException($"Page size must be higher than 0");
+            throw new BadRequestException(ErrorCodes.InvalidPageSize, $"Page size must be higher than 0");
         }
 
         return otApplication.Take((pageIndex - 1) * pageSize).Take(pageSize).ToList();

@@ -1,5 +1,8 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
+using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
@@ -18,7 +21,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
     public class ShiftController(
         IShiftServices shiftServices,
         IMapper mapper,
-        AuthenticationServices authenticationServices,
         ILogger<ShiftController> logger)
         : ControllerBase
     {
@@ -26,122 +28,103 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("{id}")]
         public async Task<IActionResult> GetShiftById(int id)
         {
-            try
+
+            var shift = await shiftServices.GetByIdAsync(id);
+            if (shift == null)
             {
-                var shift = await shiftServices.GetByIdAsync(id);
-                return Ok(shift);
+                return NotFound(new ErrorResponse(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}"));
             }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+
+            var mappedShift = mapper.Map<ShiftDTO>(shift);
+            return Ok(new SuccessResponse<ShiftDTO>(mappedShift, $"Shift with ID {id} retrieved successfully"));
+
         }
         [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllShifts()
         {
-            var organizationId = User.FindFirstValue("organizationId")!;
+            var organizationId = User.RetrieveSpecificUser("organizationId")!;
 
             if (!int.TryParse(organizationId, out var orgId))
             {
-                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization ID"));
             }
 
             var shifts = await shiftServices.GetAllAsync();
 
             var orgShifts = shifts.Where(a => a.OrganizationId == orgId).ToList();
 
-            return Ok(orgShifts);
+            return Ok(new SuccessResponse<List<ShiftDTO>>(mapper.Map<List<ShiftDTO>>(orgShifts), "All shifts retrieved successfully"));
         }
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateShift(ShiftDTO shiftDTO)
         {
-            try
+
+            if (!IsValidDayOfWorked(shiftDTO.DaysOfWorked))
             {
-                if (!IsValidDayOfWorked(shiftDTO.DaysOfWorked))
-                {
-                    return BadRequest(new ApiResponse(false, "Days of worked is invalid"));
-                }
-
-                var employee = await shiftServices.GetAllAsync();
-
-                bool shiftExisted = employee.Where(a => a.EmployeeShiftId == shiftDTO.EmployeeShiftId && a.DaysOfWorked == shiftDTO.DaysOfWorked).Any();
-
-                if (shiftExisted)
-                {
-                    return Conflict(new ApiResponse(false, "Day of worked already existed"));
-                }
-
-                var createdShift = await shiftServices.AddAsync(new Shift
-                {
-                    EmployeeShiftId = shiftDTO.EmployeeShiftId,
-                    DaysOfWorked = BodyRequestCorrection.CapitalLowerCaseName(shiftDTO.DaysOfWorked),
-                    TimeIn = TimeSpan.Parse(shiftDTO.TimeIn),
-                    TimeOut = TimeSpan.Parse(shiftDTO.TimeOut)
-                });
-
-                return Ok(new ApiResponse<Shift?>(success: true, message: $"Shift by Employee with ID {shiftDTO} created successfully!", data: createdShift));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid day of worked"));
             }
-            catch (Exception ex)
+
+            var employee = await shiftServices.GetAllAsync();
+
+            bool shiftExisted = employee.Where(a => a.EmployeeShiftId == shiftDTO.EmployeeShiftId && a.DaysOfWorked == shiftDTO.DaysOfWorked).Any();
+
+            if (shiftExisted)
             {
-                return BadRequest(new { message = ex.Message });
+                return Conflict(new ErrorResponse(ErrorCodes.ShiftAlreadyExists, $"Shift for employee with ID {shiftDTO.EmployeeShiftId} already exists for {shiftDTO.DaysOfWorked}"));
             }
+
+            var createdShift = await shiftServices.AddAsync(new Shift
+            {
+                EmployeeShiftId = shiftDTO.EmployeeShiftId,
+                DaysOfWorked = BodyRequestCorrection.CapitalLowerCaseName(shiftDTO.DaysOfWorked),
+                TimeIn = TimeSpan.Parse(shiftDTO.TimeIn),
+                TimeOut = TimeSpan.Parse(shiftDTO.TimeOut)
+            });
+
+            return Ok(new SuccessResponse<ShiftDTO>(mapper.Map<ShiftDTO>(createdShift), "Shift created successfully"));
+
         }
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateShift(int id, [FromBody] Shift shift)
         {
-            try
-            {
-                var shiftExist = await shiftServices.GetByIdAsync(id);
 
-                if (shiftExist == null)
-                {
-                    throw new KeyNotFoundException($"No shift found with Id {id}");
-                }
+            var shiftExist = await shiftServices.GetByIdAsync(id);
 
-                if (shift == null)
-                {
-                    throw new ArgumentNullException(nameof(shift));
-                }
+            if (shiftExist == null)
+            {
+                throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}");
+            }
 
-                await shiftServices.UpdateAsync(shift);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
+            if (shift == null)
             {
-                return NotFound(new { message = ex.Message });
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid shift data");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+
+            await shiftServices.UpdateAsync(shift);
+
+            return Ok(new SuccessResponse<ShiftDTO>(mapper.Map<ShiftDTO>(shift), $"Shift with ID {id} updated successfully"));
+
+
         }
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteShift(int id)
         {
-            try
-            {
-                var shift = await shiftServices.GetByIdAsync(id);
 
-                if (shift == null)
-                {
-                    throw new KeyNotFoundException($"No shift found for employee with ID {id}");
-                }
+            var shift = await shiftServices.GetByIdAsync(id);
 
-                await shiftServices.DeleteAsync(shift);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
+            if (shift == null)
             {
-                return NotFound(new { message = ex.Message });
+                throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+
+            await shiftServices.DeleteAsync(shift);
+
+            return Ok(new SuccessResponse($"Shift with ID {id} deleted successfully"));
+
         }
         [Authorize]
         [HttpGet("my-shift")]
@@ -152,25 +135,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(organizationId, out var orgId))
             {
-                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid organization ID");
             }
 
-            try
-            {
-                var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
-                var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
+            var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
-                return Ok(new ApiResponse<List<ShiftDTO>?>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse(false, ex.Message));  // Handle unexpected errors
-            }
+            var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
+
+            return Ok(new SuccessResponse<List<ShiftDTO>>(mappedShift, $"Shifts for employee with ID {employeeId} retrieved successfully"));
+
         }
 
 
@@ -182,32 +156,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(organizationId, out var orgId))
             {
-                return BadRequest(new ApiResponse(false, "Invalid organization ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid organization ID");
             }
 
-            try
-            {
-                var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
+            var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
-                var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
+            var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
-                return Ok(new ApiResponse<List<ShiftDTO>?>(true, $"Shifts by Employee with id: {employeeId} retrieved successfully.", mappedShift));
-            }
+            return Ok(new SuccessResponse<List<ShiftDTO>>(mappedShift, $"Shifts for employee with ID {employeeId} retrieved successfully"));
 
-            catch (Exception ex)
-            {
-                if (ex is KeyNotFoundException)
-                {
-                    return NotFound(new ApiResponse(false, ex.Message));
-                }
-
-                if (ex is UnauthorizedAccessException)
-                {
-                    return Forbid();
-                }
-
-                return StatusCode(500, new ApiResponse(false, ex.Message));  // Handle unexpected errors
-            }
         }
 
         [Authorize(Roles = "Admin,HR")]
@@ -215,51 +172,27 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> HasShiftToday(int employeeId)
         {
 
+            var hasShift = await shiftServices.HasShiftToday(employeeId);
+            return Ok(new SuccessResponse<bool>(hasShift, $"User with ID {employeeId} has shift today"));
 
-            try
-            {
-                var hasShift = await shiftServices.HasShiftToday(employeeId);
-                return Ok(hasShift);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { error = "An internal error occurred" });
-            }
         }
 
         [Authorize]
         [HttpGet("shift-today")]
         public async Task<IActionResult> HasShiftToday()
         {
-            var user = User.FindFirstValue("EmployeeId")!;
+            var user = User.RetrieveSpecificUser("EmployeeId")!;
 
-            if (user == null) return Unauthorized();
+            if (int.TryParse(user, out var employeeId))
+            {
+                var hasShift = await shiftServices.HasShiftToday(employeeId);
+                return Ok(new SuccessResponse<bool>(hasShift, $"User with ID {employeeId} has shift today"));
+            }
+            else
+            {
+                throw new UnauthorizedException(ErrorCodes.InvalidRequestModel, "Invalid employee ID");
+            }
 
-            try
-            {
-                if (int.TryParse(user, out var employeeId))
-                {
-                    var hasShift = await shiftServices.HasShiftToday(employeeId);
-                    return Ok(new ApiResponse<bool>(true, $"User has shift today", hasShift));
-                }
-                else
-                {
-                    return Unauthorized();
-                }
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex.Message);
-                return StatusCode(500, new { error = "An internal error occurred" });
-            }
         }
 
         private bool IsValidDayOfWorked(string name)

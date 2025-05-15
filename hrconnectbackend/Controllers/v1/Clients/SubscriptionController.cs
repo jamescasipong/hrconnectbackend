@@ -51,23 +51,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost]
         public async Task<ActionResult<SubscriptionDto>> CreateSubscription(CreateSubscriptionDto model)
         {
-            try
-            {
-                var subscription = await _subscriptionService.CreateSubscriptionAsync(
-                    model.UserId,
-                    model.PlanId,
-                    model.BillingCycle,
-                    model.IncludeTrialPeriod);
 
-                return CreatedAtAction(
-                    nameof(GetSubscription),
-                    new { id = subscription.SubscriptionId },
-                    subscription);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var subscription = await _subscriptionService.CreateSubscriptionAsync(
+                model.UserId,
+                model.PlanId,
+                model.BillingCycle,
+                model.IncludeTrialPeriod);
+
+            return Ok(new SuccessResponse<SubscriptionDto>(subscription, "Subscription created successfully"));
         }
 
         // GET: api/subscriptions/{id}
@@ -75,21 +66,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<ActionResult<SubscriptionDto>> GetSubscription(int id)
         {
             var subscription = await _subscriptionService.GetSubscriptionByIdAsync(id);
-            if (subscription == null)
-                return NotFound();
 
-            return Ok(subscription);
+            return Ok(new SuccessResponse<SubscriptionDto>(subscription, "Subscription retrieved successfully"));
         }
 
         // POST: api/subscriptions/{id}/cancel
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> CancelSubscription(int id)
         {
-            var result = await _subscriptionService.CancelSubscriptionAsync(id);
-            if (!result)
-                return NotFound();
+            await _subscriptionService.CancelSubscriptionAsync(id);
 
-            return NoContent();
+            return Ok(new SuccessResponse("Subscription cancelled successfully"));
         }
 
         // PUT: api/subscriptions/{id}/plan

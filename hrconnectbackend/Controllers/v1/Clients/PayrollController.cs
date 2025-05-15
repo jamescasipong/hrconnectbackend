@@ -1,4 +1,5 @@
-﻿using hrconnectbackend.Interface.Services;
+﻿using hrconnectbackend.Constants;
+using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
@@ -24,23 +25,17 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GetPayrollById(int id)
         {
             var payroll = await payrollService.GetByIdAsync(id);
-            if (payroll == null) return NotFound();
+            if (payroll == null) return StatusCode(404, new ErrorResponse(ErrorCodes.PayrollNotFound, $"Payroll with id {id} not found"));
             return Ok(payroll);
         }
 
         [HttpPost("all-employees")]
         public async Task<IActionResult> GeneratePayrollAllEmployees([FromQuery] string period1, [FromQuery] string period2)
         {
-            try
-            {
-                await payrollService.GeneratePayrollForAllEmployees(DateTime.Parse(period1), DateTime.Parse(period2));
 
-                return Ok(new ApiResponse(true, $"Payroll for all employees successfully generated"));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex);
-            }
+            await payrollService.GeneratePayrollForAllEmployees(DateTime.Parse(period1), DateTime.Parse(period2));
+
+            return Ok(new SuccessResponse("Payroll generated successfully!"));
         }
 
         // Update payroll payment status
@@ -48,8 +43,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<ActionResult<Payroll>> UpdatePayrollStatus(int id, [FromBody] string status)
         {
             var updatedPayroll = await payrollService.UpdatePayrollStatus(id, status);
-            if (updatedPayroll == null) return NotFound();
-            return Ok(updatedPayroll);
+
+            return Ok(new SuccessResponse("Payroll status updated successfully!"));
         }
 
         // Delete payroll record
@@ -58,11 +53,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var payroll = await payrollService.GetByIdAsync(id);
 
-            if (payroll == null) return NotFound();
+            if (payroll == null)
+            {
+                return StatusCode(404, new ErrorResponse(ErrorCodes.PayrollNotFound, $"Payroll with id {id} not found"));
+            }
 
             await payrollService.DeleteAsync(payroll);
 
-            return NoContent();
+            return Ok(new SuccessResponse("Payroll deleted successfully!"));
         }
     }
 }

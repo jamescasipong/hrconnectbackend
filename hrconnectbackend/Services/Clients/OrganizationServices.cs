@@ -34,11 +34,11 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
                 IsActive = organization.IsActive
             };
             await _context.Organizations.AddAsync(newOrg);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
 
             userAccount.OrganizationId = newOrg.Id;
             _context.Update(userAccount);
-            await _context.SaveChangesAsync();
+            await SaveChangesAsync();
 
             return newOrg;
         }
@@ -74,7 +74,7 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
         org.IsActive = organization.IsActive;
 
         _context.Organizations.Update(org);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
 
         return true;
     }
@@ -86,7 +86,7 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
         if (org == null) return false;
 
         _context.Organizations.Remove(org);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
 
         return true;
     }
@@ -110,12 +110,6 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
         // but validation is handled in the controller
         return (original, organization, true);
     }
-
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync(); // Save changes to the database
-    }
-
     // Check if an organization name is already taken (for validation in the controller)
     public bool IsNameDuplicate(string name, int organizationId)
     {

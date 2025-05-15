@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
@@ -25,175 +26,131 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost]
         public async Task<IActionResult> CreateOtApplication(CreateOtApplicationDto dtoApplication)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(new ApiResponse(false, ModelState.ToString()));
-                }
-
-                var supervisor = await supervisorServices.GetEmployeeSupervisor(dtoApplication.EmployeeId);
-
-                if (supervisor == null)
-                {
-                    return BadRequest(new ApiResponse(false, $"Unable to process. You don't have a supervisor."));
-                }
-
-                var attendance = await attendanceServices.GetAllAsync();
-
-                var attendanceExist = attendance.FirstOrDefault(a => a.Equals(dtoApplication));
-
-                if (attendanceExist == null)
-                {
-                    return BadRequest(new ApiResponse(false, $"Unable to process. You don't have an attendance for the specified date."));
-                }
-
-                if (attendanceExist.ClockOut == null)
-                {
-                    return BadRequest(new ApiResponse(false, $"You are not clocked out."));
-                }
-
-                var otApplication = await oTApplicationServices.GetAllAsync();
-
-                var newOTApplication = new OtApplication
-                {
-                    EmployeeId = dtoApplication.EmployeeId,
-                    SupervisorId = supervisor.Id,
-                    Date = dtoApplication.Date,
-                    StartTime = TimeOnly.FromTimeSpan(attendanceExist.ClockOut.Value).AddMinutes(1),
-                    EndTime = dtoApplication.EndTime,
-                    Reasons = dtoApplication.Reasons,
-                    Status = "Pending",
-                };
-
-                await oTApplicationServices.AddAsync(newOTApplication);
-
-                return Ok(new ApiResponse(false, $"OT Application created successfully!"));
+                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid OT application data."));
             }
-            catch (Exception)
+
+            var supervisor = await supervisorServices.GetEmployeeSupervisor(dtoApplication.EmployeeId);
+
+            var attendance = await attendanceServices.GetAllAsync();
+
+            var attendanceExist = attendance.FirstOrDefault(a => a.Equals(dtoApplication));
+
+            if (attendanceExist == null)
             {
-                return StatusCode(500, $"Internal Server Error");
+                return StatusCode(404, new ErrorResponse(ErrorCodes.AttendanceNotFound, $"Attendance not found."));
             }
+
+            if (attendanceExist.ClockOut == null)
+            {
+                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Clock out time is required."));
+            }
+
+            var otApplication = await oTApplicationServices.GetAllAsync();
+
+            var newOTApplication = new OtApplication
+            {
+                EmployeeId = dtoApplication.EmployeeId,
+                SupervisorId = supervisor.Id,
+                Date = dtoApplication.Date,
+                StartTime = TimeOnly.FromTimeSpan(attendanceExist.ClockOut.Value).AddMinutes(1),
+                EndTime = dtoApplication.EndTime,
+                Reasons = dtoApplication.Reasons,
+                Status = "Pending",
+            };
+
+            await oTApplicationServices.AddAsync(newOTApplication);
+
+            return Ok(new SuccessResponse($"OT Application created successfully!"));
+
         }
 
         [HttpGet]
         public async Task<IActionResult> RetrieveOTApplication([FromQuery] int? pageIndex, [FromQuery] int? pageSize)
         {
-            var oTApplications = new List<OtApplication>();
 
-            try
+            var otApplication = await oTApplicationServices.GetAllAsync();
+
+            var mappedOTApplication = mapper.Map<List<ReadOtApplicationDto>>(otApplication);
+
+            if (!mappedOTApplication.Any())
             {
-                var otApplication = await oTApplicationServices.GetAllAsync();
-
-                var mappedOTApplication = mapper.Map<List<ReadOtApplicationDto>>(otApplication);
-
-                if (!mappedOTApplication.Any())
-                {
-                    return Ok(new ApiResponse<List<ReadOtApplicationDto>?>(false, $"OT Application not found.", mappedOTApplication));
-                }
-
-                if (pageIndex != null && pageSize != null)
-                {
-                    otApplication = oTApplicationServices.GetOTPagination(otApplication, pageIndex.Value, pageSize.Value);
-                }
-
-                return Ok(new ApiResponse<List<ReadOtApplicationDto>?>(false, $"OT Application retrieved successfully!", mappedOTApplication));
+                return Ok(new SuccessResponse<List<ReadOtApplicationDto>?>(mappedOTApplication, $"No OT Application found!"));
             }
-            catch (Exception)
+
+            if (pageIndex != null && pageSize != null)
             {
-                return StatusCode(500, "Internal server error");
+                otApplication = oTApplicationServices.GetOTPagination(otApplication, pageIndex.Value, pageSize.Value);
             }
+
+            return Ok(new SuccessResponse<List<ReadOtApplicationDto>?>(mappedOTApplication, $"OT Applications retrieved successfully!"));
+
         }
 
         [HttpGet("{oTApplicationId:int}")]
         public async Task<IActionResult> RetrieveOTApplication(int oTApplicationId, int? pageIndex, int? pageSize)
         {
-            try
+
+            var otApplication = await oTApplicationServices.GetByIdAsync(oTApplicationId);
+
+            if (otApplication == null)
             {
-                var otApplication = await oTApplicationServices.GetByIdAsync(oTApplicationId);
-
-                if (otApplication == null)
-                {
-                    return NotFound(new ApiResponse(false, $"OT Application with id: {oTApplicationId} not found."));
-                }
-
-                var mappedOTApplication = mapper.Map<ReadOtApplicationDto>(otApplication);
-
-                return Ok(new ApiResponse<ReadOtApplicationDto?>(false, $"OT Application with id: {otApplication} retrieved successfully!", mappedOTApplication));
+                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {oTApplicationId} not found."));
             }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+
+            var mappedOTApplication = mapper.Map<ReadOtApplicationDto>(otApplication);
+
+            return Ok(new SuccessResponse<ReadOtApplicationDto?>(mappedOTApplication, $"OT Application with id: {oTApplicationId} retrieved successfully!"));
+
         }
 
         [HttpPut("{oTApplicationId:int}")]
         public async Task<IActionResult> UpdateOTApplication(int oTApplicationId, UpdateOtApplicationDto otApplicationDTO)
         {
-            try
+
+            var overtime = await oTApplicationServices.GetByIdAsync(oTApplicationId);
+
+            if (overtime == null)
             {
-                var overtime = await oTApplicationServices.GetByIdAsync(oTApplicationId);
-
-                if (overtime == null)
-                {
-                    return NotFound(new ApiResponse(false, $"OT Application with {oTApplicationId} not found."));
-                }
-
-                overtime.Date = otApplicationDTO.Date;
-                overtime.Status = otApplicationDTO.Status;
-                overtime.StartTime = otApplicationDTO.StartTime;
-                overtime.EndTime = otApplicationDTO.EndTime;
-                overtime.Reasons = otApplicationDTO.Reasons;
-
-                await oTApplicationServices.UpdateAsync(overtime);
-
-                return Ok(new ApiResponse(true, $"OT Application with id: {oTApplicationId} updated successfully!"));
+                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {oTApplicationId} not found."));
             }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+
+            overtime.Date = otApplicationDTO.Date;
+            overtime.Status = otApplicationDTO.Status;
+            overtime.StartTime = otApplicationDTO.StartTime;
+            overtime.EndTime = otApplicationDTO.EndTime;
+            overtime.Reasons = otApplicationDTO.Reasons;
+
+            await oTApplicationServices.UpdateAsync(overtime);
+
+            return Ok(new SuccessResponse<ReadOtApplicationDto?>(mapper.Map<ReadOtApplicationDto>(overtime), $"OT Application with id: {oTApplicationId} updated successfully!"));
         }
 
         [HttpDelete("{otApplicationId:int}")]
         public async Task<IActionResult> DeleteOTApplication(int otApplicationId)
         {
-            try
+
+            var otApplication = await oTApplicationServices.GetByIdAsync(otApplicationId);
+
+            if (otApplication == null)
             {
-                var otApplication = await oTApplicationServices.GetByIdAsync(otApplicationId);
-
-                if (otApplication == null)
-                {
-                    return NotFound(new ApiResponse(false, $"OT Application with id: {otApplicationId} not found."));
-                }
-
-                await oTApplicationServices.DeleteAsync(otApplication);
-
-                return Ok(new ApiResponse(false, $"OT Application with id: {otApplicationId} deleted successfully!"));
+                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {otApplicationId} not found."));
             }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+
+            await oTApplicationServices.DeleteAsync(otApplication);
+
+            return Ok(new SuccessResponse($"OT Application with id: {otApplicationId} deleted successfully!"));
         }
 
         [HttpGet("employee/{employeeId:int}")]
         public async Task<IActionResult> RetrieveEmployeeOT(int employeeId, int? pageIndex, int? pageSize)
         {
-            try
-            {
-                var employeeOt = await oTApplicationServices.GetOTByEmployee(employeeId, pageIndex, pageSize);
 
-                return Ok(employeeOt);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return Ok(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(false, $"Internal Server Error"));
-            }
+            var employeeOt = await oTApplicationServices.GetOTByEmployee(employeeId, pageIndex, pageSize);
+
+            return Ok(new SuccessResponse<List<OtApplication>?>(employeeOt, $"OT Applications retrieved successfully!"));
+
         }
 
         [HttpGet("range-date")]
@@ -202,18 +159,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var otApplications = await oTApplicationServices.GetOTByDate(startDate, endDate, pageIndex, pageSize);
 
             var mappedOTApplications = mapper.Map<List<OtApplication>>(otApplications);
-            try
-            {
-                return Ok(new ApiResponse<List<OtApplication>?>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return Ok(new ApiResponse<List<OtApplication>?>(false, ex.Message, mappedOTApplications));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, $"Internal Server Error");
-            }
+
+            return Ok(new SuccessResponse<List<OtApplication>?>(mappedOTApplications, $"OT Applications retrieved successfully!"));
+
         }
 
         [HttpGet("supervisor/{supervisorId:int}")]
@@ -222,56 +170,29 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var otApplications = await oTApplicationServices.GetOTBySupervisor(supervisorId, pageIndex, pageSize);
 
             var mappedOTApplications = mapper.Map<List<OtApplication>>(otApplications);
-            try
-            {
-                return Ok(new ApiResponse<List<OtApplication>?>(false, $"OT Applications retrieved successfully!", mappedOTApplications));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return Ok(new ApiResponse<List<OtApplication>?>(false, ex.Message, mappedOTApplications));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, $"Internal Server Error");
-            }
+
+            return Ok(new SuccessResponse<List<OtApplication>?>(mappedOTApplications, $"OT Applications retrieved successfully!"));
+
         }
 
         [HttpPut("{oTApplicationId:int}/approve")]
         public async Task<IActionResult> ApproveOT(int oTApplicationId)
         {
-            try
-            {
-                await oTApplicationServices.ApproveOT(oTApplicationId);
 
-                return Ok(new ApiResponse(true, $"OT Application with id: {oTApplicationId} has been approved!"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(true, $"Internal Server Error"));
-            }
+            await oTApplicationServices.ApproveOT(oTApplicationId);
+
+            return Ok(new SuccessResponse($"OT Application with id: {oTApplicationId} has been approved!"));
+
         }
 
         [HttpPut("{oTApplicationId:int}/reject")]
         public async Task<IActionResult> RejectOT(int oTApplicationId)
         {
-            try
-            {
-                await oTApplicationServices.RejectOT(oTApplicationId);
 
-                return Ok(new ApiResponse(true, $"OT Application with id: {oTApplicationId} has been rejected!"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse(false, ex.Message));
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new ApiResponse(true, $"Internal Server Error"));
-            }
+            await oTApplicationServices.RejectOT(oTApplicationId);
+
+            return Ok(new SuccessResponse($"OT Application with id: {oTApplicationId} has been rejected!"));
+
         }
     }
 }

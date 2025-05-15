@@ -3,6 +3,9 @@ using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models;
 using hrconnectbackend.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.HttpResults;
+using hrconnectbackend.Exceptions;
+using hrconnectbackend.Constants;
 
 namespace hrconnectbackend.Services.Clients
 {
@@ -17,48 +20,58 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<PaymentDto> ProcessPaymentAsync(int subscriptionId, decimal amount, string transactionId, string paymentMethod)
         {
-            var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
-            if (subscription == null)
-                throw new ArgumentException("Subscription not found");
-
-            var payment = new Payment
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                SubscriptionId = subscriptionId,
-                Amount = amount,
-                PaymentDate = DateTime.UtcNow,
-                TransactionId = transactionId,
-                PaymentMethod = paymentMethod,
-                Status = PaymentStatus.Successful
-            };
+                var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
+                if (subscription == null)
+                    throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with ID {subscriptionId} not found.");
 
-            _context.Payments.Add(payment);
+                var payment = new Payment
+                {
+                    SubscriptionId = subscriptionId,
+                    Amount = amount,
+                    PaymentDate = DateTime.UtcNow,
+                    TransactionId = transactionId,
+                    PaymentMethod = paymentMethod,
+                    Status = PaymentStatus.Successful
+                };
 
-            // Update next billing date
-            subscription.NextBillingDate = subscription.BillingCycle == BillingCycle.Monthly ?
-                subscription.NextBillingDate.AddMonths(1) : subscription.NextBillingDate.AddYears(1);
+                _context.Payments.Add(payment);
 
-            if (subscription.Status == SubscriptionStatus.PastDue || subscription.Status == SubscriptionStatus.TrialPeriod)
-                subscription.Status = SubscriptionStatus.Active;
+                // Update next billing date
+                subscription.NextBillingDate = subscription.BillingCycle == BillingCycle.Monthly ?
+                    subscription.NextBillingDate.AddMonths(1) : subscription.NextBillingDate.AddYears(1);
 
-            await _context.SaveChangesAsync();
+                if (subscription.Status == SubscriptionStatus.PastDue || subscription.Status == SubscriptionStatus.TrialPeriod)
+                    subscription.Status = SubscriptionStatus.Active;
 
-            return new PaymentDto
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new PaymentDto
+                {
+                    PaymentId = payment.PaymentId,
+                    SubscriptionId = payment.SubscriptionId,
+                    Amount = payment.Amount,
+                    PaymentDate = payment.PaymentDate,
+                    TransactionId = payment.TransactionId,
+                    Status = payment.Status.ToString(),
+                    PaymentMethod = payment.PaymentMethod
+                };
+            }
+            catch
             {
-                PaymentId = payment.PaymentId,
-                SubscriptionId = payment.SubscriptionId,
-                Amount = payment.Amount,
-                PaymentDate = payment.PaymentDate,
-                TransactionId = payment.TransactionId,
-                Status = payment.Status.ToString(),
-                PaymentMethod = payment.PaymentMethod
-            };
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<PaymentDto>> GetPaymentsBySubscriptionIdAsync(int subscriptionId)
         {
             var subscription = await _context.Subscriptions.FindAsync(subscriptionId);
             if (subscription == null)
-                return null;
+                throw new NotFoundException(ErrorCodes.SubscriptionNotFound, $"Subscription with ID {subscriptionId} not found.");
 
             return await _context.Payments
                 .Where(p => p.SubscriptionId == subscriptionId)
