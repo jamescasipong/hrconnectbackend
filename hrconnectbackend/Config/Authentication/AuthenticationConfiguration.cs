@@ -68,22 +68,51 @@ namespace hrconnectbackend.Config.Authentication
             {
                 OnChallenge = context =>
                 {
-                    context.HandleResponse();
-                    context.Response.StatusCode = 401;
-                    context.Response.ContentType = "application/json";
-                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Unauthorized, "Unauthorized access. Please login again."));
+                    if (!context.Response.HasStarted)
+                    {
+                        context.HandleResponse(); // Important: prevent default behavior
+                        context.Response.StatusCode = 401;
+                        context.Response.ContentType = "application/json";
+
+                        return context.Response.WriteAsJsonAsync(new ErrorResponse(
+                            ErrorCodes.Unauthorized,
+                            "Unauthorized access. Please login again."
+                        ));
+                    }
+
+                    return Task.CompletedTask;
                 },
-                OnForbidden = context =>
-                {
-                    context.Response.StatusCode = 403;
-                    context.Response.ContentType = "application/json";
-                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Forbidden, "Forbidden access. You do not have permission to access this resource."));
-                },
+
                 OnAuthenticationFailed = context =>
                 {
-                    context.Response.StatusCode = 401;
-                    context.Response.ContentType = "application/json";
-                    return context.Response.WriteAsJsonAsync(new ErrorResponse(ErrorCodes.Unauthorized, "Authentication failed. Please login again."));
+                    if (!context.Response.HasStarted)
+                    {
+                        context.Response.StatusCode = 401;
+                        context.Response.ContentType = "application/json";
+
+                        return context.Response.WriteAsJsonAsync(new ErrorResponse(
+                            ErrorCodes.Unauthorized,
+                            "Authentication failed. Please login again."
+                        ));
+                    }
+
+                    return Task.CompletedTask;
+                },
+
+                OnForbidden = context =>
+                {
+                    if (!context.Response.HasStarted)
+                    {
+                        context.Response.StatusCode = 403;
+                        context.Response.ContentType = "application/json";
+
+                        return context.Response.WriteAsJsonAsync(new ErrorResponse(
+                            ErrorCodes.Forbidden,
+                            "Forbidden access. You do not have permission to access this resource."
+                        ));
+                    }
+
+                    return Task.CompletedTask;
                 },
                 OnTokenValidated = context =>
                 {
@@ -91,7 +120,6 @@ namespace hrconnectbackend.Config.Authentication
                     _logger.LogInformation("Token validation successful.");
                     return Task.CompletedTask;
                 },
-                // Event triggered when the message is received (token validation)
                 OnMessageReceived = async (context) =>
                 {
                     var httpContext = context.HttpContext;

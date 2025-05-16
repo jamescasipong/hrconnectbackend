@@ -19,7 +19,6 @@ public class LeaveController(
     ILeaveApplicationServices leaveServices,
     ILogger<LeaveController> logger,
     ILeaveBalanceServices leaveBalanceServices,
-    AuthenticationServices authenticationServices,
     IMapper mapper)
     : ControllerBase
 {

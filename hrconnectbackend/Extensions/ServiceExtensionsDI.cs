@@ -65,14 +65,13 @@ namespace hrconnectbackend.Extensions
             // Class Based Object Injections
             services.AddSingleton<SubscriptionAuthorizationHelper>();
             services.AddSingleton<AuthorizationPolicyConfigurator>();
-            services.AddScoped<AuthenticationServices>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         }
-        
+
         public static void AddCorsHandler(this IServiceCollection services)
         {
             services.AddCors(options =>
-            {   
+            {
                 // Allow all origins, methods, and headers for the default policy
                 options.AddPolicy("AllowAll",
                     builder =>
@@ -97,6 +96,6 @@ namespace hrconnectbackend.Extensions
             app.UseCors("HRConnect");
             app.UseCors("AllowAll");
         }
-       
+
     }
 }

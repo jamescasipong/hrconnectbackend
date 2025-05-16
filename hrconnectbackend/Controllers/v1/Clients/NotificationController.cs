@@ -157,8 +157,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
             await notificationServices.DeleteAsync(notification);
 
             return Ok(new SuccessResponse($"Notification with id: {notificationId} deleted successfully."));
-
-
         }
     }
 }
