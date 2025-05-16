@@ -286,7 +286,8 @@ namespace hrconnectbackend.Services.Clients
         public async Task<List<Attendance>> GetMonthlyAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize)
         {
             if (id <= 0)
-                throw new ArgumentException("Invalid employee ID", nameof(id));
+                throw new BadRequestException("Invalid employee ID", nameof(id));
+
 
             var currentMonth = DateTime.UtcNow.Month;
             var currentYear = DateTime.UtcNow.Year;

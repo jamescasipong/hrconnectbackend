@@ -168,8 +168,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize]
         [HttpGet("clocked-in")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(SuccessResponse<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedIn()
         {
             var currentUserId = User.RetrieveSpecificUser("EmployeeId");
@@ -186,9 +188,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
         [Authorize]
         [HttpPut("clock-out")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ClockOut()
         {
             var currentUserId = User.RetrieveSpecificUser("EmployeeId");
@@ -204,8 +207,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
         [Authorize]
         [HttpGet("clocked-out")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HasClockedOut()
         {
             var currentUserId = User.RetrieveSpecificUser("EmployeeId");
@@ -222,8 +227,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin,HR")]
         [HttpGet("daily/{employeeId:int}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(SuccessResponse<ReadAttendanceDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance(int employeeId)
         {
             var attendanceToday = await attendanceServices.GetDailyAttendanceByEmployeeId(employeeId);
@@ -235,13 +242,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
 
-            return Ok(new SuccessResponse<ReadAttendanceDto?>(attendanceMapped, $"Attendance for employee {employeeId} retrieved successfully!"));
+            return Ok(new SuccessResponse<ReadAttendanceDto>(attendanceMapped, $"Attendance for employee {employeeId} retrieved successfully!"));
         }
 
         [Authorize]
         [HttpGet("my-attendance-today")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(SuccessResponse<ReadAttendanceDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetDailyAttendance()
         {
             var currentUserId = User.RetrieveSpecificUser("EmployeeId");
@@ -256,7 +265,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var attendanceMapped = mapper.Map<ReadAttendanceDto>(attendanceToday);
 
-            return Ok(new SuccessResponse<ReadAttendanceDto?>(attendanceMapped, "Attendance retrieved successfully"));
+            return Ok(new SuccessResponse<ReadAttendanceDto>(attendanceMapped, "Attendance retrieved successfully"));
 
         }
 
