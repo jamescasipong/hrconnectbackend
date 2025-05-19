@@ -15,7 +15,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Authorize]
     [ApiController]
-    [Route("api/v{version:apiVersion}/shift")]
+    [Route("api/v{version:apiVersion}/shifts")]
     [ApiVersion("1.0")]
     public class ShiftController(
         IShiftServices shiftServices,
@@ -23,17 +23,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         : ControllerBase
     {
         [Authorize(Roles = "Admin")]
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetShiftById(int id)
         {
-
             var shift = await shiftServices.GetByIdAsync(id);
-
-
             var mappedShift = mapper.Map<ShiftDTO>(shift);
             return Ok(new SuccessResponse<ShiftDTO>(mappedShift, $"Shift with ID {id} retrieved successfully"));
-
         }
+
         [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllShifts()
@@ -46,23 +43,21 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
 
             var shifts = await shiftServices.GetAllAsync();
-
             var orgShifts = shifts.Where(a => a.OrganizationId == orgId).ToList();
 
             return Ok(new SuccessResponse<List<ShiftDTO>>(mapper.Map<List<ShiftDTO>>(orgShifts), "All shifts retrieved successfully"));
         }
+
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateShift(ShiftDTO shiftDTO)
         {
-
             if (!IsValidDayOfWorked(shiftDTO.DaysOfWorked))
             {
                 throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid day of the week");
             }
 
             var employee = await shiftServices.GetAllAsync();
-
             bool shiftExisted = employee.Where(a => a.EmployeeShiftId == shiftDTO.EmployeeShiftId && a.DaysOfWorked == shiftDTO.DaysOfWorked).Any();
 
             if (shiftExisted)
@@ -79,13 +74,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
             });
 
             return Ok(new SuccessResponse<ShiftDTO>(mapper.Map<ShiftDTO>(createdShift), "Shift created successfully"));
-
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateShift(int id, [FromBody] Shift shift)
         {
-
             var existingShift = await shiftServices.GetByIdAsync(id);
 
             existingShift.EmployeeShiftId = shift.EmployeeShiftId;
@@ -96,23 +90,19 @@ namespace hrconnectbackend.Controllers.v1.Clients
             await shiftServices.UpdateAsync(existingShift);
 
             return Ok(new SuccessResponse<ShiftDTO>(mapper.Map<ShiftDTO>(shift), $"Shift with ID {id} updated successfully"));
-
-
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteShift(int id)
         {
-
             var shift = await shiftServices.GetByIdAsync(id);
-
             await shiftServices.DeleteAsync(shift);
-
             return Ok(new SuccessResponse($"Shift with ID {id} deleted successfully"));
-
         }
+
         [Authorize]
-        [HttpGet("my-shift")]
+        [HttpGet("me")]
         public async Task<IActionResult> GetMyShift()
         {
             var employeeId = int.Parse(User.RetrieveSpecificUser(ClaimTypes.NameIdentifier)!);
@@ -124,17 +114,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
 
             var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
-
             var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
             return Ok(new SuccessResponse<List<ShiftDTO>>(mappedShift, $"Shifts for employee with ID {employeeId} retrieved successfully"));
-
         }
 
-
         [Authorize(Roles = "Admin")]
-        [HttpGet("employee-shift/{employeeId}")]
-        public async Task<IActionResult> GetEmployeeShift(int employeeId)
+        [HttpGet("employees/{employeeId:int}")]
+        public async Task<IActionResult> GetEmployeeShifts(int employeeId)
         {
             var organizationId = User.RetrieveSpecificUser("organizationId")!;
 
@@ -144,26 +131,22 @@ namespace hrconnectbackend.Controllers.v1.Clients
             }
 
             var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
-
             var mappedShift = mapper.Map<List<ShiftDTO>>(shifts);
 
             return Ok(new SuccessResponse<List<ShiftDTO>>(mappedShift, $"Shifts for employee with ID {employeeId} retrieved successfully"));
-
         }
 
         [Authorize(Roles = "Admin,HR")]
-        [HttpGet("shift-today/{employeeId}")]
-        public async Task<IActionResult> HasShiftToday(int employeeId)
+        [HttpGet("employees/{employeeId:int}/today")]
+        public async Task<IActionResult> CheckEmployeeHasShiftToday(int employeeId)
         {
-
             var hasShift = await shiftServices.HasShiftToday(employeeId);
             return Ok(new SuccessResponse<bool>(hasShift, $"User with ID {employeeId} has shift today"));
-
         }
 
         [Authorize]
-        [HttpGet("shift-today")]
-        public async Task<IActionResult> HasShiftToday()
+        [HttpGet("me/today")]
+        public async Task<IActionResult> CheckMyShiftToday()
         {
             var user = User.RetrieveSpecificUser("EmployeeId")!;
 
@@ -172,28 +155,24 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 var hasShift = await shiftServices.HasShiftToday(employeeId);
                 return Ok(new SuccessResponse<bool>(hasShift, $"User with ID {employeeId} has shift today"));
             }
-            else
-            {
-                throw new UnauthorizedException(ErrorCodes.InvalidRequestModel, "Invalid employee ID");
-            }
 
+            throw new UnauthorizedException(ErrorCodes.InvalidRequestModel, "Invalid employee ID");
         }
 
         private bool IsValidDayOfWorked(string name)
         {
             List<string> daysOfWorked = new List<string>
-        {
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday"
-        };
+            {
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            };
 
             return daysOfWorked.Any(a => a.ToLower() == name.ToLower());
         }
     }
-
 }

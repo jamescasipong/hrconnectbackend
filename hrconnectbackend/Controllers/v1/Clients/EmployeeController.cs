@@ -81,7 +81,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 Role = "Employee",
             };
 
-            var user = await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
+            await userAccountServices.CreateEmployeeUserAccount(newAccount, employeeId);
 
             return Ok(new SuccessResponse("User account created successfully!"));
 

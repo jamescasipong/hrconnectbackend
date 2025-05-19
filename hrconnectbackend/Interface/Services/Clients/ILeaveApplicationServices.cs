@@ -13,3 +13,9 @@ public interface ILeaveApplicationServices : IGenericRepository<LeaveApplication
     Task<PagedResponse<IEnumerable<LeaveApplication>>> GetLeaveByEmployee(int employeeId, PaginationParams paginationParams, string searchTerm);
     Task<LeaveApplication> RequestLeave(LeaveApplication leaveApplication);
 }
+
+public interface ILeaveBalanceServices : IGenericRepository<LeaveBalance>
+{
+    Task<List<LeaveBalance>> GetLeaveBalanceByEmployeeId(int employeeId);
+    Task AddOrUpdateLeaveBalance(LeaveBalance leaveBalance);
+}

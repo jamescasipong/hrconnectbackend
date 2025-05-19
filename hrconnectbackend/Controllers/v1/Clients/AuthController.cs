@@ -14,7 +14,7 @@ using System.Security.Claims;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class AuthController(
         IAuthService authService,

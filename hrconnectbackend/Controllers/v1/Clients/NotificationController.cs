@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
     [Route("api/v{version:apiVersion}/notification")]
     [ApiVersion("1.0")]
@@ -26,34 +25,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
     {
         // private IDistributedCache _distributedCache;
 
-
         [Authorize(Roles = "Admin")]
-        [HttpPost("{employeeId:int}")]
-        public async Task<IActionResult> CreateNotification(int employeeId, CreateNotificationDto notificationDTO)
-        {
-
-            var notification = mapper.Map<Notifications>(notificationDTO);
-
-            var newNotification = await notificationServices.AddAsync(notification);
-
-            var createUserNotificationDTO = new CreateUserNotificationDto
-            {
-                EmployeeId = employeeId,
-                NotificationId = newNotification.Id,
-                IsRead = false,
-                Status = "Unread"
-            };
-
-            var usernotification = mapper.Map<UserNotification>(createUserNotificationDTO);
-
-            await userNotificationServices.AddAsync(usernotification);
-
-            return Ok(new SuccessResponse("Notification created successfully."));
-
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost("assing-notification/{employeeId:int}")]
+        [HttpPost("employee/{employeeId:int}")]
         public async Task<IActionResult> CreateUserNotification(int employeeId, CreateNotificationDto notificationDTO)
         {
             var orgId = User.RetrieveSpecificUser("OrganizationId");
@@ -79,7 +52,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         }
 
         [Authorize]
-        [HttpPut("mark-as-read/{notificationId:int}")]
+        [HttpPut("{notificationId:int}/read")]
         public async Task<IActionResult> MarkAsRead(int notificationId)
         {
 

@@ -3,6 +3,7 @@ using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
+using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.EmployeeModels;
 using hrconnectbackend.Repository;
@@ -10,8 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
 {
-    public class AttendanceServices(DataContext context, IMapper mapper, IPaginatedService<Attendance> paginatedService)
-        : GenericRepository<Attendance>(context), IAttendanceServices
+    public class AttendanceServices(DataContext context, IMapper mapper, IPaginatedService<Attendance> paginatedServiceAttendance, IPaginatedService<AttendanceCertification> paginatedServiceCertification)
+        : GenericRepository<Attendance>(context), IAttendanceServices, IAttendanceCertificationServices
     {
         public async Task ClockIn(int employeeId)
         {
@@ -264,7 +265,7 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<PagedResponse<IEnumerable<Attendance>>> GetAttendanceByEmployeeId(int id, PaginationParams paginationParams)
         {
-            var attendancePagination = await paginatedService.GetPaginatedAsync(
+            var attendancePagination = await paginatedServiceAttendance.GetPaginatedAsync(
                 paginationParams,
                 a => a.EmployeeId == id,
                 orderBy: q => q.OrderBy(a => a.DateToday));
@@ -289,7 +290,7 @@ namespace hrconnectbackend.Services.Clients
             if (id <= 0)
                 throw new BadRequestException("Invalid employee ID", nameof(id));
 
-            var paginatedResponse = await paginatedService.GetPaginatedAsync(
+            var paginatedResponse = await paginatedServiceAttendance.GetPaginatedAsync(
                 paginationParams,
                 a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow),
                 orderBy: q => q.OrderBy(a => a.DateToday));
@@ -310,7 +311,7 @@ namespace hrconnectbackend.Services.Clients
                 throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Start date cannot be greater than end date.");
             }
 
-            var attendanceRecordPaginations = await paginatedService.GetPaginatedAsync(
+            var attendanceRecordPaginations = await paginatedServiceAttendance.GetPaginatedAsync(
                 paginationParams,
                 a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) >= DateOnly.FromDateTime(dateIntervalParam.StartDate) && DateOnly.FromDateTime(a.DateToday) <= DateOnly.FromDateTime(dateIntervalParam.EndDate),
                 orderBy: q => q.OrderBy(a => a.DateToday));
@@ -341,12 +342,148 @@ namespace hrconnectbackend.Services.Clients
 
         public Task<PagedResponse<IEnumerable<Attendance>>> GetAllAttendanceByOrganization(int organizationId, PaginationParams paginationParams)
         {
-            var paginatedResponse = paginatedService.GetPaginatedAsync(
+            var paginatedResponse = paginatedServiceAttendance.GetPaginatedAsync(
                 paginationParams,
                 a => a.Employee!.OrganizationId == organizationId,
                 orderBy: q => q.OrderBy(a => a.DateToday));
 
             return paginatedResponse;
+        }
+
+        public async Task CreateCertification(AttendanceCertification attendanceCertification)
+        {
+            var newCertification = new AttendanceCertification
+            {
+                EmployeeId = attendanceCertification.EmployeeId,
+                SupervisorId = attendanceCertification.SupervisorId,
+                Status = attendanceCertification.Status,
+                Date = attendanceCertification.Date,
+                TenantId = attendanceCertification.TenantId,
+                ClockIn = attendanceCertification.ClockIn,
+                ClockOut = attendanceCertification.ClockOut,
+                Reason = attendanceCertification.Reason,
+                DateCreated = DateTime.UtcNow,
+                OrganizationId = attendanceCertification.OrganizationId
+            };
+
+            await _context.AttendanceCertifications.AddAsync(newCertification);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<AttendanceCertification> GetCertificationById(int id)
+        {
+            var certification = await _context.AttendanceCertifications.FirstOrDefaultAsync(c => c.Id == id);
+
+            if (certification == null)
+            {
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No certification found with ID {id}.");
+            }
+
+            return certification;
+        }
+
+        public async Task<PagedResponse<IEnumerable<AttendanceCertification>>> GetAllCertifications(int organizationId, PaginationParams paginationParams, DateIntervalParam? dateIntervalParam = null)
+        {
+            if (dateIntervalParam != null)
+            {
+                var certifications = await paginatedServiceCertification.GetPaginatedAsync(
+                    paginationParams,
+                    c => c.OrganizationId == organizationId && c.Date >= dateIntervalParam.StartDate && c.Date <= dateIntervalParam.EndDate,
+                    orderBy: q => q.OrderBy(c => c.Date));
+
+                return certifications;
+            }
+
+            var allCertifications = await paginatedServiceCertification.GetPaginatedAsync(
+                paginationParams,
+                c => c.OrganizationId == organizationId,
+                orderBy: q => q.OrderBy(c => c.Date));
+
+            return allCertifications;
+        }
+
+        public Task<PagedResponse<IEnumerable<AttendanceCertification>>> GetCertificationsByEmployeeId(int employeeId, PaginationParams paginationParams)
+        {
+            var certifications = paginatedServiceCertification.GetPaginatedAsync(
+                paginationParams,
+                c => c.EmployeeId == employeeId,
+                orderBy: q => q.OrderBy(c => c.Date));
+
+            return certifications;
+        }
+
+        public Task<PagedResponse<IEnumerable<AttendanceCertification>>> GetCertificationsByStatus(int organizationId, PaginationParams paginationParams, string status)
+        {
+            var certifications = paginatedServiceCertification.GetPaginatedAsync(
+                paginationParams,
+                c => c.OrganizationId == organizationId && c.Status == status,
+                orderBy: q => q.OrderBy(c => c.Date));
+
+            return certifications;
+        }
+
+        public async Task UpdateCertification(AttendanceCertification attendanceCertification)
+        {
+            var certification = await _context.AttendanceCertifications.FindAsync(attendanceCertification.Id);
+
+            if (certification == null)
+            {
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No certification found with ID {attendanceCertification.Id}.");
+            }
+
+            certification.EmployeeId = attendanceCertification.EmployeeId;
+            certification.SupervisorId = attendanceCertification.SupervisorId;
+            certification.Status = attendanceCertification.Status;
+            certification.Date = attendanceCertification.Date;
+            certification.TenantId = attendanceCertification.TenantId;
+            certification.ClockIn = attendanceCertification.ClockIn;
+            certification.ClockOut = attendanceCertification.ClockOut;
+            certification.Reason = attendanceCertification.Reason;
+            certification.DateCreated = DateTime.UtcNow;
+
+            _context.AttendanceCertifications.Update(certification);
+            await SaveChangesAsync();
+        }
+
+        public async Task DeleteCertification(int id)
+        {
+            var certification = await _context.AttendanceCertifications.FindAsync(id);
+
+            if (certification == null)
+            {
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No certification found with ID {id}.");
+            }
+
+            _context.AttendanceCertifications.Remove(certification);
+            await SaveChangesAsync();
+        }
+
+        public async Task ApproveCertification(int id)
+        {
+            var certification = await _context.AttendanceCertifications.FindAsync(id);
+
+            if (certification == null)
+            {
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No certification found with ID {id}.");
+            }
+
+            certification.Status = "Approved";
+            _context.AttendanceCertifications.Update(certification);
+            await SaveChangesAsync();
+        }
+
+        public async Task RejectCertification(int id)
+        {
+            var certification = await _context.AttendanceCertifications.FindAsync(id);
+
+            if (certification == null)
+            {
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No certification found with ID {id}.");
+            }
+
+            certification.Status = "Rejected";
+            _context.AttendanceCertifications.Update(certification);
+            await SaveChangesAsync();
         }
     }
 }

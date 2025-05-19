@@ -126,7 +126,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId, PaginationParams paginationParams)
+        public async Task<IActionResult> GetAttendanceByEmployee(int employeeId, [FromQuery] PaginationParams paginationParams)
         {
             var attendances = await attendanceServices.GetAttendanceByEmployeeId(employeeId, paginationParams);
 
@@ -270,7 +270,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, PaginationParams paginationParams)
+        public async Task<IActionResult> GetAttendanceInRange(int employeeId, [FromQuery] string start, [FromQuery] string end, [FromQuery] PaginationParams paginationParams)
         {
             var attendanceRecords = await attendanceServices.GetRangeAttendanceByEmployeeId(employeeId, new DateIntervalParam(DateTime.Parse(start), DateTime.Parse(end)), paginationParams);
 
@@ -286,7 +286,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetMonthlyAttendance(int employeeId, PaginationParams paginationParams)
+        public async Task<IActionResult> GetMonthlyAttendance(int employeeId, [FromQuery] PaginationParams paginationParams)
         {
             var attendanceRecords = await attendanceServices.GetMonthlyAttendanceByEmployeeId(employeeId, paginationParams);
 
@@ -347,18 +347,23 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             return Ok(new SuccessResponse<dynamic?>(employeeAttendanceStats, "Employees Attendance Stats Retrieved"));
         }
-
-        [Authorize(Roles = "Admin,HR")]
+        [Authorize]
         [HttpPost("certification")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCoa(CreateAttendanceCertificationDto attendanceDto)
         {
+            var currentUserId = User.RetrieveSpecificUser("EmployeeId");
+
+            if (!int.TryParse(currentUserId, out int employeeId))
+            {
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "User not authenticated. Please login.");
+            }
 
             var newAttendance = new AttendanceCertification
             {
-                EmployeeId = attendanceDto.EmployeeId,
+                EmployeeId = employeeId,
                 SupervisorId = attendanceDto.SupervisorId,
                 Date = DateTime.Parse(attendanceDto.Date),
                 Status = "Pending",
@@ -368,7 +373,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 DateCreated = DateTime.Now,
             };
 
-            await attendanceCertificationServices.AddAsync(newAttendance);
+            await attendanceCertificationServices.CreateCertification(newAttendance);
 
             return Ok(new SuccessResponse($"Attendance certification created successfully!"));
         }
@@ -379,11 +384,26 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAttendanceCertification()
+        public async Task<IActionResult> GetAttendanceCertification([FromQuery] PaginationParams paginationParams)
         {
-            var certifications = await attendanceCertificationServices.GetAllAsync();
+            var orgId = User.RetrieveSpecificUser("organizationId");
 
-            return Ok(new SuccessResponse<List<AttendanceCertification>>(certifications, "Attendance certifications retrieved successfully!"));
+            var certifications = await attendanceCertificationServices.GetAllCertifications(int.Parse(orgId), paginationParams);
+
+            return Ok(certifications);
+        }
+
+        [Authorize]
+        [HttpGet("certification/employee/{employeeId:int}")]
+        [ProducesResponseType(typeof(SuccessResponse<List<AttendanceCertification>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAttendanceCertificationByEmployee(int employeeId, [FromQuery] PaginationParams paginationParams)
+        {
+            var certifications = await attendanceCertificationServices.GetCertificationsByEmployeeId(employeeId, paginationParams);
+
+            return Ok(certifications);
         }
 
         [Authorize]
@@ -394,7 +414,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAttendanceCertification(int id)
         {
-            var certification = await attendanceCertificationServices.GetByIdAsync(id);
+            var certification = await attendanceCertificationServices.GetCertificationById(id);
 
             return Ok(new SuccessResponse<AttendanceCertification>(certification, $"Attendance certification with ID {id} retrieved successfully!"));
 
@@ -407,14 +427,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateAttendanceCertification(int id, [FromBody] UpdateAttendanceCertificationDto attendanceDto)
         {
-            var existingAttendance = await attendanceCertificationServices.GetByIdAsync(id);
+            var existingAttendance = await attendanceCertificationServices.GetCertificationById(id);
 
             existingAttendance.ClockIn = TimeOnly.Parse(attendanceDto.ClockIn).ToTimeSpan();
             existingAttendance.ClockOut = TimeOnly.Parse(attendanceDto.ClockOut).ToTimeSpan();
             existingAttendance.Date = DateTime.Parse(attendanceDto.Date);
             existingAttendance.Reason = attendanceDto.Reason;
 
-            await attendanceCertificationServices.UpdateAsync(existingAttendance);
+            await attendanceCertificationServices.UpdateCertification(existingAttendance);
 
             return Ok(new SuccessResponse($"Attendance certification with ID {id} updated successfully!"));
 
@@ -427,9 +447,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteCertification(int id)
         {
-            var certification = await attendanceCertificationServices.GetByIdAsync(id);
-
-            await attendanceCertificationServices.DeleteAsync(certification);
+            await attendanceCertificationServices.DeleteCertification(id);
 
             return Ok(new SuccessResponse($"Attendance certification with ID: {id} deleted successfully!"));
 
@@ -443,7 +461,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ApproveCoa(int id)
         {
-
             await attendanceCertificationServices.ApproveCertification(id);
 
             return Ok(new SuccessResponse($"Attendance certification approved successfully!"));

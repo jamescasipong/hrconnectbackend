@@ -8,23 +8,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class SupervisorServices(DataContext context) : ISupervisorServices
+public class SupervisorServices(DataContext context, IPaginatedService<Employee> paginatedServiceEmployee) : ISupervisorServices
 {
-    public async Task<ICollection<Employee?>> GetAllSupervisors()
+    public async Task<PagedResponse<IEnumerable<Employee>>> GetAllSupervisors(int organizationId, PaginationParams paginationParams)
     {
-        var departmentSupervisors = await context.EmployeeDepartments.ToListAsync();
-        List<Employee?> supervisors = new List<Employee?>();
 
-        foreach (var department in departmentSupervisors)
-        {
-            var employee = await context.Employees.FindAsync(department.SupervisorId);
+        var paginatedSupervisors = await paginatedServiceEmployee.GetPaginatedAsync(paginationParams,
+            filter: a => a.EmployeeDepartment!.SupervisorId != null && a.OrganizationId == organizationId,
+            orderBy: a => a.OrderBy(a => a.CreatedAt),
+            includeProperties: "EmployeeDepartment");
 
-            if (employee == null) continue;
+        return paginatedSupervisors;
 
-            supervisors.Add(employee);
-        }
-
-        return supervisors;
     }
 
     public async Task<Employee> GetEmployeeSupervisor(int employeeId)
@@ -66,9 +61,12 @@ public class SupervisorServices(DataContext context) : ISupervisorServices
         return supervisor;
     }
 
-    public async Task<List<Employee>> GetAllEmployeesByASupervisor(int supervisorId)
+    public async Task<PagedResponse<IEnumerable<Employee>>> GetAllEmployeesByASupervisor(int supervisorId, PaginationParams paginationParams)
     {
-        var departmentSupervisors = await context.EmployeeDepartments.Include(a => a.Employees).Where(a => a.SupervisorId == supervisorId).SelectMany(a => a.Employees!).ToListAsync();
+        var departmentSupervisors = await paginatedServiceEmployee.GetPaginatedAsync(paginationParams,
+            filter: a => a.EmployeeDepartment!.SupervisorId == supervisorId,
+            orderBy: a => a.OrderBy(a => a.CreatedAt),
+            includeProperties: "EmployeeDepartment");
 
         return departmentSupervisors;
     }
@@ -78,5 +76,18 @@ public class SupervisorServices(DataContext context) : ISupervisorServices
         var employeeSupervisor = await context.EmployeeDepartments.AnyAsync(a => a.Id == employeeId);
 
         return employeeSupervisor;
+    }
+
+    public async Task DeleteSupervisor(int employeeId)
+    {
+        var supervisor = await context.Employees.FirstOrDefaultAsync(a => a.Id == employeeId);
+
+        if (supervisor == null)
+        {
+            throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Supervisor with id {employeeId} not found");
+        }
+
+        context.Employees.Remove(supervisor);
+        await context.SaveChangesAsync();
     }
 }

@@ -13,7 +13,7 @@ namespace hrconnectbackend.Services.Clients
     public class UserAccountServices(DataContext context)
         : GenericRepository<UserAccount>(context), IUserAccountServices
     {
-        public async Task<UserAccount?> CreateEmployeeUserAccount(UserAccount userAccount, int employeeId)
+        public async Task CreateEmployeeUserAccount(UserAccount userAccount, int employeeId)
         {
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
             using var transaction = _context.Database.BeginTransaction();
@@ -50,8 +50,6 @@ namespace hrconnectbackend.Services.Clients
 
                 await transaction.CommitAsync();
 
-                return createUser;
-
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -85,7 +83,7 @@ namespace hrconnectbackend.Services.Clients
             }
         }
 
-        public async Task<UserAccount> CreateUserAccount(int? organizationId, UserAccount userAccount)
+        public async Task CreateUserAccount(int? organizationId, UserAccount userAccount)
         {
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
 
@@ -101,9 +99,6 @@ namespace hrconnectbackend.Services.Clients
                 };
 
                 var createUser = await AddAsync(newUser);
-
-                return createUser;
-
             }
             catch (Exception ex)
             {
@@ -132,7 +127,7 @@ namespace hrconnectbackend.Services.Clients
             return userAccount;
         }
 
-        public async Task<UserAccount?> GetUserAccountByRefreshToken(string refreshToken)
+        public async Task<UserAccount> GetUserAccountByRefreshToken(string refreshToken)
         {
             var user = await _context.RefreshTokens
                 .Include(a => a.UserAccount)
@@ -141,6 +136,11 @@ namespace hrconnectbackend.Services.Clients
                 .Include(a => a.UserAccount!.RefreshTokens)  // Include the RefreshTokens navigation on UserAccount
                 .Select(a => a.UserAccount)  // Now select UserAccount
                 .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "User account not found.");
+            }
 
             return user;
         }

@@ -5,7 +5,6 @@ namespace hrconnectbackend.Models.DTOs
     public class CreateAttendanceCertificationDto
     {
         [Required(ErrorMessage = "Employee Id is required")]
-        public int EmployeeId { get; set; }
         public int SupervisorId { get; set; }
         [Required(ErrorMessage = "Date is required")]
         public string Date { get; set; } = string.Empty;

@@ -34,7 +34,7 @@ public class PagedResponse<T>
             throw new BadRequestException(ErrorCodes.InvalidPageSize, "Page size must be greater than zero.");
         }
 
-        Message = message != null ? $"Successfully retrieved {message} records" : $"Successfully retrieved records";
+        Message = message != null ? message : $"Successfully retrieved records";
 
         Pagination = new PaginationDetails(paginationDetails.PageNumber, paginationDetails.PageSize, paginationDetails.TotalRecords);
         Data = data;

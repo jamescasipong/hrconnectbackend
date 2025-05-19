@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
@@ -14,82 +15,68 @@ namespace hrconnectbackend.Controllers.v1.Clients;
 
 [Authorize]
 [ApiController]
-[Route("api/v{version:apiVersion}/supervisor")]
+[Route("api/v{version:apiVersion}/supervisors")]
 [ApiVersion("1.0")]
 public class SupervisorController(
     ISupervisorServices supervisorServices,
-    ILeaveApplicationServices leaveApplicationServices,
-    INotificationServices notificationServices,
-    IMapper mapper,
-    IServiceProvider serviceProvider)
-    : Controller
+    IMapper mapper) : ControllerBase
 {
-    private readonly ILeaveApplicationServices _leaveApplicationServices = leaveApplicationServices;
-    private readonly INotificationServices _notificationServices = notificationServices;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-
     [Authorize(Roles = "Admin,HR")]
     [HttpGet]
-    public async Task<IActionResult> GetAllSupervisors()
+    public async Task<IActionResult> GetAllSupervisors([FromQuery] PaginationParams paginationParams)
     {
+        var organizationId = User.RetrieveSpecificUser("organizationId")!;
 
-        var supervisors = await supervisorServices.GetAllSupervisors();
+        var supervisors = await supervisorServices.GetAllSupervisors(int.Parse(organizationId), paginationParams);
+        var mappedSupervisors = mapper.Map<List<ReadSupervisorDto>>(supervisors.Data);
 
-        var mappedSupervisors = mapper.Map<List<ReadSupervisorDto>>(supervisors);
+        var pagedResponse = new PagedResponse<IEnumerable<ReadSupervisorDto>>(
+            mappedSupervisors,
+            supervisors.Pagination);
 
-        if (!supervisors.Any())
-        {
-            return Ok(new SuccessResponse<List<ReadSupervisorDto>>(mappedSupervisors, "No supervisors found."));
-        }
-
-        return Ok(new SuccessResponse<List<ReadSupervisorDto>>(mappedSupervisors, $"All supervisors retrieved successfully."));
-
+        return Ok(pagedResponse);
     }
+
     [Authorize]
-    [HttpGet("{supervisorId:int}")]
-    public async Task<IActionResult> GetSupervisor(int supervisorId)
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetSupervisorById(int id)
     {
-
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        var supervisor = await supervisorServices.GetSupervisor(supervisorId);
-
-        var mapped = mapper.Map<ReadSupervisorDto>(supervisor);
-
-        return Ok(new SuccessResponse<ReadSupervisorDto>(mapped, $"Supervisor with id: {supervisorId} retrieved successfully."));
-
+        var supervisor = await supervisorServices.GetSupervisor(id);
+        return Ok(new SuccessResponse<ReadSupervisorDto>(
+            mapper.Map<ReadSupervisorDto>(supervisor),
+            $"Supervisor with ID {id} retrieved successfully"));
     }
+
     [Authorize(Roles = "Admin,HR")]
-    [HttpDelete("{supervisorId:int}")]
-    public async Task<IActionResult> DeleteSupervisor(int supervisorId)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteSupervisor(int id)
     {
+        var supervisor = await supervisorServices.GetSupervisor(id);
+        await supervisorServices.DeleteSupervisor(id); // Assuming you'll add this method
 
-        var supervisor = await supervisorServices.GetSupervisor(supervisorId);
-
-        return Ok(new SuccessResponse<ReadSupervisorDto>(mapper.Map<ReadSupervisorDto>(supervisor), $"Supervisor with id: {supervisorId} deleted successfully."));
-
+        return Ok(new SuccessResponse<ReadSupervisorDto>(
+            mapper.Map<ReadSupervisorDto>(supervisor),
+            $"Supervisor with ID {id} deleted successfully"));
     }
+
     [Authorize]
-    [HttpGet("{supervisorId:int}/employee")]
-    public async Task<IActionResult> RetrieveEmployeesBySupervisor(int supervisorId)
+    [HttpGet("{id:int}/employees")]
+    public async Task<IActionResult> GetSupervisees(int supervisorId, [FromQuery] PaginationParams paginationParams)
     {
-        var employee = await supervisorServices.GetAllEmployeesByASupervisor(supervisorId);
+        var employees = await supervisorServices.GetAllEmployeesByASupervisor(supervisorId, paginationParams);
 
-        var mapped = mapper.Map<List<ReadEmployeeDto>>(employee);
-
-        return Ok(new SuccessResponse<List<ReadEmployeeDto>>(mapped, $"Employees under supervisor with id: {supervisorId} retrieved successfully."));
+        return Ok(new SuccessResponse<List<ReadEmployeeDto>>(
+            mapper.Map<List<ReadEmployeeDto>>(employees),
+            $"Employees supervised by ID {supervisorId} retrieved successfully"));
     }
+
     [Authorize]
-    [HttpGet("employee/{employeeId:int}")]
-    public async Task<IActionResult> RetrieveEmployeeSupervisor(int employeeId)
+    [HttpGet("employees/{employeeId:int}/supervisor")]
+    public async Task<IActionResult> GetEmployeeSupervisor(int employeeId)
     {
-
-        var employeeSupervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
-
-        return Ok(new SuccessResponse<ReadSupervisorDto>(mapper.Map<ReadSupervisorDto>(employeeSupervisor), $"Supervisor of employee with id: {employeeId} retrieved successfully."));
-
-
+        var supervisor = await supervisorServices.GetEmployeeSupervisor(employeeId);
+        return Ok(new SuccessResponse<ReadSupervisorDto>(
+            mapper.Map<ReadSupervisorDto>(supervisor),
+            $"Supervisor for employee ID {employeeId} retrieved successfully"));
     }
-
-
 }

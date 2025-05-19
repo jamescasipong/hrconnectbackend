@@ -40,7 +40,7 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IUserAccountServices, UserAccountServices>();
             services.AddScoped<INotificationServices, NotificationServices>();
             services.AddScoped<IUserSettingsServices, UserSettingServices>();
-            services.AddScoped<IAttendanceCertificationServices, AttendanceCertificationServices>();
+            services.AddScoped<IAttendanceCertificationServices, AttendanceServices>();
             services.AddScoped<ILeaveApplicationServices, LeaveApplicationServices>();
             services.AddScoped<IPayrollServices, PayrollServices>();
             services.AddScoped<ILeaveBalanceServices, LeaveBalanceServices>();

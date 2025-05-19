@@ -186,7 +186,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,HR")]
         [HttpPut("{employeeDeptId:int}/supervisor")]
         public async Task<IActionResult> UpdateDeptSupervisor(int employeeDeptId, int supervisorId)
         {
@@ -198,17 +198,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var department = await departmentServices.GetEmployeeDepartment(employeeDeptId);
 
-            if (department == null)
-            {
-                throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {employeeDeptId} not found.");
-            }
-
             var employee = await employeeServices.GetByIdAsync(supervisorId);
-
-            if (employee == null)
-            {
-                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {supervisorId} not found.");
-            }
 
             var employeeDepartment = await departmentServices.UpdateEmployeeDepartmentSupervisor(employee.Id, department.Id);
 
