@@ -13,8 +13,8 @@ public interface IDepartmentServices : IGenericRepository<Department>
     Task CreateEmployeeDepartment(int supervisorId, int departmentId, int organizationId);
     Task<Department?> GetDepartmentByEmployee(int id);
     Task<object> RetrieveDepartment(int organizationId);
-    Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId);
-    Task<EmployeeDepartment?> GetEmployeeDepartment(int departmentId);
-    Task<EmployeeDepartment?> GetDepartmentByManagerId(int id);
-    Task<List<EmployeeDepartment>> RetrieveEmployeeDepartments(int OrganizationId, int? pageIndex, int? pageSize);
+    Task<EmployeeDepartment> UpdateEmployeeDepartmentSupervisor(int employeeId, int departmentId);
+    Task<EmployeeDepartment> GetEmployeeDepartment(int departmentId);
+    Task<EmployeeDepartment> GetDepartmentByManagerId(int id);
+    Task<PagedResponse<IEnumerable<EmployeeDepartment>>> RetrieveEmployeeDepartments(int organizationId, PaginationParams paginationParams);
 }

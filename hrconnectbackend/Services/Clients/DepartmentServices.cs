@@ -11,18 +11,17 @@ using System.Transactions;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class DepartmentServices(DataContext context, ILogger<DepartmentServices> logger) : GenericRepository<Department>(context), IDepartmentServices
+public class DepartmentServices(DataContext context, ILogger<DepartmentServices> logger, IPaginatedService<EmployeeDepartment> paginatedServiceEmployeeDepartment) : GenericRepository<Department>(context), IDepartmentServices
 {
-    public async Task<List<EmployeeDepartment>> RetrieveEmployeeDepartments(int OrganizationId, int? pageIndex, int? pageSize)
+    public async Task<PagedResponse<IEnumerable<EmployeeDepartment>>> RetrieveEmployeeDepartments(int organizationId, PaginationParams paginationParams)
     {
-        var departments = await _context.EmployeeDepartments.Where(a => a.OrganizationId == OrganizationId).Include(a => a.Organization).Include(e => e.Employees).ToListAsync();
+        var employeeDepartments = await paginatedServiceEmployeeDepartment.GetPaginatedAsync(
+            paginationParams,
+            x => x.OrganizationId == organizationId,
+            orderBy: q => q.OrderBy(x => x.Id),
+            includeProperties: "Department,Employees");
 
-        if (pageIndex.HasValue && pageSize.HasValue)
-        {
-            departments = departments.Skip(pageIndex.Value * pageSize.Value).Take(pageSize.Value).ToList();
-        }
-
-        return departments;
+        return employeeDepartments;
     }
 
     public async Task CreateEmployeeDepartment(int departmentId, int supervisorId, int organizationId)
@@ -62,9 +61,7 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
 
     public async Task AddEmployeToDepartment(int employeeId, int departmentId)
     {
-        var department = await GetByIdAsync(employeeId);
-
-        if (department == null) throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"Department with ID: {departmentId} not found.");
+        await GetByIdAsync(employeeId);
 
         var employee = await _context.Employees.FindAsync(employeeId);
 
@@ -128,31 +125,32 @@ public class DepartmentServices(DataContext context, ILogger<DepartmentServices>
             .SingleOrDefaultAsync();
     }
 
-    public async Task<EmployeeDepartment?> UpdateEmployeeDepartmentSupervisor(int newSupervisorId, int departmentId)
+    public async Task<EmployeeDepartment> UpdateEmployeeDepartmentSupervisor(int newSupervisorId, int departmentId)
     {
         var department = await _context.EmployeeDepartments.FindAsync(departmentId);
 
-        if (department == null) return null;
+        if (department == null) throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with ID: {departmentId} not found.");
 
         department.SupervisorId = newSupervisorId;
 
         _context.EmployeeDepartments.Update(department);
         await _context.SaveChangesAsync();
 
-        if (department.SupervisorId != departmentId)
-        {
-            return null;
-        }
-
         return department;
     }
 
-    public async Task<EmployeeDepartment?> GetEmployeeDepartment(int employeeDeptId)
+    public async Task<EmployeeDepartment> GetEmployeeDepartment(int employeeDeptId)
     {
-        return await _context.EmployeeDepartments.FindAsync(employeeDeptId);
+        var empDepartment = await _context.EmployeeDepartments.FindAsync(employeeDeptId);
+
+        if (empDepartment == null)
+        {
+            throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with ID: {employeeDeptId} not found.");
+        }
+        return empDepartment;
     }
 
-    public async Task<EmployeeDepartment?> GetDepartmentByManagerId(int managerId)
+    public async Task<EmployeeDepartment> GetDepartmentByManagerId(int managerId)
     {
         var department = await _context.EmployeeDepartments.FirstOrDefaultAsync(x => x.SupervisorId == managerId);
 

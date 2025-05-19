@@ -1,4 +1,6 @@
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Repositories;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.EntityFrameworkCore;
@@ -8,16 +10,33 @@ namespace hrconnectbackend.Repository;
 public class GenericRepository<T>(DataContext context) : IGenericRepository<T>
     where T : class
 {
+    private string _entityName = typeof(T).Name;
     protected readonly DataContext _context = context;
 
-    public async Task<T?> GetByIdAsync(int id)
+    private string EntityNameCapsLocked() => _entityName.ToUpper();
+
+    public async Task<T> GetByIdAsync(int id)
     {
-        return await _context.Set<T>().FindAsync(id);
+        var getObject = await _context.Set<T>().FindAsync(id);
+
+        if (getObject == null)
+        {
+            throw new NotFoundException($"{EntityNameCapsLocked() + "_NOT_FOUND"}", $"{EntityNameCapsLocked()} with id {id} not found.");
+        }
+
+        return getObject;
     }
 
     public async Task<List<T>> GetAllAsync()
     {
-        return await _context.Set<T>().ToListAsync();
+        var allObjects = await _context.Set<T>().ToListAsync();
+
+        if (allObjects == null || allObjects.Count == 0)
+        {
+            throw new NotFoundException($"{EntityNameCapsLocked() + "_NOT_FOUND"}", $"{EntityNameCapsLocked()} not found.");
+        }
+
+        return allObjects;
     }
 
     public async Task<T> AddAsync(T entity)

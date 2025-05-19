@@ -25,10 +25,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> GetPayrollById(int id)
         {
             var payroll = await payrollService.GetByIdAsync(id);
-            if (payroll == null) return StatusCode(404, new ErrorResponse(ErrorCodes.PayrollNotFound, $"Payroll with id {id} not found"));
+
             return Ok(payroll);
         }
-
+        [Authorize(Roles = "Admin,HR")]
         [HttpPost("all-employees")]
         public async Task<IActionResult> GeneratePayrollAllEmployees([FromQuery] string period1, [FromQuery] string period2)
         {
@@ -38,7 +38,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(new SuccessResponse("Payroll generated successfully!"));
         }
 
-        // Update payroll payment status
+        [Authorize(Roles = "Admin,HR")]
         [HttpPut("{id}")]
         public async Task<ActionResult<Payroll>> UpdatePayrollStatus(int id, [FromBody] string status)
         {
@@ -47,16 +47,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
             return Ok(new SuccessResponse("Payroll status updated successfully!"));
         }
 
-        // Delete payroll record
+        [Authorize(Roles = "Admin,HR")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeletePayroll(int id)
         {
             var payroll = await payrollService.GetByIdAsync(id);
-
-            if (payroll == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.PayrollNotFound, $"Payroll with id {id} not found"));
-            }
 
             await payrollService.DeleteAsync(payroll);
 

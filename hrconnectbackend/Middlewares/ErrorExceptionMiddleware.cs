@@ -30,7 +30,7 @@ namespace hrconnectbackend.Middlewares
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new ErrorResponse(ex.ErrorCode, ex.Message));
+            await context.Response.WriteAsJsonAsync(new ErrorResponse(ex.ErrorCode, ex.Message, ex.TypeException));
 
         }
 
@@ -39,7 +39,7 @@ namespace hrconnectbackend.Middlewares
             logger.LogError(ex, "API error occurred: {Message}", ex.Message);
             context.Response.StatusCode = (int)ex.StatusCode;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new ErrorResponse(ex.ErrorCode, ex.Message));
+            await context.Response.WriteAsJsonAsync(new ErrorResponse(ex.ErrorCode, ex.Message, ex.TypeException));
         }
 
         private async Task HandleUnknownException(HttpContext context, Exception ex)
@@ -47,7 +47,7 @@ namespace hrconnectbackend.Middlewares
             logger.LogError(ex, "An unexpected error occurred: {Message}", ex.Message);
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new ErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred."));
+            await context.Response.WriteAsJsonAsync(new ErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred.", "UnknownException"));
         }
     }
 }

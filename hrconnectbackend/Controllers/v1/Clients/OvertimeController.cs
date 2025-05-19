@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
@@ -28,7 +29,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid OT application data."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
             }
 
             var supervisor = await supervisorServices.GetEmployeeSupervisor(dtoApplication.EmployeeId);
@@ -39,12 +40,12 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (attendanceExist == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.AttendanceNotFound, $"Attendance not found."));
+                throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"Attendance not found for employee with id: {dtoApplication.EmployeeId} on date: {dtoApplication.Date}.");
             }
 
             if (attendanceExist.ClockOut == null)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Clock out time is required."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Clock out time is not available for employee with id: {dtoApplication.EmployeeId} on date: {dtoApplication.Date}.");
             }
 
             var otApplication = await oTApplicationServices.GetAllAsync();
@@ -91,13 +92,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("{oTApplicationId:int}")]
         public async Task<IActionResult> RetrieveOTApplication(int oTApplicationId, int? pageIndex, int? pageSize)
         {
-
             var otApplication = await oTApplicationServices.GetByIdAsync(oTApplicationId);
-
-            if (otApplication == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {oTApplicationId} not found."));
-            }
 
             var mappedOTApplication = mapper.Map<ReadOtApplicationDto>(otApplication);
 
@@ -110,11 +105,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
 
             var overtime = await oTApplicationServices.GetByIdAsync(oTApplicationId);
-
-            if (overtime == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {oTApplicationId} not found."));
-            }
 
             overtime.Date = otApplicationDTO.Date;
             overtime.Status = otApplicationDTO.Status;
@@ -130,13 +120,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpDelete("{otApplicationId:int}")]
         public async Task<IActionResult> DeleteOTApplication(int otApplicationId)
         {
-
             var otApplication = await oTApplicationServices.GetByIdAsync(otApplicationId);
-
-            if (otApplication == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.OTApplicationNotFound, $"OT Application with id: {otApplicationId} not found."));
-            }
 
             await oTApplicationServices.DeleteAsync(otApplication);
 

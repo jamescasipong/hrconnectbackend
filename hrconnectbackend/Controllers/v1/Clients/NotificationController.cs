@@ -20,7 +20,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
     [ApiVersion("1.0")]
     public class NotificationController(
         INotificationServices notificationServices,
-        ILogger<NotificationController> logger,
         IMapper mapper,
         IUserNotificationServices userNotificationServices)
         : ControllerBase
@@ -96,13 +95,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("{notificationId:int}")]
         public async Task<IActionResult> RetrieveNotification(int notificationId)
         {
-
             var notification = await notificationServices.GetByIdAsync(notificationId);
 
-            if (notification == null) return StatusCode(404, new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
-
             return Ok(new SuccessResponse<ReadNotificationsDto?>(mapper.Map<ReadNotificationsDto>(notification), $"Notification with id: {notificationId} retrieved successfully."));
-
         }
 
         [HttpGet]
@@ -123,10 +118,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var notification = await notificationServices.GetByIdAsync(notificationId);
 
-            if (notification == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
-            }
 
             return Ok(new SuccessResponse<ReadNotificationsDto?>(mapper.Map<ReadNotificationsDto>(notification), $"Notification with id: {notificationId} updated successfully."));
 
@@ -148,11 +139,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
 
             var notification = await notificationServices.GetByIdAsync(notificationId);
-
-            if (notification == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.NotificationNotFound, $"Notification with id: {notificationId} does not exist."));
-            }
 
             await notificationServices.DeleteAsync(notification);
 

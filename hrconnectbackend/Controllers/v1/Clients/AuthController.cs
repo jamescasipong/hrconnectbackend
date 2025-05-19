@@ -1,6 +1,7 @@
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Config.Settings;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.RequestModel;
@@ -36,13 +37,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (!ModelState.IsValid)
             {
                 logger.LogWarning("Invalid model state for signin attempt.");
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
             }
 
             if (auth == null)
             {
                 logger.LogWarning("Invalid login or password for email: {Email}", signinBody.Email);
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Invalid login or password."));
+                throw new UnauthorizedException(ErrorCodes.InvalidCredentials, "Invalid login or password.");
             }
 
             logger.LogInformation("Signin successful for email: {Email}", signinBody.Email);
@@ -88,21 +89,18 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var userAccount = await userAccountServices.GetByIdAsync(int.Parse(user));
 
-            if (userAccount == null)
-            {
-                logger.LogWarning("User account not found for ID: {UserId}", user);
-                return StatusCode(404, new ErrorResponse(ErrorCodes.UserNotFound, "User account not found."));
-            }
-
             return Ok(new SuccessResponse<UserAccount>(userAccount, "User account found"));
         }
 
         [HttpPost("signup")]
+        [ProducesResponseType(typeof(SuccessResponse<UserAccount>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateUserAccount([FromBody] CreateUser userAccount)
         {
             if (!ModelState.IsValid)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
             }
 
             var newUser = new UserAccount
@@ -118,7 +116,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (createdUser == null)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.UserAlreadyExists, "User account already exists."));
+                throw new NotFoundException(ErrorCodes.UserNotFound, "User account not found.");
             }
 
             return Ok(new SuccessResponse<UserAccount>(createdUser, "User account created successfully"));
@@ -195,14 +193,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (refreshToken == null)
             {
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Refresh token not found."));
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "Refresh token not found.");
             }
 
             var generateAccessToken = await authService.GenerateAccessToken(refreshToken);
 
             if (string.IsNullOrEmpty(generateAccessToken))
             {
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Invalid refresh token."));
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "Invalid refresh token.");
             }
 
             var exp = DateTime.UtcNow.ToLocalTime().AddMinutes(_jwtSettings.AccessExpiration);
@@ -251,7 +249,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             else
             {
                 logger.LogWarning("Refresh token not found in cookies.");
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "Refresh token not found."));
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "Refresh token not found.");
             }
         }
     }

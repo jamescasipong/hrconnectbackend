@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients
 {
-    public class AttendanceServices(DataContext context, IMapper mapper)
+    public class AttendanceServices(DataContext context, IMapper mapper, IPaginatedService<Attendance> paginatedService)
         : GenericRepository<Attendance>(context), IAttendanceServices
     {
         public async Task ClockIn(int employeeId)
@@ -145,9 +145,9 @@ namespace hrconnectbackend.Services.Clients
 
         public async Task<dynamic> EmployeeAttendanceStatsByShiftSpecificOrToday(int shiftId, DateTime? specificDate)
         {
-            var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee).ToListAsync();
+            var employees = await _context.Shifts.Where(s => s.EmployeeShiftId == shiftId).Select(e => e.Employee!).ToListAsync();
 
-            if (employees == null || !employees.Any()) throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employees found for shift ID {shiftId}.");
+            if (!employees.Any()) throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"No employees found for shift ID {shiftId}.");
 
             return await EmployeeAttendanceStats(employees, specificDate);
         }
@@ -262,16 +262,17 @@ namespace hrconnectbackend.Services.Clients
         }
 
 
-        public async Task<List<Attendance>> GetAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize)
+        public async Task<PagedResponse<IEnumerable<Attendance>>> GetAttendanceByEmployeeId(int id, PaginationParams paginationParams)
         {
-            var attendance = await _context.Attendances.Where(e => e.EmployeeId == id).ToListAsync();
-
-            var attendancePagination = GetAttendancesPagination(attendance, pageIndex, pageSize);
+            var attendancePagination = await paginatedService.GetPaginatedAsync(
+                paginationParams,
+                a => a.EmployeeId == id,
+                orderBy: q => q.OrderBy(a => a.DateToday));
 
             return attendancePagination;
         }
 
-        public async Task<Attendance?> GetDailyAttendanceByEmployeeId(int employeeId)
+        public async Task<Attendance> GetDailyAttendanceByEmployeeId(int employeeId)
         {
             var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow));
 
@@ -283,85 +284,69 @@ namespace hrconnectbackend.Services.Clients
             return attendance;
         }
 
-        public async Task<List<Attendance>> GetMonthlyAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize)
+        public async Task<PagedResponse<IEnumerable<Attendance>>> GetMonthlyAttendanceByEmployeeId(int id, PaginationParams paginationParams)
         {
             if (id <= 0)
                 throw new BadRequestException("Invalid employee ID", nameof(id));
 
+            var paginatedResponse = await paginatedService.GetPaginatedAsync(
+                paginationParams,
+                a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow),
+                orderBy: q => q.OrderBy(a => a.DateToday));
 
-            var currentMonth = DateTime.UtcNow.Month;
-            var currentYear = DateTime.UtcNow.Year;
-
-            var attendanceRecords = await _context.Attendances
-                .Where(a => a.EmployeeId == id && a.DateToday.Month == currentMonth && a.DateToday.Year == currentYear)
-                .OrderBy(a => a.DateToday)
-                .ToListAsync();
-
-            var attendancePagination = GetAttendancesPagination(attendanceRecords, pageIndex, pageSize);
-
-            if (!attendanceRecords.Any())
-                throw new KeyNotFoundException($"No attendance records found for employee with ID {id} in the current month.");
-
-            return attendancePagination;
+            return paginatedResponse;
         }
 
 
-        public async Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end, int? pageIndex, int? pageSize)
+        public async Task<PagedResponse<IEnumerable<Attendance>>> GetRangeAttendanceByEmployeeId(int id, DateIntervalParam dateIntervalParam, PaginationParams paginationParams)
         {
             if (id <= 0)
             {
                 throw new BadRequestException(ErrorCodes.InvalidEmployeeData, "Invalid employee ID");
             }
 
-            if (start > end)
+            if (dateIntervalParam.StartDate > dateIntervalParam.EndDate)
             {
                 throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Start date cannot be greater than end date.");
             }
 
-            var attendanceRecords = await _context.Attendances
-                .Where(a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) >= DateOnly.FromDateTime(start) && DateOnly.FromDateTime(a.DateToday) <= DateOnly.FromDateTime(end))
-                .OrderBy(a => a.DateToday)
-                .ToListAsync();
+            var attendanceRecordPaginations = await paginatedService.GetPaginatedAsync(
+                paginationParams,
+                a => a.EmployeeId == id && DateOnly.FromDateTime(a.DateToday) >= DateOnly.FromDateTime(dateIntervalParam.StartDate) && DateOnly.FromDateTime(a.DateToday) <= DateOnly.FromDateTime(dateIntervalParam.EndDate),
+                orderBy: q => q.OrderBy(a => a.DateToday));
 
-            var paginationAttendance = GetAttendancesPagination(attendanceRecords, pageIndex, pageSize);
 
-            if (!attendanceRecords.Any()) throw new NotFoundException(ErrorCodes.AttendanceNotFound, $"No attendance records found for employee with ID {id} between {start:yyyy-MM-dd} and {end:yyyy-MM-dd}.");
-
-            return paginationAttendance;
+            return attendanceRecordPaginations;
         }
+
 
         // Conditional Methods
         public async Task<bool> HasClockedIn(int employeeId)
         {
             var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow));
 
-            return attendance != null;
+            var hasClockedIn = attendance != null;
+
+            return hasClockedIn;
         }
 
         public async Task<bool> HasClockedOut(int employeeId)
         {
             var attendance = await _context.Attendances.FirstOrDefaultAsync(a => a.EmployeeId == employeeId && DateOnly.FromDateTime(a.DateToday) == DateOnly.FromDateTime(DateTime.UtcNow) && a.ClockOut != null);
 
-            return attendance != null;
+            var hasClockedOut = attendance != null;
+
+            return hasClockedOut;
         }
 
-        public List<Attendance> GetAttendancesPagination(List<Attendance> attendances, int? pageIndex, int? pageSize)
+        public Task<PagedResponse<IEnumerable<Attendance>>> GetAllAttendanceByOrganization(int organizationId, PaginationParams paginationParams)
         {
-            if (pageSize.HasValue && pageSize.Value <= 0)
-            {
-                throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Quantity must be greater than zero.");
-            }
-            if (pageSize.HasValue && pageSize.Value <= 0)
-            {
-                throw new BadRequestException(ErrorCodes.InvalidAttendanceData, "Page index must be greater than zero.");
-            }
+            var paginatedResponse = paginatedService.GetPaginatedAsync(
+                paginationParams,
+                a => a.Employee!.OrganizationId == organizationId,
+                orderBy: q => q.OrderBy(a => a.DateToday));
 
-            if (!pageIndex.HasValue || !pageSize.HasValue)
-            {
-                return attendances;
-            }
-
-            return attendances.Skip((pageIndex.Value - 1) * pageSize.Value).Take(pageSize.Value).ToList();
+            return paginatedResponse;
         }
     }
 }

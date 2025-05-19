@@ -113,7 +113,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
         return new SubscriptionDto
         {
             SubscriptionId = subscription.SubscriptionId,
-            PlanName = subscription.Plan.Name,
+            PlanName = subscription!.Plan!.Name,
             StartDate = subscription.StartDate,
             EndDate = subscription.EndDate,
             NextBillingDate = subscription.NextBillingDate,
@@ -135,7 +135,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
             .Select(s => new SubscriptionDto
             {
                 SubscriptionId = s.SubscriptionId,
-                PlanName = s.Plan.Name,
+                PlanName = s.Plan!.Name,
                 StartDate = s.StartDate,
                 EndDate = s.EndDate,
                 NextBillingDate = s.NextBillingDate,
@@ -177,7 +177,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
             .Select(s => new SubscriptionDto
             {
                 SubscriptionId = s.SubscriptionId,
-                PlanName = s.Plan.Name,
+                PlanName = s.Plan!.Name,
                 StartDate = s.StartDate,
                 EndDate = s.EndDate,
                 NextBillingDate = s.NextBillingDate,
@@ -200,7 +200,7 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
             .Select(s => new SubscriptionDto
             {
                 SubscriptionId = s.SubscriptionId,
-                PlanName = s.Plan.Name,
+                PlanName = s.Plan!.Name,
                 StartDate = s.StartDate,
                 EndDate = s.EndDate,
                 NextBillingDate = s.NextBillingDate,

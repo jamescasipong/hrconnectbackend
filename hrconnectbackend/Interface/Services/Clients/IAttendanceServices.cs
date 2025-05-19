@@ -6,10 +6,11 @@ namespace hrconnectbackend.Interface.Services.Clients
     {
         Task ClockIn(int id);
         Task ClockOut(int id);
-        Task<Attendance?> GetDailyAttendanceByEmployeeId(int id);
-        Task<List<Attendance>> GetAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize);
-        Task<List<Attendance>> GetMonthlyAttendanceByEmployeeId(int id, int? pageIndex, int? pageSize);
-        Task<List<Attendance>> GetRangeAttendanceByEmployeeId(int id, DateTime start, DateTime end, int? pageIndex, int? pageSize);
+        Task<Attendance> GetDailyAttendanceByEmployeeId(int id);
+        Task<PagedResponse<IEnumerable<Attendance>>> GetAllAttendanceByOrganization(int organizationId, PaginationParams paginationParams);
+        Task<PagedResponse<IEnumerable<Attendance>>> GetAttendanceByEmployeeId(int id, PaginationParams paginationParams);
+        Task<PagedResponse<IEnumerable<Attendance>>> GetRangeAttendanceByEmployeeId(int id, DateIntervalParam dateIntervalParam, PaginationParams paginationParams);
+        Task<PagedResponse<IEnumerable<Attendance>>> GetMonthlyAttendanceByEmployeeId(int id, PaginationParams paginationParams);
         Task<bool> HasClockedIn(int employeeId);
         Task<bool> HasClockedOut(int employeeId);
         Task<dynamic> EmployeeAttendanceStatsByDeptSpecificOrToday(int departmentId, DateTime? specificDate);

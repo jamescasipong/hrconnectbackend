@@ -116,6 +116,7 @@
         // Pagination Errors
         public const string InvalidPageNumber = "INVALID_PAGE_NUMBER";
         public const string InvalidPageSize = "INVALID_PAGE_SIZE";
+        public const string InvalidTotalRecords = "INVALID_TOTAL_RECORDS";
 
     }
 }

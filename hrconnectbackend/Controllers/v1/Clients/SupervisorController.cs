@@ -39,7 +39,7 @@ public class SupervisorController(
 
         if (!supervisors.Any())
         {
-            return StatusCode(404, new ErrorResponse(ErrorCodes.SubscriptionNotFound, $"No supervisors found."));
+            return Ok(new SuccessResponse<List<ReadSupervisorDto>>(mappedSupervisors, "No supervisors found."));
         }
 
         return Ok(new SuccessResponse<List<ReadSupervisorDto>>(mappedSupervisors, $"All supervisors retrieved successfully."));
@@ -73,7 +73,6 @@ public class SupervisorController(
     [HttpGet("{supervisorId:int}/employee")]
     public async Task<IActionResult> RetrieveEmployeesBySupervisor(int supervisorId)
     {
-
         var employee = await supervisorServices.GetAllEmployeesByASupervisor(supervisorId);
 
         var mapped = mapper.Map<List<ReadEmployeeDto>>(employee);

@@ -76,7 +76,8 @@ namespace hrconnectbackend.Config.Authentication
 
                         return context.Response.WriteAsJsonAsync(new ErrorResponse(
                             ErrorCodes.Unauthorized,
-                            "Unauthorized access. Please login again."
+                            "Unauthorized access. Please login again.",
+                            "UnauthorizedException"
                         ));
                     }
 
@@ -92,7 +93,8 @@ namespace hrconnectbackend.Config.Authentication
 
                         return context.Response.WriteAsJsonAsync(new ErrorResponse(
                             ErrorCodes.Unauthorized,
-                            "Authentication failed. Please login again."
+                            "Authentication failed. Please login again.",
+                            "AuthenticationException"
                         ));
                     }
 
@@ -108,7 +110,8 @@ namespace hrconnectbackend.Config.Authentication
 
                         return context.Response.WriteAsJsonAsync(new ErrorResponse(
                             ErrorCodes.Forbidden,
-                            "Forbidden access. You do not have permission to access this resource."
+                            "Forbidden access. You do not have permission to access this resource.",
+                            "ForbiddenException"
                         ));
                     }
 

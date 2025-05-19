@@ -7,6 +7,7 @@ using hrconnectbackend.Helper.Authorization;
 using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Interface.Services.ExternalServices;
+using hrconnectbackend.Models;
 using hrconnectbackend.Services.Clients;
 using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
@@ -54,6 +55,7 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IPlanService, PlanService>();
             services.AddScoped<IPaymentService, PaymentService>();
             services.AddHostedService<SubscriptionBackgroundService>();
+            services.AddScoped(typeof(IPaginatedService<>), typeof(PaginatedService<>));
             // services.AddSingleton<IAuthorizationHandler, UserPermissionHandler>();
 
             // services.AddSingleton<IAuthorizationRequirement, UserRoleAttribute>();

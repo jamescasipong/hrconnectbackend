@@ -232,13 +232,23 @@ namespace hrconnectbackend.Services.Clients
             throw new NotImplementedException();
         }
 
-        public async Task<ResetPasswordSession?> GetResetPasswordSession(string token)
+        public async Task<ResetPasswordSession> GetResetPasswordSession(string token)
         {
             await _context.ResetPasswordSessions.Where(a => a.ExpiresAt < DateTime.Now).ExecuteDeleteAsync();
 
             await _context.SaveChangesAsync();
 
             var session = await _context.ResetPasswordSessions.FirstOrDefaultAsync(s => s.Token == token);
+
+            if (session == null)
+            {
+                throw new NotFoundException(ErrorCodes.UserNotFound, $"No reset password session found with token: {token}");
+            }
+
+            if (session.ExpiresAt < DateTime.Now)
+            {
+                throw new UnauthorizedException(ErrorCodes.Unauthorized, "Reset password session has expired.");
+            }
 
             return session;
         }

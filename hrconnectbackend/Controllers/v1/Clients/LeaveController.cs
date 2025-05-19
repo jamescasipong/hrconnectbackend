@@ -17,7 +17,6 @@ namespace hrconnectbackend.Controllers.v1.Clients;
 [ApiVersion("1.0")]
 public class LeaveController(
     ILeaveApplicationServices leaveServices,
-    ILogger<LeaveController> logger,
     ILeaveBalanceServices leaveBalanceServices,
     IMapper mapper)
     : ControllerBase
@@ -28,7 +27,7 @@ public class LeaveController(
     {
         if (!ModelState.IsValid)
         {
-            return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid leave application data."));
+            throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
         }
 
         var newLeaveApplication = new LeaveApplication
@@ -65,12 +64,12 @@ public class LeaveController(
             // Validate pageIndex and pageSize
             if (pageIndex <= 0)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidPageNumber, "Page index must be greater than 0"));
+                throw new BadRequestException(ErrorCodes.InvalidPageNumber, "Page index must be greater than 0");
             }
 
             if (pageSize <= 0)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidPageSize, "Page size must be greater than 0"));
+                throw new BadRequestException(ErrorCodes.InvalidPageSize, "Page size must be greater than 0");
             }
 
             // Fetch all leaves and apply pagination
@@ -101,8 +100,6 @@ public class LeaveController(
     {
         var leave = await leaveServices.GetByIdAsync(id);
 
-        if (leave == null)
-            return NotFound(new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
 
         var leaveDto = mapper.Map<ReadLeaveApplicationDto>(leave);
 
@@ -115,15 +112,8 @@ public class LeaveController(
     public async Task<IActionResult> UpdateLeaveDates(int id, [FromBody] UpdateLeaveApplicationDto leaveRequest)
     {
 
-        if (leaveRequest == null) return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid leave application data."));
-
-
         var leaveApplication = await leaveServices.GetByIdAsync(id);
 
-        if (leaveApplication == null)
-        {
-            return StatusCode(404, new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
-        }
 
         leaveApplication.Type = leaveRequest.Type;
         leaveApplication.Status = leaveRequest.Status;
@@ -141,11 +131,6 @@ public class LeaveController(
     {
         var leave = await leaveServices.GetByIdAsync(id);
 
-        if (leave == null)
-        {
-            return StatusCode(404, new ErrorResponse(ErrorCodes.LeaveNotFound, $"Leave application with ID: {id} not found."));
-        }
-
         await leaveServices.DeleteAsync(leave);
 
         return Ok(new SuccessResponse($"Leave application with ID: {id} deleted successfully!"));
@@ -154,42 +139,16 @@ public class LeaveController(
 
     [Authorize(Roles = "Admin,HR")]
     [HttpGet("applications/employee/{employeeId:int}")]
-    public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] int? pageIndex, [FromQuery] int? pageSize)
+    public async Task<IActionResult> GetLeaveApplicationByEmp(int employeeId, [FromQuery] PaginationParams paginationParams, [FromQuery] string searchTerm)
     {
+        // Fetch paged leave applications for the employee
+        var pagedResult = await leaveServices.GetLeaveByEmployee(employeeId, paginationParams, searchTerm);
 
-        List<LeaveApplication> employeeLeaveApplication;
+        var leaveDto = mapper.Map<IEnumerable<ReadLeaveApplicationDto>>(pagedResult.Data);
 
-        if (pageIndex == null || pageSize == null)
-        {
-            // Fetch all leave applications for the employee if pagination is not provided
-            employeeLeaveApplication = await leaveServices.GetLeaveByEmployee(employeeId);
-        }
-        else
-        {
-            // Validate pageIndex and pageSize
-            if (pageIndex <= 0)
-            {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidPageNumber, "Page index must be greater than 0"));
-            }
+        var pagedResponse = new PagedResponse<IEnumerable<ReadLeaveApplicationDto>>(leaveDto, pagedResult.Pagination, $"Leave applications for employee with ID: {employeeId}");
 
-            if (pageSize <= 0)
-            {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidPageSize, "Page index must be greater than 0"));
-            }
-
-            // Fetch leave applications with pagination
-            employeeLeaveApplication = await leaveServices.GetLeaveByEmployee(employeeId);
-            employeeLeaveApplication = employeeLeaveApplication
-                                        .Skip((pageIndex.Value - 1) * pageSize.Value)
-                                        .Take(pageSize.Value)
-                                        .ToList();
-        }
-
-        // Map the data to the DTO
-        var employeeLeaveApplicationDto = mapper.Map<List<ReadLeaveApplicationDto>>(employeeLeaveApplication);
-
-        return Ok(new SuccessResponse<List<ReadLeaveApplicationDto>?>(employeeLeaveApplicationDto, $"Leave applications for employee with ID: {employeeId} retrieved successfully!"));
-
+        return Ok(pagedResponse);
     }
 
 

@@ -113,7 +113,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             if (!employees.Any())
             {
                 logger.LogWarning("No employees found.");
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, "No employees found."));
+                return Ok(new SuccessResponse<List<ReadEmployeeDto>>(new List<ReadEmployeeDto>(), "No employees found."));
             }
 
             var employeesDto = mapper.Map<List<ReadEmployeeDto>>(employees);
@@ -129,32 +129,15 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employee = await employeeService.GetEmployeeById(int.Parse(userId));
 
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
-            }
-
-            var userAccount = await userAccountServices.GetByIdAsync(int.Parse(userId));
-
-            if (userAccount == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.UserNotFound, $"User account with an ID: {userId} not found."));
-            }
-
-            // var aboutEmployeeDTO = _mapper.Map<ReadAboutEmployeeDTO>(employee.AboutEmployee);
-
             var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
-
-            return Ok(new SuccessResponse<ReadEmployeeDto?>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
+            return Ok(new SuccessResponse<ReadEmployeeDto>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
         }
         [Authorize]
         [HttpGet("education/me")]
         public async Task<IActionResult> GetEducation()
         {
             var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
-
-            if (userId == null) return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "User not authenticated"));
 
             var employee = await aboutEmployeeServices.GetEmployeeEducationBackgroundAsync(int.Parse(userId));
 
@@ -171,11 +154,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var employee = await aboutEmployeeServices.GetByIdAsync(int.Parse(userId));
 
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {userId} not found."));
-            }
-
             var employeeDTO = mapper.Map<CreateAboutEmployeeDto>(employee);
 
             return Ok(new SuccessResponse<CreateAboutEmployeeDto?>(employeeDTO, $"Employee with an ID: {userId} retrieved successfully!"));
@@ -189,14 +167,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userRoles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
-            if (currentUserId == null) return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, "User not authenticated"));
+            if (currentUserId == null) throw new UnauthorizedException(ErrorCodes.Unauthorized, "User not authenticated");
 
             var employee = await employeeService.GetByIdAsync(id);
-
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
-            }
 
             var employeeDTO = mapper.Map<ReadEmployeeDto>(employee);
 
@@ -209,14 +182,9 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var employee = await employeeService.GetByIdAsync(id);
 
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
-            }
-
             if (!ModelState.IsValid)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidEmployeeData, "Invalid employee data."));
+                throw new BadRequestException(ErrorCodes.InvalidEmployeeData, "Invalid employee data.");
             }
 
             // employee.FirstName = employee.FirstName;
@@ -234,12 +202,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             var employee = await employeeService.GetByIdAsync(id);
-
-
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with ID: {id} not found."));
-            }
 
             await employeeService.DeleteAsync(employee);
 
@@ -268,9 +230,8 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(employeeId, out var parsedEmployeeId))
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.EmployeeNotFound, "Invalid employee ID."));
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, "Invalid employee ID.");
             }
-
 
             var subordinates = await employeeService.GetSubordinates(parsedEmployeeId);
 
@@ -286,13 +247,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var user = await userAccountServices.GetByIdAsync(accountId);
 
-            if (user == null) throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with ID: {accountId} not found.");
-
             user.UserName = name;
 
             await userAccountServices.UpdateAsync(user);
             return Ok(new SuccessResponse($"Employee's account username with account ID: {accountId} changed to {name} successfully!"));
-
 
         }
 

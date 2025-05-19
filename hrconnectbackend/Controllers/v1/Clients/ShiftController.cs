@@ -8,7 +8,6 @@ using hrconnectbackend.Interface.Services;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
-using hrconnectbackend.Services.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,8 +19,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
     [ApiVersion("1.0")]
     public class ShiftController(
         IShiftServices shiftServices,
-        IMapper mapper,
-        ILogger<ShiftController> logger)
+        IMapper mapper)
         : ControllerBase
     {
         [Authorize(Roles = "Admin")]
@@ -30,10 +28,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
 
             var shift = await shiftServices.GetByIdAsync(id);
-            if (shift == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}"));
-            }
+
 
             var mappedShift = mapper.Map<ShiftDTO>(shift);
             return Ok(new SuccessResponse<ShiftDTO>(mappedShift, $"Shift with ID {id} retrieved successfully"));
@@ -47,7 +42,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(organizationId, out var orgId))
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid organization ID");
             }
 
             var shifts = await shiftServices.GetAllAsync();
@@ -63,7 +58,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!IsValidDayOfWorked(shiftDTO.DaysOfWorked))
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid day of worked"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid day of the week");
             }
 
             var employee = await shiftServices.GetAllAsync();
@@ -72,7 +67,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (shiftExisted)
             {
-                return Conflict(new ErrorResponse(ErrorCodes.ShiftAlreadyExists, $"Shift for employee with ID {shiftDTO.EmployeeShiftId} already exists for {shiftDTO.DaysOfWorked}"));
+                throw new ConflictException(ErrorCodes.ShiftAlreadyExists, $"Shift already exists for employee with ID {shiftDTO.EmployeeShiftId} on {shiftDTO.DaysOfWorked}");
             }
 
             var createdShift = await shiftServices.AddAsync(new Shift
@@ -91,19 +86,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> UpdateShift(int id, [FromBody] Shift shift)
         {
 
-            var shiftExist = await shiftServices.GetByIdAsync(id);
+            var existingShift = await shiftServices.GetByIdAsync(id);
 
-            if (shiftExist == null)
-            {
-                throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}");
-            }
+            existingShift.EmployeeShiftId = shift.EmployeeShiftId;
+            existingShift.DaysOfWorked = BodyRequestCorrection.CapitalLowerCaseName(shift.DaysOfWorked);
+            existingShift.TimeIn = shift.TimeIn;
+            existingShift.TimeOut = shift.TimeOut;
 
-            if (shift == null)
-            {
-                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid shift data");
-            }
-
-            await shiftServices.UpdateAsync(shift);
+            await shiftServices.UpdateAsync(existingShift);
 
             return Ok(new SuccessResponse<ShiftDTO>(mapper.Map<ShiftDTO>(shift), $"Shift with ID {id} updated successfully"));
 
@@ -116,11 +106,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var shift = await shiftServices.GetByIdAsync(id);
 
-            if (shift == null)
-            {
-                throw new NotFoundException(ErrorCodes.ShiftNotFound, $"No shift found for employee with ID {id}");
-            }
-
             await shiftServices.DeleteAsync(shift);
 
             return Ok(new SuccessResponse($"Shift with ID {id} deleted successfully"));
@@ -130,14 +115,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("my-shift")]
         public async Task<IActionResult> GetMyShift()
         {
-            var employeeId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var organizationId = User.FindFirstValue("organizationId")!;
+            var employeeId = int.Parse(User.RetrieveSpecificUser(ClaimTypes.NameIdentifier)!);
+            var organizationId = User.RetrieveSpecificUser("organizationId")!;
 
             if (!int.TryParse(organizationId, out var orgId))
             {
                 throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid organization ID");
             }
-
 
             var shifts = await shiftServices.GetEmployeeShifts(employeeId, orgId);
 
@@ -152,7 +136,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("employee-shift/{employeeId}")]
         public async Task<IActionResult> GetEmployeeShift(int employeeId)
         {
-            var organizationId = User.FindFirstValue("organizationId")!;
+            var organizationId = User.RetrieveSpecificUser("organizationId")!;
 
             if (!int.TryParse(organizationId, out var orgId))
             {

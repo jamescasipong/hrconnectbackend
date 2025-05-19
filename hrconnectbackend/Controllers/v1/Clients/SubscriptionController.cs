@@ -1,5 +1,6 @@
 using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
@@ -84,13 +85,13 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> ChangeSubscriptionPlan(int id, ChangePlanDto model)
         {
             if (id != model.SubscriptionId)
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid subscription ID");
 
             var result = await _subscriptionService.ChangeSubscriptionPlanAsync(id, model.NewPlanId);
 
             if (!result)
             {
-                return NotFound(new ErrorResponse(ErrorCodes.SubscriptionNotFound, "Subscription not found"));
+                throw new NotFoundException(ErrorCodes.SubscriptionNotFound, "Subscription not found");
             }
 
             return NoContent();
@@ -102,7 +103,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (id != model.SubscriptionId)
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid subscription ID");
             }
 
             var payment = await _paymentService.ProcessPaymentAsync(
@@ -122,7 +123,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var payments = await _paymentService.GetPaymentsBySubscriptionIdAsync(id);
             if (payments == null)
             {
-                return NotFound(new ErrorResponse(ErrorCodes.SubscriptionNotFound, "Subscription not found"));
+                throw new NotFoundException(ErrorCodes.SubscriptionNotFound, "Subscription not found");
             }
 
             return Ok(payments);
@@ -134,7 +135,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             if (id != model.SubscriptionId)
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid subscription ID"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Invalid subscription ID");
             }
 
             await _subscriptionService.RecordUsageAsync(

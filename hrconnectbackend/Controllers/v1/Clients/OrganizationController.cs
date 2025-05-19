@@ -2,6 +2,7 @@ using System.Security.Claims;
 using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
 using hrconnectbackend.Extensions;
 using hrconnectbackend.Helper;
 using hrconnectbackend.Interface.Services.Clients;
@@ -18,7 +19,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrganizationController(IOrganizationServices organizationServices, IUserAccountServices userAccountServices, IAuthService authServices, ILogger<OrganizationController> logger, IMapper mapper) : ControllerBase
+    public class OrganizationController(IOrganizationServices organizationServices, IUserAccountServices userAccountServices, IAuthService authServices, IMapper mapper) : ControllerBase
     {
         // [UserRole("Admin")]
         [Authorize]
@@ -27,7 +28,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         {
             var validate = TryValidateModel(organization);
 
-            if (!validate) return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization data."));
+            if (!validate) throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
 
             var userId = User.RetrieveSpecificUser(ClaimTypes.NameIdentifier);
 
@@ -48,11 +49,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             var user = await userAccountServices.GetByIdAsync(userIdInt);
 
-            if (user == null)
-            {
-                return NotFound(new ErrorResponse(ErrorCodes.UserNotFound, $"User not found with id: {userIdInt}"));
-            }
-
             AuthResponse authResponse = await authServices.GenerateTokens(user);
             authServices.SetAccessTokenCookie(authResponse, Response);
 
@@ -70,7 +66,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // If the organization was not found or if the patch is invalid, return BadRequest
             if (original == null || !isValid || patched == null)
             {
-                return NotFound(new ErrorResponse(ErrorCodes.OrganizationNotFound, $"Organization with id {organizationId} not found"));
+                throw new NotFoundException(ErrorCodes.OrganizationNotFound, $"Organization with id {organizationId} not found");
             }
 
 
@@ -93,7 +89,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
             // If ModelState is invalid, return a BadRequest with validation errors
             if (!ModelState.IsValid)
             {
-                return BadRequest(new ErrorResponse(ErrorCodes.InvalidRequestModel, "Invalid organization data"));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
             }
 
             // Save changes to the database
@@ -150,8 +146,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
         public async Task<IActionResult> DeleteOrganization(int organizationId)
         {
             var org = await organizationServices.GetByIdAsync(organizationId);
-
-            if (org == null) return NotFound(new ErrorResponse(ErrorCodes.OrganizationNotFound, $"Organization with id {organizationId} not found"));
 
             await organizationServices.DeleteAsync(org);
 

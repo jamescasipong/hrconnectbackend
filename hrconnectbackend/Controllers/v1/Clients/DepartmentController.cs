@@ -2,6 +2,8 @@
 using AutoMapper;
 using hrconnectbackend.Attributes.Authorization.Requirements;
 using hrconnectbackend.Constants;
+using hrconnectbackend.Exceptions;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models;
 using hrconnectbackend.Models.DTOs;
@@ -18,8 +20,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
     public class DepartmentController(
         IDepartmentServices departmentServices,
         IEmployeeServices employeeServices,
-        IMapper mapper,
-        ILogger<DepartmentController> logger)
+        IMapper mapper)
         : ControllerBase
     {
         [Authorize]
@@ -27,32 +28,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("my-department")]
         public async Task<IActionResult> GetDepartment()
         {
-
-            var currentUserId = User.FindFirstValue("EmployeeId");
-
-            if (currentUserId == null)
-            {
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, $"User not authenticated."));
-            }
+            var currentUserId = User.RetrieveSpecificUser("EmployeeId");
 
             var employee = await employeeServices.GetByIdAsync(int.Parse(currentUserId));
 
-            if (employee == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee not found with the provided ID {currentUserId}."));
-            }
-
             if (employee.EmployeeDepartmentId == null)
             {
-                return StatusCode(409, new ErrorResponse(ErrorCodes.EmployeeNotAssignedToDepartment, $"Employee does not belong to any department."));
+                throw new ConflictException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department not found for employee with id: {currentUserId}.");
             }
 
             var department = await departmentServices.GetEmployeeDepartment(employee.EmployeeDepartmentId.Value);
-
-            if (department == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.DepartmentNotFound, $"Department not found with the provided ID {employee.EmployeeDepartmentId}."));
-            }
 
             var mappedDepartment = mapper.Map<ReadEmployeeDepartmentDTO>(department);
 
@@ -72,16 +57,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentDto departmentDto)
         {
-            var orgId = User.FindFirstValue("organizationId");
-
-            if (orgId == null)
-            {
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, $"User not authenticated."));
-            }
+            var orgId = User.RetrieveSpecificUser("organizationId");
 
             if (!int.TryParse(orgId, out var orgIdParse))
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer.");
             }
 
             var department = new Department
@@ -91,7 +71,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 OrganizationId = orgIdParse
             };
 
-            if (!ModelState.IsValid) return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
+            if (!ModelState.IsValid) throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Your body request is invalid.");
 
             await departmentServices.AddAsync(department);
 
@@ -102,9 +82,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet]
         public async Task<IActionResult> RetrieveDepartments(int? pageIndex, int? pageSize)
         {
-            if (!int.TryParse(User.FindFirstValue("organizationId"), out var orgId))
+            var organizationId = User.RetrieveSpecificUser("organizationId");
+
+            if (!int.TryParse(organizationId, out var orgId))
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer.");
             }
 
             var departments = await departmentServices.RetrieveDepartment(orgId);
@@ -116,21 +98,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("{departmentId:int}")]
         public async Task<IActionResult> RetrieveDepartment(int departmentId)
         {
-
-            var currentUserId = User.FindFirstValue("EmployeeId");
-            var userRoles = User.FindAll(ClaimTypes.Role).Select(a => a.Value).ToList();
-
-            if (currentUserId == null)
-            {
-                return StatusCode(401, new ErrorResponse(ErrorCodes.Unauthorized, $"User not authenticated. Please login."));
-            }
-
             var department = await departmentServices.GetByIdAsync(departmentId);
-
-            if (department == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.DepartmentNotFound, $"Department with id: {departmentId} not found."));
-            }
 
             return Ok(new SuccessResponse<Department>(department, $"Department with id: {departmentId} retrieved successfully!"));
 
@@ -149,10 +117,10 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!departmentByName.Any())
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.DepartmentNotFound, $"Department with name: {name} not found."));
+                throw new NotFoundException(ErrorCodes.DepartmentNotFound, $"Department with name: {name} not found.");
             }
 
-            return StatusCode(200, new SuccessResponse<List<ReadDepartmentDto>>(mappedDepartment, $"Department with name: {name} retrieved successfully!"));
+            return Ok(new SuccessResponse<List<ReadDepartmentDto>>(mappedDepartment, $"Department with name: {name} retrieved successfully!"));
 
         }
 
@@ -160,13 +128,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPut("{departmentId:int}")]
         public async Task<IActionResult> UpdateDepartment(int departmentId, CreateDepartmentDto departmentDto)
         {
-
             var department = await departmentServices.GetByIdAsync(departmentId);
-
-            if (department == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.DepartmentNotFound, $"Department with id: {departmentId} not found."));
-            }
 
             await departmentServices.UpdateAsync(mapper.Map<Department>(departmentDto));
 
@@ -178,13 +140,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpDelete("{departmentId:int}")]
         public async Task<IActionResult> DeleteDepartment(int departmentId)
         {
-
             var department = await departmentServices.GetByIdAsync(departmentId);
-
-            if (department == null)
-            {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.DepartmentNotFound, $"Department with id: {departmentId} not found."));
-            }
 
             await departmentServices.DeleteAsync(department);
 
@@ -194,19 +150,22 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         [Authorize(Roles = "Admin,HR")]
         [HttpGet("employee-department")]
-        public async Task<IActionResult> RetrieveEmpDepartments(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> RetrieveEmpDepartments(PaginationParams pageParams)
         {
-            var orgId = User.FindFirstValue("organizationId");
+            var orgId = User.RetrieveSpecificUser("organizationId");
 
             if (!int.TryParse(orgId, out var orgIdParse))
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer.");
             }
 
-            var employeeDepartments = await departmentServices.RetrieveEmployeeDepartments(orgIdParse, pageIndex, pageSize);
-            var employeeDepartmentDTO = mapper.Map<List<ReadEmployeeDepartmentDTO>>(employeeDepartments);
+            var employeeDepartments = await departmentServices.RetrieveEmployeeDepartments(orgIdParse, pageParams);
 
-            return Ok(new SuccessResponse<List<ReadEmployeeDepartmentDTO>>(employeeDepartmentDTO, $"Employee departments retrieved successfully!"));
+            var mappedEmployeeDepartments = mapper.Map<ReadEmployeeDepartmentDTO>(employeeDepartments.Data);
+
+            var response = new PagedResponse<ReadEmployeeDepartmentDTO>(mappedEmployeeDepartments, employeeDepartments.Pagination, $"Employee departments retrieved successfully!");
+
+            return Ok(response);
 
         }
 
@@ -218,7 +177,7 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!int.TryParse(organization, out var orgId))
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, $"Organization id is not a valid integer.");
             }
 
             await departmentServices.CreateEmployeeDepartment(departmentId, supervisorId, orgId);
@@ -234,28 +193,28 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (!ModelState.IsValid)
             {
-                return StatusCode(400, new ErrorResponse(ErrorCodes.InvalidRequestModel, "Your body request is invalid."));
+                throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
             }
 
             var department = await departmentServices.GetEmployeeDepartment(employeeDeptId);
 
             if (department == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {employeeDeptId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {employeeDeptId} not found.");
             }
 
             var employee = await employeeServices.GetByIdAsync(supervisorId);
 
             if (employee == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with id: {supervisorId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {supervisorId} not found.");
             }
 
             var employeeDepartment = await departmentServices.UpdateEmployeeDepartmentSupervisor(employee.Id, department.Id);
 
             if (employeeDepartment == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {employeeDeptId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {employeeDeptId} not found.");
             }
 
             return Ok(new SuccessResponse($"Employee department supervisor updated successfully!"));
@@ -271,14 +230,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
             if (department == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {supervisorDepartmentId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeDepartmentNotFound, $"Employee department with id: {supervisorDepartmentId} not found.");
             }
 
             var employee = await employeeServices.GetByIdAsync(employeeId);
 
             if (employee == null)
             {
-                return StatusCode(404, new ErrorResponse(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} not found."));
+                throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with id: {employeeId} not found.");
             }
 
             employee.EmployeeDepartmentId = supervisorDepartmentId;

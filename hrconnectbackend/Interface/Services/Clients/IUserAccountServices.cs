@@ -18,7 +18,7 @@ public interface IUserAccountServices : IGenericRepository<UserAccount>
     Task<bool> IsVerified(string email);
     Task UpdateEmail(int employeeId, string email);
     Task ResetTokenExist(string token);
-    Task<ResetPasswordSession?> GetResetPasswordSession(string token);
+    Task<ResetPasswordSession> GetResetPasswordSession(string token);
     Task CreatePasswordSession(ResetPasswordSession resetPasswordSession);
     Task DeleteResetPassword(string token);
 }

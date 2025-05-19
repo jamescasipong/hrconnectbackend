@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
@@ -11,17 +12,14 @@ namespace hrconnectbackend.Services.Clients;
 
 public class LeaveApplicationServices(
     DataContext context,
-    ILogger<UserAccount> logger)
+    ILogger<UserAccount> logger,
+    IPaginatedService<LeaveApplication> paginatedService)
     : GenericRepository<LeaveApplication>(context), ILeaveApplicationServices
 {
     private async Task<LeaveApplication> GetLeaveApplicationByIdAsync(int id)
     {
         var leaveApplication = await GetByIdAsync(id);
-        if (leaveApplication == null)
-        {
-            logger.LogWarning($"Leave application with ID {id} not found.");
-            throw new ArgumentException("Leave application not found.");
-        }
+
         return leaveApplication;
     }
 
@@ -34,11 +32,6 @@ public class LeaveApplicationServices(
     public async Task<LeaveApplication> RequestLeave(LeaveApplication leaveApplication)
     {
         var employee = await GetByIdAsync(leaveApplication.EmployeeId);
-        if (employee == null)
-        {
-            logger.LogWarning($"Employee with ID {leaveApplication.EmployeeId} not found.");
-            throw new NotFoundException(ErrorCodes.EmployeeNotFound, $"Employee with ID {leaveApplication.EmployeeId} not found.");
-        }
 
         leaveApplication.Status = "Pending"; // Default status
         await AddAsync(leaveApplication);
@@ -76,63 +69,55 @@ public class LeaveApplicationServices(
         logger.LogInformation($"Leave application ID {id} rejected.");
     }
 
-    public async Task<List<LeaveApplication>> GetLeaveBySupervisor(int supervisorId)
+    public async Task<PagedResponse<IEnumerable<LeaveApplication>>> GetLeaveBySupervisor(int supervisorId, PaginationParams paginationParams, string? searchTerm = null)
     {
-        var leaveApplication = await GetAllAsync();
+        Expression<Func<LeaveApplication, bool>> filter = l => l.SupervisorId == supervisorId &&
+            (string.IsNullOrEmpty(searchTerm) || l.Reason.Contains(searchTerm));
 
-        if (leaveApplication == null || leaveApplication.Count == 0)
-        {
-            logger.LogWarning($"Leave application not found");
-            throw new ArgumentException("Leave application not found.");
-        }
+        var paginatedResponse = await paginatedService.GetPaginatedAsync(
+            paginationParams,
+            filter,
+            orderBy: q => q.OrderBy(l => l.AppliedDate));
 
-        return leaveApplication.Where(l => l.SupervisorId == supervisorId).ToList();
-
+        return paginatedResponse;
     }
 
-    public async Task<List<LeaveApplication>> GetLeavePagination(int page, int pageSize, int? employeeId)
+    public async Task<PagedResponse<IEnumerable<LeaveApplication>>> GetLeaveByEmployee(int employeeId, PaginationParams paginationParams, string? searchTerm = null)
     {
-        List<LeaveApplication> leaveApplication;
+        Expression<Func<LeaveApplication, bool>> filter = l => l.EmployeeId == employeeId &&
+            (string.IsNullOrEmpty(searchTerm) || l.Reason.Contains(searchTerm));
 
-        if (pageSize <= 0)
-        {
-            logger.LogWarning($"Page number must be greater than zero.");
-            throw new ArgumentOutOfRangeException("Page number must be greater than zero.");
-        }
+        var paginatedResponse = await paginatedService.GetPaginatedAsync(
+            paginationParams,
+            filter,
+            orderBy: q => q.OrderBy(l => l.AppliedDate));
 
-        if (page <= 0)
-        {
-            logger.LogWarning($"Size must be greater than zero.");
-            throw new ArgumentOutOfRangeException("Size must be greater than zero.");
-        }
-
-        if (employeeId == null)
-        {
-            leaveApplication = await _context.LeaveApplications.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        }
-        else
-        {
-            leaveApplication = await _context.LeaveApplications.Where(l => l.EmployeeId == employeeId).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        }
-
-        if (leaveApplication.Count == 0 || leaveApplication == null)
-        {
-            throw new ArgumentException("Leave application not found.");
-        }
-
-        return leaveApplication;
+        return paginatedResponse;
     }
 
-    public async Task<List<LeaveApplication>> GetLeaveByEmployee(int employeeId)
+    public async Task<PagedResponse<IEnumerable<LeaveApplication>>> GetLeaveByOrganization(int organizationId, PaginationParams paginationParams, string searchTerm)
     {
-        var employee = await _context.Employees.FindAsync(employeeId);
-        var leaveApplication = await _context.LeaveApplications.Where(l => l.EmployeeId == employeeId).ToListAsync();
+        Expression<Func<LeaveApplication, bool>> filter = l => l.OrganizationId == organizationId &&
+            (string.IsNullOrEmpty(searchTerm) || l.Reason.Contains(searchTerm));
 
-        if (employee == null || leaveApplication == null || leaveApplication.Count == 0)
-        {
-            logger.LogWarning($"Leave application with ID: {employeeId} not found.");
-            throw new NotFoundException(ErrorCodes.LeaveNotFound, $"Leave application with ID: {employeeId} not found.");
-        }
-        return leaveApplication;
+        var paginatedResponse = await paginatedService.GetPaginatedAsync(
+            paginationParams,
+            filter,
+            orderBy: q => q.OrderBy(l => l.AppliedDate));
+
+        return paginatedResponse;
+    }
+
+    public async Task<PagedResponse<IEnumerable<LeaveApplication>>> GetLeaveByDepartment(int employeeDepartmentId, PaginationParams paginationParams, string searchTerm)
+    {
+        Expression<Func<LeaveApplication, bool>> filter = l => l.Employee!.EmployeeDepartmentId == employeeDepartmentId &&
+            (string.IsNullOrEmpty(searchTerm) || l.Reason.Contains(searchTerm));
+
+        var paginatedResponse = await paginatedService.GetPaginatedAsync(
+            paginationParams,
+            filter,
+            orderBy: q => q.OrderBy(l => l.AppliedDate));
+
+        return paginatedResponse;
     }
 }
