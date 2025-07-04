@@ -28,7 +28,7 @@ public class AuthService(
     IUserAccountServices accountServices,
     ILogger<AuthService> logger,
     IMapper mapper)
-    : IAuthService
+    : BaseService(context), IAuthService
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
@@ -62,8 +62,9 @@ public class AuthService(
     {
         string hashedPassword = BCrypt.Net.BCrypt.HashPassword(userAccount.Password);
 
-        try
+        return await ExecuteTransactionAsync(async context =>
         {
+
             var newUser = new UserAccount
             {
                 UserName = userAccount.UserName,
@@ -76,17 +77,12 @@ public class AuthService(
             var createUser = await accountServices.AddAsync(newUser);
 
             return createUser;
-
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error creating user account: {ex.Message}", ex);
-        }
+        }, "Failed to create admin account");
     }
 
     public async Task<UserAccount> SignUpEmployee(CreateUser user)
     {
-        try
+        return await ExecuteTransactionAsync(async context =>
         {
             var employee = new UserAccount
             {
@@ -102,35 +98,31 @@ public class AuthService(
             };
 
             await context.UserAccounts.AddAsync(employee);
-            await context.SaveChangesAsync();
-
+            
             return employee;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error creating user account: {ex.Message}", ex);
-        }
-
+        }, "Failed to create employee account");
     }
 
     public async Task<UserAccount> SignUpOperator(CreateUserOperator user)
     {
-        var userAccount = new UserAccount
+        return await ExecuteTransactionAsync(async context =>
         {
-            UserName = user.UserName,
-            Email = user.Email,
-            Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
-            EmailVerified = false,
-            SmsVerified = false,
-            OrganizationId = null,
-            ChangePassword = false,
-            Role = "Operator"
-        };
+            var userAccount = new UserAccount
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
+                EmailVerified = false,
+                SmsVerified = false,
+                OrganizationId = null,
+                ChangePassword = false,
+                Role = "Operator"
+            };
 
-        await context.UserAccounts.AddAsync(userAccount);
-        await context.SaveChangesAsync();
+            await context.UserAccounts.AddAsync(userAccount);
 
-        return userAccount;
+            return userAccount;
+        }, "Failed to create operator account");
     }
 
     public async Task<bool> ChangePassword(string email, string password)
