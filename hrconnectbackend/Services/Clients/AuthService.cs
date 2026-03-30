@@ -32,16 +32,16 @@ public class AuthService(
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
-    public async Task<AuthResponse?> Signin(string email, string password, bool remember)
+    public async Task<AuthResponse> Signin(string email, string password, bool remember)
     {
-        var user = await context.UserAccounts.Include(a => a.Employee).FirstOrDefaultAsync(a => a.Email == email);
+        var user = await context.UserAccounts.Include(a => a.Employee).Include(a => a.Organization).FirstOrDefaultAsync(a => a.Email == email);
 
-        if (user == null) return null;
+        if (user == null) throw new UnauthorizedException(ErrorCodes.CredentialsNotFound, "User with this email not found.");
 
 
         if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
-            return null;
+            throw new UnauthorizedException(ErrorCodes.InvalidCredentials, "Invalid Password, please try again.");
         }
 
         var userDto = mapper.Map<UserAccountDto>(user);

@@ -12,6 +12,7 @@ public interface ISubscriptionServices
     Task<SubscriptionDto> GetSubscriptionByIdAsync(int subscriptionId);
     Task<IEnumerable<SubscriptionDto>> GetSubscriptionsByUserIdAsync(int userId);
     Task RecordUsageAsync(int subscriptionId, string resourceType, int quantity);
+    Task<SubscriptionDto> GetUserSubscription(int userId);
     Task<IEnumerable<SubscriptionDto>> GetExpiredSubscriptionsAsync();
     Task<IEnumerable<SubscriptionDto>> GetTrialEndingSubscriptionsAsync(int daysThreshold = 3);
 }

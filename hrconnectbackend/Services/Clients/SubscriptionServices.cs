@@ -1,4 +1,5 @@
-﻿using hrconnectbackend.Constants;
+﻿using AutoMapper;
+using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
 using hrconnectbackend.Interface.Services;
@@ -15,10 +16,13 @@ namespace hrconnectbackend.Services.Clients;
 public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServices
 {
     private readonly IEmailServices _notificationService;
-
-    public SubscriptionServices(DataContext context, IEmailServices notificationService) : base(context)
+    private readonly IUserAccountServices _userAccountServices;
+    private readonly IMapper _mapper;
+    public SubscriptionServices(DataContext context, IEmailServices notificationService, IUserAccountServices userAccountServices, IMapper mapper) : base(context)
     {
         _notificationService = notificationService;
+        _userAccountServices = userAccountServices;
+        _mapper = mapper;
     }
 
     public async Task<SubscriptionDto> CreateSubscriptionAsync(int organizationId, int planId, BillingCycle billingCycle, bool includeTrialPeriod = false)
@@ -212,4 +216,18 @@ public class SubscriptionServices : GenericRepository<Plan>, ISubscriptionServic
             .ToListAsync();
     }
 
+    public async Task<SubscriptionDto> GetUserSubscription(int OrganizationId)
+    {
+        var userSubscription = await _context.Subscriptions
+            .Where(a => a.IsActive)
+            .OrderByDescending(a => a.EndDate)
+            .FirstOrDefaultAsync();
+
+        if (userSubscription == null)
+        {
+            throw new NotFoundException(ErrorCodes.SubscriptionNotFound, "User don't have active subscription");
+        }
+
+        return _mapper.Map<SubscriptionDto>(userSubscription);
+    }
 }

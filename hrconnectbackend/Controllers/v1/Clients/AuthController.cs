@@ -9,8 +9,11 @@ using hrconnectbackend.Models.Response;
 using hrconnectbackend.Services.Clients;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
@@ -20,11 +23,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         IAuthService authService,
         ILogger<AuthController> logger,
         IOptions<JwtSettings> jwtSettings,
-        IUserAccountServices userAccountServices)
+        IUserAccountServices userAccountServices, IConnectionMultiplexer redis)
         : ControllerBase
     {
         private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-
+        private readonly IDatabase _redisDb = redis.GetDatabase();
         // Constructor with dependency injection
 
         [HttpPost("signin")]
@@ -38,12 +41,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
             {
                 logger.LogWarning("Invalid model state for signin attempt.");
                 throw new BadRequestException(ErrorCodes.InvalidRequestModel, "Your body request is invalid.");
-            }
-
-            if (auth == null)
-            {
-                logger.LogWarning("Invalid login or password for email: {Email}", signinBody.Email);
-                throw new UnauthorizedException(ErrorCodes.InvalidCredentials, "Invalid login or password.");
             }
 
             logger.LogInformation("Signin successful for email: {Email}", signinBody.Email);
@@ -79,17 +76,51 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpGet("session")]
         public async Task<IActionResult> AuthSession()
         {
-            var user = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (user == null)
+            if (string.IsNullOrEmpty(userIdClaim))
             {
                 logger.LogWarning("User not found in claims.");
                 return Unauthorized();
             }
 
-            var userAccount = await userAccountServices.GetByIdAsync(int.Parse(user));
+            var userId = int.Parse(userIdClaim);
 
-            return Ok(new SuccessResponse<UserAccount>(userAccount, "User account found"));
+            // Optionally, you could cache by userId only
+            var key = $"user_{userId}";
+
+            var cachedValue = await _redisDb.StringGetAsync(key);
+
+            UserAccount userAccount;
+
+            if (cachedValue.IsNullOrEmpty)
+            {
+                // Not in cache, fetch from DB
+                userAccount = await userAccountServices.GetByIdAsync(userId);
+
+                if (userAccount == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                var serialized = JsonSerializer.Serialize(userAccount);
+                await _redisDb.StringSetAsync(key, serialized, TimeSpan.FromMinutes(10));
+            }
+            else
+            {
+                // Use cached version
+                userAccount = JsonSerializer.Deserialize<UserAccount>(cachedValue)
+                              ?? throw new InvalidOperationException("Deserialization failed: cached value is null or invalid.");
+            }
+
+            return Ok(new SuccessResponse<object>(new
+            {
+                userAccount.UserId,
+                userAccount.UserName,
+                userAccount.Email,
+                userAccount.Role,
+                userAccount.OrganizationId
+            }, "User account found"));
         }
 
         [HttpPost("signup")]

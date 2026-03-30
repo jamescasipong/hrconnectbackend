@@ -44,8 +44,14 @@ namespace hrconnectbackend.Controllers.v1.Clients
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             };
-
-            var createdOrganization = await organizationServices.CreateOrganization(userIdInt, newOrg);
+            try
+            {
+                var createdOrganization = await organizationServices.CreateOrganization(userIdInt, newOrg);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to create organization", error = ex.Message });
+            }
 
             var user = await userAccountServices.GetByIdAsync(userIdInt);
 
@@ -115,21 +121,6 @@ namespace hrconnectbackend.Controllers.v1.Clients
 
         }
 
-        [Authorize]
-        [HttpGet("my-organization")]
-        public async Task<IActionResult> GetMyOrganization()
-        {
-            var organization = User.RetrieveSpecificUser("OrganizationId");
-
-            var organizationId = TypeConverter.StringToInt(organization);
-
-            var org = await organizationServices.GetByIdAsync(organizationId);
-
-            var mappedOrg = mapper.Map<OrganizationsDto>(org);
-
-            return Ok(new SuccessResponse<OrganizationsDto>(mappedOrg, $"Organization found"));
-        }
-
         [UserRole("Operator")]
         [HttpGet]
         public async Task<IActionResult> GetOrganizations()
@@ -139,6 +130,22 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var mappedOrgs = mapper.Map<List<OrganizationsDto>>(orgs);
 
             return Ok(new SuccessResponse<List<OrganizationsDto>>(mappedOrgs, $"Organizations retrieved successfully"));
+        }
+
+
+        [Authorize]
+        [HttpGet("my-organization")]
+        public async Task<IActionResult> GetMyOrganization()
+        {
+            var organization = User.RetrieveSpecificUser("organizationId");
+
+            var organizationId = TypeConverter.StringToInt(organization);
+
+            var org = await organizationServices.GetByIdAsync(organizationId);
+
+            var mappedOrg = mapper.Map<OrganizationsDto>(org);
+
+            return Ok(new SuccessResponse<OrganizationsDto>(mappedOrg, $"Organization found"));
         }
 
         [UserRole("Operator")]

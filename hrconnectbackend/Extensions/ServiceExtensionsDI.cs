@@ -30,6 +30,7 @@ namespace hrconnectbackend.Extensions
 
         public static void AddServices(this IServiceCollection services)
         {
+            services.AddScoped<ITransactionService, TransactionService>();
             // Interface Based Injections
             services.AddScoped<IEmployeeServices, EmployeeServices>();
             services.AddScoped<IAttendanceServices, AttendanceServices>();
@@ -39,7 +40,7 @@ namespace hrconnectbackend.Extensions
             services.AddScoped<IShiftServices, ShiftServices>();
             services.AddScoped<IUserAccountServices, UserAccountServices>();
             services.AddScoped<INotificationServices, NotificationServices>();
-            services.AddScoped<IUserSettingsServices, UserSettingServices>();
+            services.AddScoped<UserSettingServices>();
             services.AddScoped<IAttendanceCertificationServices, AttendanceServices>();
             services.AddScoped<ILeaveApplicationServices, LeaveApplicationServices>();
             services.AddScoped<IPayrollServices, PayrollServices>();

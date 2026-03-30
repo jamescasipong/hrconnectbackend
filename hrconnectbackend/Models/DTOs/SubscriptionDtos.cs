@@ -33,7 +33,6 @@
 
     public class CreateSubscriptionDto
     {
-        public int UserId { get; set; }
         public int PlanId { get; set; }
         public BillingCycle BillingCycle { get; set; }
         public bool IncludeTrialPeriod { get; set; }

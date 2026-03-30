@@ -29,7 +29,6 @@ namespace hrconnectbackend.Data
         public DbSet<AttendanceCertification> AttendanceCertifications { get; set; }  // Certifications for attendance
         public DbSet<LeaveBalance> LeaveBalances { get; set; }  // Leave balance records for employees
         public DbSet<UserSettings> UserSettings { get; set; }  // User settings configuration
-        public DbSet<EmailSigninSession> EmailSigninSessions { get; set; }  // Email sign-in sessions
         public DbSet<ResetPasswordSession> ResetPasswordSessions { get; set; }  // Reset password sessions
         public DbSet<Plan> Plans { get; set; }  // Subscription plan details
         public DbSet<Subscription> Subscriptions { get; set; }  // Subscriptions

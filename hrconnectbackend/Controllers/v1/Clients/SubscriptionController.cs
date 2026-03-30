@@ -1,12 +1,14 @@
 using hrconnectbackend.Constants;
 using hrconnectbackend.Data;
 using hrconnectbackend.Exceptions;
+using hrconnectbackend.Extensions;
 using hrconnectbackend.Interface.Services.Clients;
 using hrconnectbackend.Models.DTOs;
 using hrconnectbackend.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace hrconnectbackend.Controllers.v1.Clients
 {
@@ -52,9 +54,11 @@ namespace hrconnectbackend.Controllers.v1.Clients
         [HttpPost]
         public async Task<ActionResult<SubscriptionDto>> CreateSubscription(CreateSubscriptionDto model)
         {
+            var organizationID = User.FindFirst("organizationId")?.Value;
+            int ordID = int.TryParse(organizationID, out var parsedUserId) ? parsedUserId : 0;
 
             var subscription = await _subscriptionService.CreateSubscriptionAsync(
-                model.UserId,
+                ordID,
                 model.PlanId,
                 model.BillingCycle,
                 model.IncludeTrialPeriod);
@@ -69,6 +73,16 @@ namespace hrconnectbackend.Controllers.v1.Clients
             var subscription = await _subscriptionService.GetSubscriptionByIdAsync(id);
 
             return Ok(new SuccessResponse<SubscriptionDto>(subscription, "Subscription retrieved successfully"));
+        }
+
+        [HttpGet("my-subscription")]
+        public async Task<IActionResult> GetMySubscription()
+        {
+            var userID = int.Parse(User.RetrieveSpecificUser("organizationId"));
+
+            var userSubscription = await _subscriptionService.GetUserSubscription(userID);
+
+            return Ok(new SuccessResponse<SubscriptionDto>(userSubscription, "Subscription retrieved successfully"));
         }
 
         // POST: api/subscriptions/{id}/cancel

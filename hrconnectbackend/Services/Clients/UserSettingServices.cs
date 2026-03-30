@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace hrconnectbackend.Services.Clients
 {
     public class UserSettingServices(DataContext context)
-        : GenericRepository<UserSettings>(context), IUserSettingsServices
+        : GenericRepository<UserSettings>(context)
     {
         // Method to create default user settings
         public async Task CreateDefaultSettings(int employeeId)

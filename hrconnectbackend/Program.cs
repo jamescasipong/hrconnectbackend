@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,7 +33,11 @@ var apiVersioningBuilder = builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddCustomJwtBearer();
 builder.Services.AddCustomAuthorization();
-
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = builder.Configuration.GetConnectionString("Redis");
+    return ConnectionMultiplexer.Connect(configuration);
+});
 builder.Services.AddSession(options =>
     {
         options.IdleTimeout = TimeSpan.FromMinutes(30); // Set your session timeout duration

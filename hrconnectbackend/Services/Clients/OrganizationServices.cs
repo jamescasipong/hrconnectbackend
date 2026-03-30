@@ -11,15 +11,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace hrconnectbackend.Services.Clients;
 
-public class OrganizationServices(DataContext context) : GenericRepository<Organization>(context), IOrganizationServices
+public class OrganizationServices(DataContext context, ITransactionService transactionService) : GenericRepository<Organization>(context), IOrganizationServices
 {
     public async Task<Organization> CreateOrganization(int userId, Organization organization)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-
-        try
+        return await transactionService.ExecuteAsync(async () =>
         {
-            var userAccount = await _context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
+            var userAccount = await context.UserAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
             if (userAccount == null)
             {
                 throw new NotFoundException(ErrorCodes.UserNotFound, $"User account with id: {userId} does not exist.");
@@ -33,33 +31,15 @@ public class OrganizationServices(DataContext context) : GenericRepository<Organ
                 CreatedAt = organization.CreatedAt,
                 IsActive = organization.IsActive
             };
-            await _context.Organizations.AddAsync(newOrg);
-            await SaveChangesAsync();
+
+            await context.Organizations.AddAsync(newOrg);
+            await context.SaveChangesAsync(); // Needed to populate newOrg.Id
 
             userAccount.OrganizationId = newOrg.Id;
-            _context.Update(userAccount);
-            await SaveChangesAsync();
+            context.Update(userAccount);
 
             return newOrg;
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            await transaction.RollbackAsync();
-
-            throw new Exception($"Concurrency error: {ex.Message}", ex);
-        }
-        catch (DbUpdateException ex)
-        {
-            await transaction.RollbackAsync();
-
-            throw new Exception($"Database update error: {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-
-            throw new Exception($"An error occurred while creating the organization: {ex.Message}", ex);
-        }
+        });
     }
 
     public async Task<bool> UpdateOrganization(OrganizationsDto organization)

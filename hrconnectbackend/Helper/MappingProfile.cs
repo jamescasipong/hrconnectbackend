@@ -23,6 +23,7 @@ namespace hrconnectbackend.Helper
             Shift();
             CreateEmployeeDepartmentMappings();
             CreateOrganizationMapping();
+            CreateSubscriptionMapping();
         }
 
         private void Shift(){
@@ -135,6 +136,12 @@ namespace hrconnectbackend.Helper
         {
             CreateMap<Organization, OrganizationsDto>();
             CreateMap<OrganizationsDto, Organization>();
+        }
+
+        private void CreateSubscriptionMapping()
+        {
+            CreateMap<SubscriptionDto, Subscription>();
+            CreateMap<Subscription, SubscriptionDto>();
         }
     }
 }
